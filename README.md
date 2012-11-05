@@ -1,6 +1,7 @@
 THIS IS WORK IN PROGRESS!!!
 -----------------------------------------------------------------------------
 Open Badges Integration for Moodle
+
 Copyright (C) 2011-2012 Totara LMS (http://www.totaralms.com)
 
 This program is free software: you can redistribute it and/or modify it
@@ -15,7 +16,7 @@ more details.
 
 You should have received a copy of the GNU General Public License along with
 this program.  If not, see <http://www.gnu.org/licenses/>.
------------------------------------------------------------------------------
+
 
 Description
 -----------
