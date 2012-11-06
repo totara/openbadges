@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -24,67 +25,30 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
-require_once(dirname(dirname(__FILE__)) . '/config.php');
+require_once('../config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
-$type       = required_param('type', PARAM_INT);
-$courseid   = optional_param('id', 0, PARAM_INT);
-$page       = optional_param('page', 0, PARAM_INT);
-$activate   = optional_param('activate', 0, PARAM_INT);
-$deactivate = optional_param('lock', 0, PARAM_INT);
-$sortby     = optional_param('sort', 'name', PARAM_ALPHA);
-$sorthow    = optional_param('dir', 'ASC', PARAM_ALPHA);
-$confirm    = optional_param('confirm', false, PARAM_BOOL);
-$delete     = optional_param('delete', 0, PARAM_INT);
-$msg        = optional_param('msg', '', PARAM_TEXT);
+$type = required_param('type', PARAM_TEXT);
+$courseid = optional_param('id', 0, PARAM_INT);
 
-if (!in_array($sortby, array('name', 'status'))) {
-    $sortby = 'name';
-}
-
-if ($sorthow != 'ASC' and $sorthow != 'DESC') {
-    $sorthow = 'ASC';
-}
-
-if ($page < 0) {
-    $page = 0;
-}
-
-require_login();
-
-if (empty($CFG->enablebadges)) {
-    print_error('badgesdisabled', 'badges');
-}
-
-$err = '';
-$urlparams = array('sort' => $sortby, 'dir' => $sorthow, 'page' => $page);
-
+require_login($SITE);
 if ($course = $DB->get_record('course', array('id' => $courseid))) {
-    $urlparams['type'] = $type;
-    $urlparams['id'] = $course->id;
+    $PAGE->set_url('/badges/index.php', array('type' => $type, 'id' => $course->id));
 } else {
-    $urlparams['type'] = $type;
+    $PAGE->set_url('/badges/index.php', array('type' => $type));
 }
 
-$hdr = get_string('managebadges', 'badges');
-$returnurl = new moodle_url('/badges/index.php', $urlparams);
-$PAGE->set_url($returnurl);
+$title = get_string($type . 'badges','badges');
 
-if ($type == BADGE_TYPE_SITE) {
-    $title = get_string('sitebadges', 'badges');
+if ($type == 'site') {
     $PAGE->set_context(context_system::instance());
     $PAGE->set_pagelayout('admin');
-    $PAGE->set_heading($title . ': ' . $hdr);
-    navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_SITE)));
+    $PAGE->set_heading($title);
 } else {
     require_login($course);
-    $title = get_string('coursebadges', 'badges');
     $PAGE->set_context(context_course::instance($course->id));
     $PAGE->set_pagelayout('course');
-    $PAGE->set_heading($course->fullname . ': ' . $hdr);
-    navigation_node::override_active_url(
-        new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_COURSE, 'id' => $course->id))
-    );
+    $PAGE->set_heading($course->fullname . ": " . $title);
 }
 
 if (!has_any_capability(array(
@@ -152,43 +116,6 @@ if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context
 }
 
 echo $OUTPUT->header();
-if ($type == BADGE_TYPE_SITE) {
-    echo $OUTPUT->heading_with_help($PAGE->heading, 'sitebadges', 'badges');
-} else {
-    echo $OUTPUT->heading($PAGE->heading);
-}
-echo $OUTPUT->box('', 'notifyproblem hide', 'check_connection');
-
-$totalcount = count(badges_get_badges($type, $courseid, '', '' , '', ''));
-$records = badges_get_badges($type, $courseid, $sortby, $sorthow, $page, BADGE_PERPAGE);
-
-if ($totalcount) {
-    echo $output->heading(get_string('badgestoearn', 'badges', $totalcount), 4);
-
-    if ($course && $course->startdate > time()) {
-        echo $OUTPUT->box(get_string('error:notifycoursedate', 'badges'), 'generalbox notifyproblem');
-    }
-
-    if ($err !== '') {
-        echo $OUTPUT->notification($err, 'notifyproblem');
-    }
-
-    if ($msg !== '') {
-        echo $OUTPUT->notification($msg, 'notifysuccess');
-    }
-
-    $badges             = new badge_management($records);
-    $badges->sort       = $sortby;
-    $badges->dir        = $sorthow;
-    $badges->page       = $page;
-    $badges->perpage    = BADGE_PERPAGE;
-    $badges->totalcount = $totalcount;
-
-    echo $output->render($badges);
-} else {
-    echo $output->notification(get_string('nobadges', 'badges'));
-    echo $OUTPUT->single_button(new moodle_url('newbadge.php', array('type' => $type, 'id' => $courseid)),
-            get_string('newbadge', 'badges'));
-}
+echo $OUTPUT->heading(get_string('managebadges', 'badges'));
 
 echo $OUTPUT->footer();

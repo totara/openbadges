@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -24,83 +25,35 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
-require_once(dirname(dirname(__FILE__)) . '/config.php');
+require_once('../config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
-$type       = required_param('type', PARAM_INT);
-$courseid   = optional_param('id', 0, PARAM_INT);
-$sortby     = optional_param('sort', 'name', PARAM_ALPHA);
-$sorthow    = optional_param('dir', 'DESC', PARAM_ALPHA);
-$page       = optional_param('page', 0, PARAM_INT);
+$type = required_param('type', PARAM_TEXT);
+$courseid = optional_param('id', 0, PARAM_INT);
 
-require_login();
-
-if (empty($CFG->enablebadges)) {
-    print_error('badgesdisabled', 'badges');
-}
-
-if (!in_array($sortby, array('name', 'dateissued'))) {
-    $sortby = 'name';
-}
-
-if ($sorthow != 'ASC' && $sorthow != 'DESC') {
-    $sorthow = 'ACS';
-}
-
-if ($page < 0) {
-    $page = 0;
-}
-
+require_login($SITE);
 if ($course = $DB->get_record('course', array('id' => $courseid))) {
-    $PAGE->set_url('/badges/view.php', array('type' => $type, 'id' => $course->id, 'sort' => $sortby, 'dir' => $sorthow));
+    $PAGE->set_url('/badges/view.php', array('type' => $type, 'id' => $course->id));
 } else {
-    $PAGE->set_url('/badges/view.php', array('type' => $type, 'sort' => $sortby, 'dir' => $sorthow));
+    $PAGE->set_url('/badges/view.php', array('type' => $type));
 }
 
-if ($type == BADGE_TYPE_SITE) {
-    $title = get_string('sitebadges', 'badges');
+$title = get_string($type . 'badges','badges');
+
+if ($type == 'site') {
     $PAGE->set_context(context_system::instance());
     $PAGE->set_pagelayout('admin');
     $PAGE->set_heading($title);
 } else {
     require_login($course);
-    $title = $course->fullname . ': ' . get_string('coursebadges', 'badges');
     $PAGE->set_context(context_course::instance($course->id));
     $PAGE->set_pagelayout('course');
-    $PAGE->set_heading($title);
-
-    // Fix course navigation.
-    $PAGE->navbar->ignore_active();
-    $PAGE->navbar->add($course->shortname, new moodle_url('/course/view.php', array('id' => $course->id)));
-    $PAGE->navbar->add(get_string('coursebadges', 'badges'));
+    $PAGE->set_heading($course->fullname . ": " . $title);
 }
 
 $PAGE->set_title($title);
-$output = $PAGE->get_renderer('core', 'badges');
 
-echo $output->header();
-echo $OUTPUT->heading($title);
+echo $OUTPUT->header();
+//Calculate how many badges are available in the course/site
 
-$totalcount = count(badges_get_badges($type, $courseid, '', '', '', '', $USER->id));
-$records = badges_get_badges($type, $courseid, $sortby, $sorthow, $page, BADGE_PERPAGE, $USER->id);
-
-if ($totalcount) {
-    echo $output->heading(get_string('badgestoearn', 'badges', $totalcount), 4);
-
-    if ($course && $course->startdate > time()) {
-        echo $OUTPUT->box(get_string('error:notifycoursedate', 'badges'), 'generalbox notifyproblem');
-    }
-
-    $badges             = new badge_collection($records);
-    $badges->sort       = $sortby;
-    $badges->dir        = $sorthow;
-    $badges->page       = $page;
-    $badges->perpage    = BADGE_PERPAGE;
-    $badges->totalcount = $totalcount;
-
-    echo $output->render($badges);
-} else {
-    echo $output->notification(get_string('nobadges', 'badges'));
-}
-
-echo $output->footer();
+echo $OUTPUT->footer();

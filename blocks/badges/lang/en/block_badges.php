@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -23,8 +24,6 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
-$string['pluginname'] = 'My latest badges';
-$string['numbadgestodisplay'] = 'Number of latest badges to display';
+$string['pluginname'] = 'My badges';
+$string['numbadgestodisplay'] = 'Number of badges to display';
 $string['nothingtodisplay'] = 'You have no badges to display';
-$string['badges:addinstance'] = 'Add a new My latest badges block';
-$string['badges:myaddinstance'] = 'Add a new My latest badges block to the My Moodle page';

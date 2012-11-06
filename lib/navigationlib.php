@@ -2188,8 +2188,7 @@ class global_navigation extends navigation_node {
             $usernode->add(get_string('myfiles'), $url, self::TYPE_SETTING);
         }
 
-        if (!empty($CFG->enablebadges) && $iscurrentuser &&
-                has_capability('moodle/badges:manageownbadges', context_user::instance($USER->id))) {
+        if ($iscurrentuser && has_capability('moodle/badges:manageownbadges', $context)) {
             $url = new moodle_url('/badges/mybadges.php');
             $usernode->add(get_string('mybadges', 'badges'), $url, self::TYPE_SETTING);
         }
@@ -2498,8 +2497,8 @@ class global_navigation extends navigation_node {
         }
 
         //Badges
-        if (!empty($CFG->enablebadges) && has_capability('moodle/badges:viewbadges', $this->page->context)) {
-            $url = new moodle_url($CFG->wwwroot . '/badges/view.php', array('type' => 1));
+        if (has_capability('moodle/badges:viewbadges', $this->page->context)) {
+            $url = new moodle_url($CFG->wwwroot . '/badges/view.php', array('type' => 'site'));
             $coursenode->add(get_string('sitebadges', 'badges'), $url, navigation_node::TYPE_CUSTOM);
         }
 

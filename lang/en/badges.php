@@ -25,6 +25,7 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
+<<<<<<< HEAD
 $string['actions'] = 'Actions';
 $string['activate'] = 'Enable access';
 $string['activatesuccess'] = 'Access to the badges was successfully enabled.';
@@ -353,3 +354,44 @@ $string['viewbadge'] = 'View issued badge';
 $string['visible'] = 'Visible';
 $string['warnexpired'] = ' (This badge has expired!)';
 $string['year'] = 'Year(s)';
+=======
+//Admin settings
+$string['adminonly'] = 'This page is restricted to Site Administrators only';
+$string['coursebadges'] = 'Badges';
+$string['badgesettings'] = 'General settings';
+$string['managebadges'] = 'Manage badges';
+$string['mybadges'] = 'My badges';
+$string['sitebadges'] = 'Site badges';
+
+//Global settings
+$string['defaultissuername'] = 'Default badge issuer name';
+$string['defaultissuername_desc'] = 'Name of the issuing agent or authority.';
+$string['defaultissuerurl'] = 'Default badge issuer URL';
+$string['defaultissuerurl_desc'] = 'Origin of the issuer. This setting should be in form [protocol]://[host]:[port]';
+$string['defaultissuercontact'] = 'Default badge issuer contact details';
+$string['defaultissuercontact_desc'] = 'An email address associated with the badge issuer.';
+$string['allowexternalbackpack'] = 'Enable external backpacks connections';
+$string['allowexternalbackpack_desc'] = 'Allow users to set up connections and display badges from their external backpack providers.';
+$string['allowcoursebadges'] = 'Enable course badges';
+$string['allowcoursebadges_desc'] = 'Allow badges to be created and awarded in course context.';
+
+//MyBadges page strings
+$string['localbadges'] = 'Local Badges';
+$string['localbadges_help'] = 'Badges earned within this web site.';
+$string['externalbadges'] = 'External Backpack';
+$string['externalbadges_help'] = 'Connection setting and badges displayed from an external backpack provider';
+$string['visible'] = 'Visible';
+$string['hidden'] = 'Hidden';
+$string['expired'] = 'Expired';
+$string[''] = '';
+$string[''] = '';
+$string[''] = '';
+$string[''] = '';
+$string[''] = '';
+$string[''] = '';
+$string[''] = '';
+$string[''] = '';
+$string[''] = '';
+$string[''] = '';
+$string[''] = '';
+>>>>>>> Admin settings, navigation, and initial implementation outline
