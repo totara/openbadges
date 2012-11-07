@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -25,11 +24,20 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
-require_once('../config.php');
+require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
 $type = required_param('type', PARAM_TEXT);
 $courseid = optional_param('id', 0, PARAM_INT);
+$search  = optional_param('search', '', PARAM_CLEAN);
+$page = optional_param('page', 0, PARAM_INT);
+$perpage = optional_param('perpage', 20, PARAM_INT);
+$activate = optional_param('activate', 0, PARAM_INT);
+$deactivate = optional_param('deactivate', 0, PARAM_INT);
+$hide = optional_param('hide', 0, PARAM_INT);
+$show = optional_param('show', 0, PARAM_INT);
+$sort = optional_param('sort', 'name', PARAM_ALPHA);
+$dir  = optional_param('dir', 'asc', PARAM_ALPHA);
 
 require_login($SITE);
 if ($course = $DB->get_record('course', array('id' => $courseid))) {
@@ -38,7 +46,7 @@ if ($course = $DB->get_record('course', array('id' => $courseid))) {
     $PAGE->set_url('/badges/index.php', array('type' => $type));
 }
 
-$title = get_string($type . 'badges','badges');
+$title = get_string($type . 'badges', 'badges');
 
 if ($type == 'site') {
     $PAGE->set_context(context_system::instance());
@@ -118,4 +126,9 @@ if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managebadges', 'badges'));
 
+if (has_capability('moodle/badges:createbadge', $PAGE->context)) {
+    echo $OUTPUT->single_button(new moodle_url('/badges/edit.php', array('type' => $type)), get_string('newbadge', 'badges'));
+}
+
 echo $OUTPUT->footer();
+

@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -25,7 +24,7 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
-require_once('../config.php');
+require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
 require_login();
@@ -47,7 +46,7 @@ if ($action) {
 $PAGE->set_url($url);
 $PAGE->set_context($context);
 
-$title = get_string('mybadges','badges');
+$title = get_string('mybadges', 'badges');
 $PAGE->set_title($title);
 $PAGE->set_heading($title);
 $PAGE->set_pagelayout('mydashboard');
@@ -62,6 +61,6 @@ $output = $PAGE->get_renderer('core', 'badges');
 $badges = badges_get_user_badges($USER->id);
 
 echo $OUTPUT->header();
-//Show how many badges are already earned
+// Show how many badges are already earned.
 
 echo $OUTPUT->footer();
