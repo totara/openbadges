@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -27,13 +26,83 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-function get_user_badges($userid, $limitnum = null) {
+/**
+ * Gets full badge info for assertion URL
+ *
+ * @param string $hash
+ */
+function get_user_badges($userid, $limitnum = 0) {
     global $DB, $USER;
     $badges = array();
-    
-    $badges = $DB->get_records('badge_issued', array('userid' => $userid), 'dateissued DESC', '*', $limitnum);
+
+    $badges = $DB->get_records_sql('
+            SELECT
+                bi.dateissue,
+                bi.dateexpire,
+                u.email,
+                b.*
+            FROM
+                {badge} b,
+                {badge_issued} bi,
+                {user} u
+            WHERE b.id = bi.badgeid
+                AND u.id = bi.userid
+                AND bi.userid = ?
+            ORDER BY bi.dateissue DESC',
+            array($userid), 0, $limitnum);
 
     return $badges;
+}
+
+/**
+ * Get issued badge details for assertion URL
+ *
+ * @param string $hash
+ */
+function get_issued_badge_info($hash) {
+    global $DB, $CFG;
+
+    $a = array();
+
+    $record = $DB->get_record_sql('
+            SELECT
+                bi.dateissue,
+                bi.dateexpire,
+                u.email,
+                b.*
+            FROM
+                {badge} b,
+                {badge_issued} bi,
+                {user} u
+            WHERE b.id = bi.badgeid
+                AND u.id = bi.userid
+                AND bi.uniquehash = ?',
+            array($hash), IGNORE_MISSING);
+
+    if ($record) {
+        // Recipient's email is hashed: <algorithm>$<hash(email + salt)>.
+        $a['recipient'] = 'sha256$' . hash('sha256', $record->email . $CFG->badges_badgesalt);
+        $a['salt'] = $CFG->badges_badgesalt;
+
+        if ($record->dateexpire) {
+            $a['expires'] = date('Y-m-d', $record->dateexpire);
+        }
+
+        $a['issued_on'] = date('Y-m-d', $record->dateissue);
+        $a['evidence'] = new moodle_url('/badges/badge.php', array('b' => $hash)); //URL
+        $a['badge'] = array();
+        $a['badge']['version'] = '0.5.0'; //Version of OBI specification, 0.5.0 - current beta.
+        $a['badge']['name'] = $record->name;
+        $a['badge']['image'] = ''; // Image URL
+        $a['badge']['description'] = $record->description;
+        $a['badge']['criteria'] = new moodle_url('/badges/badge.php', array('b' => $hash)); //URL
+        $a['badge']['issuer'] = array();
+        $a['badge']['issuer']['origin'] = $record->issuerurl;
+        $a['badge']['issuer']['name'] = $record->issuername;
+        $a['badge']['issuer']['contact'] = $record->issuercontact;
+    }
+
+    return $a;
 }
 
 /**
@@ -55,16 +124,16 @@ function badges_add_course_navigation(navigation_node $coursenode, $course) {
             $url = new moodle_url($CFG->wwwroot . '/badges/view.php',
                     array('type' => 'course', 'id' => $course->id));
 
-            $coursenode->add(get_string('coursebadges','badges'), $url,
+            $coursenode->add(get_string('coursebadges', 'badges'), $url,
                     navigation_node::TYPE_CONTAINER, null, 'coursebadges',
-                    new pix_icon('i/badge', get_string('coursebadges','badges')));
+                    new pix_icon('i/badge', get_string('coursebadges', 'badges')));
 
             if (has_capability('moodle/badges:createbadge', $coursecontext) ||
                 has_capability('moodle/badges:viewawarded', $coursecontext)) {
                 $url = new moodle_url($CFG->wwwroot . '/badges/index.php',
                         array('type' => 'course', 'id' => $course->id));
-                
-                $coursenode->get('coursebadges')->add(get_string('managebadges','badges'), $url,
+
+                $coursenode->get('coursebadges')->add(get_string('managebadges', 'badges'), $url,
                     navigation_node::TYPE_SETTING, null, 'coursebadges');
             }
         }

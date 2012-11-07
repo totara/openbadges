@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -37,19 +36,29 @@ class block_badges extends block_base {
         $this->title = get_string('pluginname', 'block_badges');
     }
 
-    function instance_allow_multiple() {
+    public function instance_allow_multiple() {
         return true;
     }
 
-    function has_config() {
+    public function has_config() {
         return false;
     }
 
-    function instance_allow_config() {
+    public function instance_allow_config() {
         return true;
     }
 
-    function specialization() {
+    public function applicable_formats() {
+        return array(
+                'admin' => false,
+                'site-index' => true,
+                'course-view' => false,
+                'mod' => false,
+                'my' => true
+        );
+    }
+
+    public function specialization() {
         if (empty($this->config->title)) {
             $this->title = get_string('pluginname', 'block_badges');
         } else {
@@ -58,9 +67,9 @@ class block_badges extends block_base {
     }
 
     public function get_content() {
-        global $USER;
+        global $USER, $PAGE;
 
-        if ($this->content !== NULL) {
+        if ($this->content !== null) {
             return $this->content;
         }
 
@@ -68,24 +77,25 @@ class block_badges extends block_base {
             $this->config = new stdClass();
         }
 
+        // Number of badges to display.
         if (empty($this->config->numberofbadges)) {
-            $limit = 10;
-        } else if ($this->config->numberofbadges == 0) {
-            $limit = null;
-        } else {
-            $limit = $this->config->numberofbadges;
+            $this->config->numberofbadges = 10;
         }
 
-        // Create empty content
+        // Size of badges.
+        if (empty($this->config->badgesize)) {
+            $this->config->badgesize = 'medium';
+        }
+
+        // Create empty content.
         $this->content = new stdClass();
         $this->content->text = '';
 
-        if ($badges = get_user_badges($USER->id, $limit)) {
-            foreach ($badges as $badge) {
-                $this->content->text = '';
-            }
+        if ($badges = get_user_badges($USER->id, $this->config->numberofbadges)) {
+            $output = $PAGE->get_renderer('core', 'badges');
+            $this->content->text = $output->display_badges_list($badges, $this->config->badgesize);
         } else {
-            $this->content->text = get_string('nothingtodisplay', 'block_badges');
+            $this->content->text .= get_string('nothingtodisplay', 'block_badges');
         }
 
         return $this->content;

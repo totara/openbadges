@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -25,7 +24,7 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
-require_once('../config.php');
+require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
 $type = required_param('type', PARAM_TEXT);
@@ -38,7 +37,7 @@ if ($course = $DB->get_record('course', array('id' => $courseid))) {
     $PAGE->set_url('/badges/view.php', array('type' => $type));
 }
 
-$title = get_string($type . 'badges','badges');
+$title = get_string($type . 'badges', 'badges');
 
 if ($type == 'site') {
     $PAGE->set_context(context_system::instance());
@@ -54,6 +53,6 @@ if ($type == 'site') {
 $PAGE->set_title($title);
 
 echo $OUTPUT->header();
-//Calculate how many badges are available in the course/site
+// Calculate how many badges are available in the course/site.
 
 echo $OUTPUT->footer();

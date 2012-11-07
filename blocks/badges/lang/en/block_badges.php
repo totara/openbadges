@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -27,3 +26,9 @@
 $string['pluginname'] = 'My badges';
 $string['numbadgestodisplay'] = 'Number of badges to display';
 $string['nothingtodisplay'] = 'You have no badges to display';
+$string['badgesizetodisplay'] = 'Size of badges to display';
+
+// Badges size.
+$string['small'] = 'Small';
+$string['medium'] = 'Medium';
+$string['large'] = 'Large';

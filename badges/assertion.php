@@ -15,16 +15,22 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version details
+ * Serve assertion JSON by unique hash of issued badge
  *
- * @package    block_badges
+ * @package    core
+ * @subpackage badges
  * @copyright  2012 onwards Totara Learning Solutions Ltd {@link http://www.totaralms.com/}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
-defined('MOODLE_INTERNAL') || die();
+require_once(dirname(dirname(__FILE__)) . '/config.php');
+require_once($CFG->libdir . '/badgeslib.php');
 
-$plugin->version   = 2012110600;        // The current plugin version (Date: YYYYMMDDXX).
-$plugin->requires  = 2012061700;        // Requires this Moodle version.
-$plugin->component = 'block_badges';
+$hash = required_param('b', PARAM_ALPHANUM);
+
+$badge = get_issued_badge_info($hash);
+
+header('Content-type: application/json; charset=utf-8');
+
+echo json_encode($badge);

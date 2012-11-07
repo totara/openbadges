@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -36,5 +35,13 @@ class block_badges_edit_form extends block_edit_form {
         $mform->addElement('select', 'config_numberofbadges', get_string('numbadgestodisplay', 'block_badges'), $numberofbadges);
         $mform->setDefault('config_numberofbadges', 10);
 
+        $badgesize = array(
+                'small' => get_string('small', 'block_badges'),
+                'medium' => get_string('medium', 'block_badges'),
+                'large' => get_string('large', 'block_badges')
+        );
+
+        $mform->addElement('select', 'config_badgesize', get_string('badgesizetodisplay', 'block_badges'), $badgesize);
+        $mform->setDefault('config_badgesize', 'medium');
     }
 }

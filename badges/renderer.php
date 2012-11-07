@@ -15,16 +15,34 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version details
+ * Renderer for use with the badges output
  *
- * @package    block_badges
+ * @package    core
+ * @subpackage badges
  * @copyright  2012 onwards Totara Learning Solutions Ltd {@link http://www.totaralms.com/}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
-defined('MOODLE_INTERNAL') || die();
+/**
+ * Standard HTML output renderer for badges
+ */
+class core_badges_renderer extends plugin_renderer_base {
 
-$plugin->version   = 2012110600;        // The current plugin version (Date: YYYYMMDDXX).
-$plugin->requires  = 2012061700;        // Requires this Moodle version.
-$plugin->component = 'block_badges';
+    // Outputs list in of badges in grid-like view.
+    public function display_badges_list($badges, $size = 'meduim') {
+        $items = array();
+
+        foreach ($badges as $badge) {
+            $attributes = array();
+            $attributes['class'] = 'badge-icon-' . $size;
+            $attributes['alt'] = $badge->name;
+            $attributes['src'] = ''; //get file here
+            $items[] = html_writer::empty_tag('img', $attributes);
+        }
+
+        $output = html_writer::alist($items, array('id' => 'badges-list'));
+
+        return $output;
+    }
+}

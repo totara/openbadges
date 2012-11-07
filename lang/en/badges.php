@@ -25,7 +25,7 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
-//Admin settings
+// Admin settings.
 $string['adminonly'] = 'This page is restricted to Site Administrators only';
 $string['coursebadges'] = 'Badges';
 $string['badgesettings'] = 'General settings';
@@ -33,19 +33,21 @@ $string['managebadges'] = 'Manage badges';
 $string['mybadges'] = 'My badges';
 $string['sitebadges'] = 'Site badges';
 
-//Global settings
+// Global settings.
 $string['defaultissuername'] = 'Default badge issuer name';
 $string['defaultissuername_desc'] = 'Name of the issuing agent or authority.';
 $string['defaultissuerurl'] = 'Default badge issuer URL';
 $string['defaultissuerurl_desc'] = 'Origin of the issuer. This setting should be in form [protocol]://[host]:[port]';
 $string['defaultissuercontact'] = 'Default badge issuer contact details';
 $string['defaultissuercontact_desc'] = 'An email address associated with the badge issuer.';
+$string['defaultbadgesalt'] = 'Default salt for constructing hash of the recepient\'s email address';
+$string['defaultbadgesalt_desc'] = 'Using hash allows backpack services to confirm the badge earner without having to expose their email address. This setting can consist of numbers and letters only.';
 $string['allowexternalbackpack'] = 'Enable external backpacks connections';
 $string['allowexternalbackpack_desc'] = 'Allow users to set up connections and display badges from their external backpack providers.';
 $string['allowcoursebadges'] = 'Enable course badges';
 $string['allowcoursebadges_desc'] = 'Allow badges to be created and awarded in course context.';
 
-//MyBadges page strings
+// MyBadges page strings.
 $string['localbadges'] = 'Local Badges';
 $string['localbadges_help'] = 'Badges earned within this web site.';
 $string['externalbadges'] = 'External Backpack';
@@ -53,7 +55,9 @@ $string['externalbadges_help'] = 'Connection setting and badges displayed from a
 $string['visible'] = 'Visible';
 $string['hidden'] = 'Hidden';
 $string['expired'] = 'Expired';
-$string[''] = '';
+
+// Badge editing/creating strings.
+$string['newbadge'] = 'Add badge';
 $string[''] = '';
 $string[''] = '';
 $string[''] = '';
