@@ -32,7 +32,15 @@ if ($hassiteconfig) {
             new admin_externalpage('managebadges',
                     new lang_string('managebadges', 'badges'),
                     new moodle_url($CFG->wwwroot . '/badges/index.php', array('type' => 'site')),
-                    array('moodle/badges:manageglobalsettings')
+                    array('moodle/badges:viewawarded')
+            )
+    );
+
+    $ADMIN->add('badges',
+            new admin_externalpage('newbadge',
+                    new lang_string('newbadge', 'badges'),
+                    new moodle_url($CFG->wwwroot . '/badges/newbadge.php', array('type' => 'site')),
+                    array('moodle/badges:createbadge')
             )
     );
 

@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Page for badges management
+ * First step page for creating a new badge
  *
  * @package    core
  * @subpackage badges
@@ -29,45 +29,26 @@ require_once($CFG->libdir . '/badgeslib.php');
 
 $type = required_param('type', PARAM_TEXT);
 $courseid = optional_param('id', 0, PARAM_INT);
-$search  = optional_param('search', '', PARAM_CLEAN);
-$page = optional_param('page', 0, PARAM_INT);
-$perpage = optional_param('perpage', 20, PARAM_INT);
-$activate = optional_param('activate', 0, PARAM_INT);
-$deactivate = optional_param('lock', 0, PARAM_INT);
-$hide = optional_param('hide', 0, PARAM_INT);
-$show = optional_param('show', 0, PARAM_INT);
-$sort = optional_param('sort', 'name', PARAM_ALPHA);
-$dir  = optional_param('dir', 'asc', PARAM_ALPHA);
 
-require_login($SITE);
-if ($course = $DB->get_record('course', array('id' => $courseid))) {
-    $PAGE->set_url('/badges/index.php', array('type' => $type, 'id' => $course->id));
-} else {
-    $PAGE->set_url('/badges/index.php', array('type' => $type));
-}
+require_login();
 
-$title = get_string($type . 'badges', 'badges');
+$title = get_string('create', 'badges');
 
-if ($type == 'site') {
-    $PAGE->set_context(context_system::instance());
-    $PAGE->set_pagelayout('admin');
-    $PAGE->set_heading($title);
-} else {
+if (($type == 'course') && ($course = $DB->get_record('course', array('id' => $courseid)))) {
     require_login($course);
     $PAGE->set_context(context_course::instance($course->id));
     $PAGE->set_pagelayout('course');
+    $PAGE->set_url('/badges/newbadge.php', array('type' => $type, 'id' => $course->id));
     $PAGE->set_heading($course->fullname . ": " . $title);
+} else {
+    $PAGE->set_context(context_system::instance());
+    $PAGE->set_pagelayout('admin');
+    $PAGE->set_url('/badges/newbadge.php', array('type' => $type));
+    $PAGE->set_heading($title);
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('managebadges', 'badges'));
+echo $OUTPUT->heading($title);
 
-if (has_capability('moodle/badges:createbadge', $PAGE->context)) {
-    $params = array();
-    $params['type'] = $type;
-    $params['id'] = $courseid ? $courseid : null;
-
-    echo $OUTPUT->single_button(new moodle_url('/badges/newbadge.php', $params), get_string('newbadge', 'badges'), 'GET');
-}
 
 echo $OUTPUT->footer();
