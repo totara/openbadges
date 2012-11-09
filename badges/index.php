@@ -33,7 +33,7 @@ $search  = optional_param('search', '', PARAM_CLEAN);
 $page = optional_param('page', 0, PARAM_INT);
 $perpage = optional_param('perpage', 20, PARAM_INT);
 $activate = optional_param('activate', 0, PARAM_INT);
-$deactivate = optional_param('deactivate', 0, PARAM_INT);
+$deactivate = optional_param('lock', 0, PARAM_INT);
 $hide = optional_param('hide', 0, PARAM_INT);
 $show = optional_param('show', 0, PARAM_INT);
 $sort = optional_param('sort', 'name', PARAM_ALPHA);
@@ -127,7 +127,11 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managebadges', 'badges'));
 
 if (has_capability('moodle/badges:createbadge', $PAGE->context)) {
-    echo $OUTPUT->single_button(new moodle_url('/badges/edit.php', array('type' => $type)), get_string('newbadge', 'badges'));
+    $params = array();
+    $params['type'] = $type;
+    $params['id'] = $courseid ? $courseid : null;
+
+    echo $OUTPUT->single_button(new moodle_url('/badges/newbadge.php', $params), get_string('newbadge', 'badges'), 'GET');
 }
 
 echo $OUTPUT->footer();

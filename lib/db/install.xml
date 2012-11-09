@@ -3147,16 +3147,14 @@
     </TABLE>
     <TABLE NAME="badge_criteria_met" COMMENT="Defines criteria that were met for an issued badge" PREVIOUS="badge_issued" NEXT="badge_backpack">
       <FIELDS>
-        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" NEXT="issuedid"/>
-        <FIELD NAME="issuedid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="id" NEXT="critid"/>
-        <FIELD NAME="critid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="issuedid" NEXT="userid"/>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" NEXT="critid"/>
+        <FIELD NAME="critid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="id" NEXT="userid"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="critid" NEXT="datemet"/>
         <FIELD NAME="datemet" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="userid"/>
       </FIELDS>
       <KEYS>
-        <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="fk_badgeid"/>
-        <KEY NAME="fk_badgeid" TYPE="foreign" FIELDS="issuedid" REFTABLE="badge_issued" REFFIELDS="id" NEXT="fk_critid" PREVIOUS="primary"/>
-        <KEY NAME="fk_critid" TYPE="foreign" FIELDS="critid" REFTABLE="badge_criteria" REFFIELDS="id" PREVIOUS="fk_badgeid" NEXT="fk_userid"/>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="fk_critid"/>
+        <KEY NAME="fk_critid" TYPE="foreign" FIELDS="critid" REFTABLE="badge_criteria" REFFIELDS="id" PREVIOUS="primary" NEXT="fk_userid"/>
         <KEY NAME="fk_userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id" PREVIOUS="fk_critid"/>
       </KEYS>
     </TABLE>

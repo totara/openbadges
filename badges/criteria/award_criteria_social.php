@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This file contains the activity badge award criteria type class
+ * This file contains the social activity badge award criteria type class
  *
  * @package    core
  * @subpackage badges

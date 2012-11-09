@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This file contains the activity badge award criteria type class
+ * Badge awards information
  *
  * @package    core
  * @subpackage badges
@@ -24,4 +24,24 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
-defined('MOODLE_INTERNAL') || die();
+require_once(dirname(dirname(__FILE__)) . '/config.php');
+require_once($CFG->libdir . '/badgeslib.php');
+
+$badgeid = required_param('id', PARAM_INT);
+
+require_login($SITE);
+
+$context = context_system::instance();
+
+$PAGE->set_context($context);
+$PAGE->set_url('/badges/awards.php');
+$PAGE->set_pagelayout('standard');
+
+echo $OUTPUT->header();
+
+$output = $PAGE->get_renderer('core', 'badges');
+$output->print_badge_tabs($badgeid, $context, 'awards');
+
+$output->print_awarded_table($badgeid);
+
+echo $OUTPUT->footer();

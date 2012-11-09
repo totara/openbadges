@@ -37,12 +37,63 @@ class core_badges_renderer extends plugin_renderer_base {
             $attributes = array();
             $attributes['class'] = 'badge-icon-' . $size;
             $attributes['alt'] = $badge->name;
-            $attributes['src'] = ''; //get file here
+            $attributes['src'] = ''; // Get file here.
             $items[] = html_writer::empty_tag('img', $attributes);
         }
 
         $output = html_writer::alist($items, array('id' => 'badges-list'));
 
         return $output;
+    }
+
+    // Prints a table of users who earned the badge.
+    public function print_awarded_table($badgeid) {
+        $table = new html_table();
+
+        return $table;
+    }
+
+    public function print_badge_tabs($badgeid, $context, $current = 'overview') {
+        global $CFG, $DB;
+
+        $tabs = $row = array();
+
+        $row[] = new tabobject('overview',
+                    new moodle_url('/badges/overview.php', array('id' => $badgeid)),
+                    get_string('boverview', 'badges')
+                );
+
+        if (has_capability('moodle/badges:configuredetails', $context)) {
+            $row[] = new tabobject('details',
+                        new moodle_url('/badges/edit.php', array('id' => $badgeid, 'action' => 'details')),
+                        get_string('bdetails', 'badges')
+                    );
+        }
+
+        if (has_capability('moodle/badges:configurecriteria', $context)) {
+            $row[] = new tabobject('criteria',
+                        new moodle_url('/badges/edit.php', array('id' => $badgeid, 'action' => 'criteria')),
+                        get_string('bcriteria', 'badges')
+                    );
+        }
+
+        if (has_capability('moodle/badges:configuremessages', $context)) {
+            $row[] = new tabobject('message',
+                        new moodle_url('/badges/edit.php', array('id' => $badgeid, 'action' => 'message')),
+                        get_string('bmessage', 'badges')
+                    );
+        }
+
+        if (has_capability('moodle/badges:viewawarded', $context)) {
+            $awarded = $DB->count_records('badge_issued', array('badgeid' => $badgeid));
+            $row[] = new tabobject('awards',
+                        new moodle_url('/badges/awards.php', array('id' => $badgeid)),
+                        get_string('bawards', 'badges', $awarded)
+                    );
+        }
+
+        $tabs[] = $row;
+
+        print_tabs($tabs, $current);
     }
 }

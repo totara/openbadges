@@ -386,12 +386,13 @@ $string['hidden'] = 'Hidden';
 $string['expired'] = 'Expired';
 
 // Badge editing/creating strings.
-$string['newbadge'] = 'Add badge';
-$string[''] = '';
-$string[''] = '';
-$string[''] = '';
-$string[''] = '';
-$string[''] = '';
+$string['create'] = 'New badge';
+$string['newbadge'] = 'Add a new badge';
+$string['boverview'] = 'Overview';
+$string['bdetails'] = 'Edit details';
+$string['bcriteria'] = 'Criteria';
+$string['bmessage'] = 'Message';
+$string['bawards'] = 'Awards ({$a})';
 $string[''] = '';
 $string[''] = '';
 $string[''] = '';

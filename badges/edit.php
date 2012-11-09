@@ -141,6 +141,20 @@ if ($errormsg !== '') {
 echo $output->print_badge_status_box($badge);
 $output->print_badge_tabs($badgeid, $context, $action);
 
+$context = context_system::instance();
+
+$PAGE->set_context($context);
+$PAGE->set_url('/badges/overview.php');
+$PAGE->set_pagelayout('standard');
+
+echo $OUTPUT->header();
+
+$output = $PAGE->get_renderer('core', 'badges');
+$output->print_badge_tabs($badgeid, $context, $action);
+
+$form_class = 'edit_' . $action . '_form';
+$form = new $form_class();
+
 $form->display();
 
 echo $OUTPUT->footer();
