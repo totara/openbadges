@@ -91,7 +91,7 @@ class edit_details_form extends moodleform {
 }
 
 /**
- * Form to edit badge details.
+ * Form to edit badge criteria.
  *
  */
 class edit_criteria_form extends moodleform {
@@ -133,7 +133,7 @@ class edit_criteria_form extends moodleform {
 }
 
 /**
- * Form to edit badge details.
+ * Form to edit badge message.
  *
  */
 class edit_message_form extends moodleform {

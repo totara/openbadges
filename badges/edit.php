@@ -37,21 +37,11 @@ if (empty($CFG->enablebadges)) {
     print_error('badgesdisabled', 'badges');
 }
 
+$context = context_system::instance();
 $badge = new badge($badgeid);
-$context = $badge->get_context();
-$navurl = new moodle_url('/badges/index.php', array('type' => $badge->type));
-
-require_capability('moodle/badges:configuredetails', $context);
-
-if ($badge->type == BADGE_TYPE_COURSE) {
-    require_login($badge->courseid);
-    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->type, 'id' => $badge->courseid));
-}
-
-$currenturl = new moodle_url('/badges/edit.php', array('id' => $badge->id, 'action' => $action));
 
 $PAGE->set_context($context);
-$PAGE->set_url($currenturl);
+$PAGE->set_url('/badges/edit.php', array('id' => $badgeid, 'action' => $action));
 $PAGE->set_pagelayout('standard');
 $PAGE->set_heading($badge->name);
 $PAGE->set_title($badge->name);
@@ -148,6 +138,7 @@ $PAGE->set_url('/badges/overview.php');
 $PAGE->set_pagelayout('standard');
 
 echo $OUTPUT->header();
+echo $OUTPUT->heading($badge->name . ': ' . get_string('b' . $action, 'badges'));
 
 $output = $PAGE->get_renderer('core', 'badges');
 $output->print_badge_tabs($badgeid, $context, $action);

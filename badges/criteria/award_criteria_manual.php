@@ -25,3 +25,36 @@
  */
 
 defined('MOODLE_INTERNAL') || die();
+
+/**
+ * Manual badge award criteria
+ *
+ */
+class award_criteria_manual extends award_criteria {
+
+    /* @var int Criteria [BADGE_CRITERIA_TYPE_MANUAL] */
+    public $criteriatype = BADGE_CRITERIA_TYPE_MANUAL;
+
+    public function __construct($record) {
+
+    }
+
+    /**
+     * Add appropriate form elements to the critiria form
+     *
+     * @param moodleform $mform  Moodle forms object
+     * @param stdClass $data details of various modules
+     */
+    public function config_form_display(&$mform, $data = null) {
+
+    }
+
+    /**
+     * Return criteria title
+     *
+     * @return string
+     */
+    public function get_title() {
+        return "";
+    }
+}

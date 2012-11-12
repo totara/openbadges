@@ -385,16 +385,31 @@ $string['visible'] = 'Visible';
 $string['hidden'] = 'Hidden';
 $string['expired'] = 'Expired';
 
+// Badge details.
+$string['badgedetails'] = 'Badge details';
+$string['issuerdetails'] = 'Issuer details';
+$string['issuancedetails'] = 'Issuance details';
+$string['expiredate'] = 'This badge expires on {$a}.';
+$string['expireperiod'] = 'This badge expires {$a} day(s) after being earned.';
+$string[''] = '';
+$string[''] = '';
+
 // Badge editing/creating strings.
+$string['awards'] = 'Awards';
+$string['bawards'] = 'Awards ({$a})';
+$string['bcriteria'] = 'Criteria';
+$string['bdetails'] = 'Edit details';
+$string['bmessage'] = 'Message';
+$string['boverview'] = 'Overview';
 $string['create'] = 'New badge';
 $string['newbadge'] = 'Add a new badge';
-$string['boverview'] = 'Overview';
-$string['bdetails'] = 'Edit details';
-$string['bcriteria'] = 'Criteria';
-$string['bmessage'] = 'Message';
-$string['bawards'] = 'Awards ({$a})';
-$string[''] = '';
-$string[''] = '';
-$string[''] = '';
-$string[''] = '';
-$string[''] = '';
+$string['noawards'] = 'This badge has not been earned yet.';
+$string['nocriteria'] = 'Criteria for this badge have not been set up yet.';
+$string['numawards'] = 'This badge has been earned by {$a} user(s).';
+$string['noexpiry'] = 'This badge does not have an expiry date.';
+
+// Error messages.
+$string['error:setter'] = 'Field {$a->field} was not found in class {$s->class} ';
+$string['error:save'] = 'Cannot save the badge.';
+$string['error:nosuchbadge'] = 'Badge with id {$a} does not exist.';
+$string['error:invalidcriteriatype'] = 'Invalid criteria type.';

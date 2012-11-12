@@ -25,3 +25,36 @@
  */
 
 defined('MOODLE_INTERNAL') || die();
+
+/**
+ * Badge award criteria -- award on activity completion
+ *
+ */
+class award_criteria_activity extends award_criteria {
+
+    /* @var int Criteria [BADGE_CRITERIA_TYPE_ACTIVITY] */
+    public $criteriatype = BADGE_CRITERIA_TYPE_ACTIVITY;
+
+    public function __construct($record) {
+        //@TODO
+    }
+
+    /**
+     * Add appropriate form elements to the criteria form
+     *
+     * @param moodleform $mform  Moodle forms object
+     * @param stdClass $data details of various modules
+     */
+    public function config_form_display(&$mform, $data = null) {
+        //@TODO
+    }
+
+    /**
+     * Return criteria title
+     *
+     * @return string
+     */
+    public function get_title() {
+        return "";
+    }
+}

@@ -24,6 +24,8 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
+require_once($CFG->libdir . '/badgeslib.php');
+
 /**
  * Standard HTML output renderer for badges
  */
@@ -46,13 +48,70 @@ class core_badges_renderer extends plugin_renderer_base {
         return $output;
     }
 
-    // Prints a table of users who earned the badge.
-    public function print_awarded_table($badgeid) {
+    // Prints a table of users who have earned the badge.
+    public function print_awarded_table($badges) {
         $table = new html_table();
 
         return $table;
     }
 
+    // Prints a table of users who have earned the badge.
+    public function print_badge_overview($badge, $context) {
+        global $OUTPUT;
+        $display = "";
+
+        // Badge details.
+        $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
+        $display .= html_writer::tag('legend', get_string('badgedetails','badges'), array('class' => 'bold'));
+
+        $display .= html_writer::end_tag('fieldset');
+
+        // Issuer details.
+        $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
+        $display .= html_writer::tag('legend', get_string('issuerdetails','badges'), array('class' => 'bold'));
+        //@TODO
+        $display .= html_writer::end_tag('fieldset');
+
+        // Issuance details if any.
+        $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
+        $display .= html_writer::tag('legend', get_string('issuancedetails','badges'), array('class' => 'bold'));
+        if ($badge->can_expire()) {
+            if ($badge->expiredate) {
+                $display .= get_string('expiredate', 'badges', userdate($badge->expiredate));
+            } else if ($badge->expireperiod) {
+                $display .= get_string('expireperiod', 'badges');
+            }
+        } else {
+            $display .= get_string('noexpiry', 'badges');
+        }
+        $display .= html_writer::end_tag('fieldset');
+
+        // Criteria details if any.
+        $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
+        $display .= html_writer::tag('legend', get_string('bcriteria','badges'), array('class' => 'bold'));
+        if ($badge->has_criteria()) {
+            $display .= '';
+        } else {
+            $display .= get_string('nocriteria', 'badges');
+        }
+        $display .= html_writer::end_tag('fieldset');
+
+        // Awards details if any.
+        if (has_capability('moodle/badges:viewawarded', $context)) {
+            $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
+            $display .= html_writer::tag('legend', get_string('awards','badges'), array('class' => 'bold'));
+            if ($badge->has_awards()) {
+                $display .= get_string('numawards', 'badges', count($badge->awards));
+            } else {
+                $display .= get_string('noawards', 'badges');
+            }
+            $display .= html_writer::end_tag('fieldset');
+        }
+
+        return $display;
+    }
+
+    // Prints tabs for badge editing.
     public function print_badge_tabs($badgeid, $context, $current = 'overview') {
         global $CFG, $DB;
 
