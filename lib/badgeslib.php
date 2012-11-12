@@ -26,6 +26,9 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+/* Include required award criteria library. */
+require_once($CFG->dirroot . '/badges/criteria/award_criteria.php');
+
 /*
  * Badge award criteria aggregation method.
  */
@@ -49,16 +52,16 @@ define('BADGE_STATUS_INACTIVE', 0);
 define('BADGE_STATUS_ACTIVE', 1);
 
 /*
- * Active badge means that it can be earned and has already been awarded to users.
- * Its criteria cannot be changed any more.
- */
-define('BADGE_STATUS_ACTIVE_LOCKED', 2);
-
-/*
  * Inactive badge can no longer be earned, but it has been awarded in the past and
  * therefore its criteria cannot be changed.
  */
-define('BADGE_STATUS_INACTIVE_LOCKED', 3);
+define('BADGE_STATUS_INACTIVE_LOCKED', 2);
+
+/*
+ * Active badge means that it can be earned and has already been awarded to users.
+* Its criteria cannot be changed any more.
+*/
+define('BADGE_STATUS_ACTIVE_LOCKED', 3);
 
 /*
  * Archived badge is considered deleted and can no longer be earned and is not
@@ -72,18 +75,108 @@ define('BADGE_STATUS_ARCHIVED', 4);
  */
 class badge {
     /** @var int Badge id */
-    public $bid;
+    protected $id;
+
+    /** Values from the table 'badge' */
+    protected $name;
+    protected $description;
+    protected $visible;
+    protected $timecreated;
+    protected $timemodified;
+    protected $usermodified;
+    protected $image;
+    protected $issuername;
+    protected $issuerurl;
+    protected $issuercontact;
+    protected $expiredate;
+    protected $expireperiod;
+    protected $context;
+    protected $courseid;
+    protected $message;
+    protected $attachment;
+    protected $notification;
+    protected $status = 0;
 
     /** @var array Badge criteria */
-    private $criteria;
+    protected $criteria = array();
 
+    /** @var array Badge awards */
+    protected $awards = array();
     /**
      * Constructs with badge details.
      *
-     * @param stdClass $course Moodle course object.
+     * @param int $badgeid badge ID.
      */
     public function __construct($badgeid) {
-        $this->bid = $badgeid;
+        global $DB;
+        $this->id = $badgeid;
+
+        $data = $DB->get_record('badge', array('id' => $badgeid));
+
+        if (empty($data)) {
+            print_error('error:nosuchbadge', 'badges', $badgeid);
+        }
+
+        foreach ((array)$data as $field => $value) {
+            if (property_exists($this, $field)) {
+                $this->{$field} = $value;
+            }
+        }
+
+        $this->awards = array();
+        $this->criteria = self::get_criteria();
+    }
+
+    /**
+     * Badge property getter.
+     * @param string $key
+     * @return mixed value
+     */
+    public function __get($key) {
+        if (property_exists($this, $key)) {
+            return $this->$key;
+        }
+    }
+
+    /**
+     * Badge property setter.
+     * Does not save to database. Use save() to save changes.
+     *
+     * @param string $key
+     * @param mixed $value
+     * @return object $this
+     */
+    public function __set($property, $value) {
+        if (property_exists($this, $property)) {
+            $this->$property = $value;
+            $this->timemodified = time();
+            return $this;
+        }
+        print_error('error:setter', 'badges', array('field' => $field, 'class' => get_class($this)));
+    }
+
+    /**
+     * Save/update badge information in 'badge' table only.
+     * Cannot be used for updating awards and criteria settings.
+     *
+     * @return bool Returns true on success.
+     */
+    public function save() {
+        global $DB;
+
+        $fordb = new stdClass();
+        foreach (get_object_vars($this) as $k => $v) {
+            $fordb->{$k} = $v;
+        }
+        unset($fordb->awards);
+        unset($fordb->criteria);
+
+        if ($DB->update_record('badge', $fordb)) {
+            return true;
+        } else {
+            print_error('error:save', 'badges');
+            return false;
+        }
     }
 
     /**
@@ -93,21 +186,22 @@ class badge {
      * @return bool A status indicating badge is active
      */
     public function is_active() {
-
-        return true;
+        if (($this->status == BADGE_STATUS_ACTIVE) ||
+            ($this->status == BADGE_STATUS_ACTIVE_LOCKED)) {
+            return true;
+        }
+        return false;
     }
 
     /**
-     * Use to mark the badge as active or inactive.
-     * Possible status: BADGE_STATUS_ACTIVE or BADGE_STATUS_ACTIVE_LOCKED.
-     * Only active badges can be earned/awarded.
+     * Use to set badge status.
+     * Only active badges can be earned/awarded/issued.
      *
-     * @param bool $status If set to false, makes badge inactive (optional)
-     * @return bool Returns true on success.
+     * @param int $status from BADGE_STATUS constants
      */
-    public function set_active($status = true) {
-
-        return true;
+    public function set_status($status = 0) {
+        $this->status = $status;
+        $this->save();
     }
 
     /**
@@ -117,8 +211,11 @@ class badge {
      * @return bool A status indicating badge is locked
      */
     public function is_locked() {
-
-        return true;
+        if (($this->status == BADGE_STATUS_ACTIVE_LOCKED) ||
+                ($this->status == BADGE_STATUS_INACTIVE_LOCKED)) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -128,8 +225,10 @@ class badge {
      * @return bool A status indicating badge has been awarded at least once
      */
     public function has_awards() {
-
-        return true;
+        if (count($this->awards) > 0) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -138,8 +237,37 @@ class badge {
      * @return array An array of users (id) who have earned the badge
      */
     public function get_awards() {
+        return $this->awards;
+    }
 
-        return array();
+    /**
+     * Issue a badge to user.
+     *
+     */
+    public function issue($userid) {
+        global $DB;
+
+        $now = time();
+        $issued = new stdClass();
+        $issued->badgeid = $this->id;
+        $issued->userid = $userid;
+        $issued->uniquehash = sha1(rand() . $userid . $this->id . $now);
+        $issued->dateissued = $now;
+
+        if ($this->can_expire()) {
+            $issued->dateexpire = $this->calculate_expiry($now);
+        } else {
+            $issued->dateexpire = null;
+        }
+
+        // Issued badges always being issued as private.
+        $issued->visible = 0;
+
+        $result = $DB->insert_record('badge_issued', $issued, true);
+
+        if ($result) {
+            notify_badge_award();
+        }
     }
 
     /**
@@ -148,8 +276,10 @@ class badge {
      * @return bool A status indicating badge has at least one criterion
      */
     public function has_criteria() {
-
-        return true;
+        if (count($this->criteria) > 0) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -158,20 +288,76 @@ class badge {
      * @return array An array of badge criteria
      */
     public function get_criteria() {
+        global $DB;
+        $criteria = array();
 
-        return array();
+        if ($records = (array)$DB->get_records('badge_criteria', array('badgeid' => $this->id))) {
+            foreach ($records as $record) {
+                $criteria[$record->id] = award_criteria::build((array)$record);
+            }
+        }
+
+        return $criteria;
+    }
+
+    /**
+     * Get aggregation method for badge criteria
+     *
+     * @param int $criteriatype If none supplied, get overall aggregation method (optional)
+     * @return int One of BADGE_CRITERIA_AGGREGATION_ALL or BADGE_CRITERIA_AGGREGATION_ANY
+     */
+    public function get_aggregation_method($criteriatype = 0) {
+        global $DB;
+        $params = array('badgeid' => $this->id, 'criteriatype' => $criteriatype);
+
+        $aggregation = $DB->get_record('badge_criteria', $params, IGNORE_MULTIPLE);
+
+        // If this criteria doesn't have aggregation method, return null.
+        if (!$aggregation->method) {
+            return null;
+        }
+
+        return $aggregation->method;
+    }
+
+    /**
+     * Checks if badge has expiry period or date set up.
+     *
+     * @return bool A status indicating badge can expire
+     */
+    public function can_expire() {
+        if ($this->expireperiod || $this->expiredate) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Calculates badge expiry date based on either expirydate or expiryperiod.
+     *
+     * @param int $timestamp Time of badge issue
+     * @return int A timestamp
+     */
+    public function calculate_expiry($timestamp) {
+        $expiry = null;
+
+        if (isset($this->expirydate)) {
+            $expiry = $this->expirydate;
+        } else if (isset($this->expiryperiod)) {
+            $expiry = $timestamp + $this->expiryperiod * 24 * 60 * 60;
+        }
+
+        return $expiry;
     }
 
     /**
      * Marks the badge as archived.
      * For reporting and historical purposed we cannot completely delete badges.
      * We will just change their status to BADGE_STATUS_ARCHIVED.
-     *
-     * @return bool Returns true on success.
      */
     public function delete() {
-
-        return true;
+        $this->status = BADGE_STATUS_ARCHIVED;
+        $this->save();
     }
 }
 

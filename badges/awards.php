@@ -31,17 +31,27 @@ $badgeid = required_param('id', PARAM_INT);
 
 require_login($SITE);
 
+$badge = new badge($badgeid);
 $context = context_system::instance();
 
 $PAGE->set_context($context);
-$PAGE->set_url('/badges/awards.php');
+$PAGE->set_url('/badges/awards.php', array('id' => $badgeid));
 $PAGE->set_pagelayout('standard');
+$PAGE->set_heading($badge->name);
 
 echo $OUTPUT->header();
+echo $OUTPUT->heading($badge->name . ': ' . get_string('awards', 'badges'));
 
 $output = $PAGE->get_renderer('core', 'badges');
 $output->print_badge_tabs($badgeid, $context, 'awards');
 
-$output->print_awarded_table($badgeid);
+var_dump($badge);
+
+if ($badge->has_awards()) {
+    $output->print_awarded_table($badge->awards);
+}
+else {
+    echo $OUTPUT->notification(get_string('noawards', 'badges'));
+}
 
 echo $OUTPUT->footer();

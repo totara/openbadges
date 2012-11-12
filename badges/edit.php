@@ -32,13 +32,17 @@ $badgeid = required_param('id', PARAM_INT);
 $action = optional_param('action', 'details', PARAM_TEXT);
 
 require_login();
+
 $context = context_system::instance();
+$badge = new badge($badgeid);
 
 $PAGE->set_context($context);
-$PAGE->set_url('/badges/overview.php');
+$PAGE->set_url('/badges/edit.php', array('id' => $badgeid, 'action' => $action));
 $PAGE->set_pagelayout('standard');
+$PAGE->set_heading($badge->name);
 
 echo $OUTPUT->header();
+echo $OUTPUT->heading($badge->name . ': ' . get_string('b' . $action, 'badges'));
 
 $output = $PAGE->get_renderer('core', 'badges');
 $output->print_badge_tabs($badgeid, $context, $action);
