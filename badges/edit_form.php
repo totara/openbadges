@@ -28,19 +28,116 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/formslib.php');
 require_once($CFG->libdir . '/badgeslib.php');
+require_once($CFG->libdir . '/filelib.php');
 
 /**
  * Form to edit badge details.
  *
  */
 class edit_details_form extends moodleform {
-    protected function definition() {
-        $mform = $this->_form;
 
+    /**
+     * Defines the form
+     */
+    protected function definition() {
+        global $CFG, $OUTPUT;
+
+        $mform = $this->_form;
+        $badge = (isset($this->_customdata['badge'])) ? $this->_customdata['badge'] : false;
+        $action = $this->_customdata['action'];
+
+        $mform->addElement('header', 'badgedetails', get_string('badgedetails', 'badges'));
+        $mform->addElement('text', 'name', get_string('name'), array('size' => '70'));
+        $mform->setType('name', PARAM_NOTAGS);
+        $mform->addRule('name', null, 'required', null, 'client');
+        $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
+
+        $mform->addElement('textarea', 'description', get_string('description', 'badges'), 'wrap="virtual" rows="10" cols="70"');
+
+        $mform->addElement('advcheckbox', 'visible', get_string('visible', 'badges'), '', null, array(0, 1));
+        $mform->setDefault('visible', true);
+        $mform->addHelpButton('visible', 'visible', 'badges');
+
+        $imageoptions = array('subdirs' => false, 'maxfiles' => 1, 'accepted_types' => array('*.png'),
+                'maxbytes' => '262144');
+        $mform->addElement('filemanager', 'image', get_string('badgeimage', 'badges'), null, $imageoptions);
+        $mform->addRule('image', null, 'required', null, 'client', true);
+        $mform->addHelpButton('image', 'badgeimage', 'badges');
+
+        $mform->addElement('header', 'issuerdetails', get_string('issuerdetails', 'badges'));
+
+        $mform->addElement('text', 'issuername', get_string('name'), array('size' => '70'));
+        $mform->setType('issuerurl', PARAM_NOTAGS);
+        $mform->addRule('issuername', null, 'required');
+        $mform->setDefault('issuername', $CFG->badges_defaultissuername);
+        $mform->addHelpButton('issuername', 'issuername', 'badges');
+
+        $mform->addElement('text', 'issuerurl', get_string('url'), array('size' => '70'));
+        $mform->setType('issuerurl', PARAM_URL);
+        $mform->setDefault('issuerurl', $CFG->badges_defaultissuerurl);
+        $mform->addRule('issuerurl', null, 'required');
+        $mform->addHelpButton('issuerurl', 'issuerurl', 'badges');
+
+        $mform->addElement('text', 'issuercontact', get_string('contact', 'badges'), array('size' => '70'));
+        $mform->setDefault('issuercontact', $CFG->badges_defaultissuercontact);
+        $mform->setType('issuercontact', PARAM_EMAIL);
+        $mform->addRule('issuercontact', null, 'email');
+        $mform->addHelpButton('issuercontact', 'contact', 'badges');
+
+        $mform->addElement('header', 'issuancedetails', get_string('issuancedetails', 'badges'));
+
+        $issuancedetails = array();
+        $issuancedetails[] =& $mform->createElement('radio', 'expiry', '', get_string('never', 'badges'), 0);
+        $issuancedetails[] =& $mform->createElement('static', 'none_break', null, '<br/><br/>');
+        $issuancedetails[] =& $mform->createElement('radio', 'expiry', '', get_string('fixed', 'badges'), 1);
+        $issuancedetails[] =& $mform->createElement('date_selector', 'expirydate', '');
+        $issuancedetails[] =& $mform->createElement('static', 'expirydate_break', null, '<br/><br/>');
+        $issuancedetails[] =& $mform->createElement('radio', 'expiry', '', get_string('relative', 'badges'), 2);
+        $issuancedetails[] =& $mform->createElement('duration', 'expiryvalue', '', array('defaultunit' => 86400, 'optional' => false));
+        $issuancedetails[] =& $mform->createElement('static', 'expiryperiods_break', null, get_string('after', 'badges'));
+
+        $mform->addGroup($issuancedetails, 'expirydategr', get_string('expirydate', 'badges'), array(' '), false);
+        $mform->addHelpButton('expirydategr', 'expirydate', 'badges');
+        $mform->setDefault('expiry', 0);
+        $mform->disabledIf('expirydate[day]', 'expiry', 'neq', 1);
+        $mform->disabledIf('expirydate[month]', 'expiry', 'neq', 1);
+        $mform->disabledIf('expirydate[year]', 'expiry', 'neq', 1);
+        $mform->disabledIf('expiryvalue[number]', 'expiry', 'neq', 2);
+        $mform->disabledIf('expiryvalue[timeunit]', 'expiry', 'neq', 2);
+
+        if ($action == 'new') {
+            $this->add_action_buttons(true, get_string('createbutton', 'badges'));
+        } else {
+            // Add hidden fields.
+            $mform->addElement('hidden', 'id', $badge->id);
+            $mform->setType('id', PARAM_INT);
+
+            $mform->addElement('hidden', 'action', $action);
+            $mform->setType('action', PARAM_TEXT);
+
+            $this->add_action_buttons();
+        }
     }
 
+    public function set_data($data) {
+        return parent::set_data($data);
+    }
+
+    /**
+     * Validates form data
+     */
     public function validation($data, $files) {
+        $errors = array();
         $errors = parent::validation($data, $files);
+
+        $url = parse_url($data['issuerurl']);
+        if (isset($url['path']) || isset($url['query']) || isset($url['pass']) || isset($url['user'])) {
+            $scheme   = isset($url['scheme']) ? $url['scheme'] . '://' : '';
+            $host     = isset($url['host']) ? $url['host'] : '';
+            $port     = isset($url['port']) ? ':' . $url['port'] : '';
+            $suggest = "$scheme$host$port";
+            $errors['url'] = get_string('error:invalidbadgeurl', 'badges', $suggest);
+        }
 
         return $errors;
     }
@@ -52,7 +149,18 @@ class edit_details_form extends moodleform {
  */
 class edit_criteria_form extends moodleform {
     protected function definition() {
+        global $CFG, $OUTPUT;
+
         $mform = $this->_form;
+        $badge = $this->_customdata['badge'];
+        $action = $this->_customdata['action'];
+
+        // Add hidden fields.
+        $mform->addElement('hidden', 'id', $badge->id);
+        $mform->setType('id', PARAM_INT);
+
+        $mform->addElement('hidden', 'action', $action);
+        $mform->setType('action', PARAM_TEXT);
 
     }
 
@@ -69,8 +177,44 @@ class edit_criteria_form extends moodleform {
  */
 class edit_message_form extends moodleform {
     protected function definition() {
-        $mform = $this->_form;
+        global $CFG, $OUTPUT;
 
+        $mform = $this->_form;
+        $badge = $this->_customdata['badge'];
+        $action = $this->_customdata['action'];
+
+        // Add hidden fields.
+        $mform->addElement('hidden', 'id', $badge->id);
+        $mform->setType('id', PARAM_INT);
+
+        $mform->addElement('hidden', 'action', $action);
+        $mform->setType('action', PARAM_TEXT);
+
+        $mform->addElement('header', 'badgemessage', get_string('configuremessage', 'badges'));
+        $mform->addHelpButton('badgemessage', 'variablesubstitution', 'badges');
+
+        $mform->addElement('text', 'messagesubject', get_string('subject', 'badges'), array('size' => '70'));
+        $mform->setType('messagesubject', PARAM_TEXT);
+        $mform->addRule('messagesubject', null, 'required');
+        $mform->addRule('messagesubject', get_string('maximumchars', '', 255), 'maxlength', 255);
+        $mform->setDefault('messagesubject', $badge->messagesubject);
+
+        $mform->addElement('textarea', 'message', get_string('message', 'badges'), 'wrap="virtual" rows="20" cols="70"');
+        $mform->setType('message', PARAM_CLEANHTML);
+        $mform->addRule('message', null, 'required');
+        $mform->setDefault('message', $badge->message);
+
+        $mform->addElement('advcheckbox', 'attachment', get_string('attachment', 'badges'), '', null, array(0, 1));
+        $mform->setDefault('attachment', $badge->attachment);
+        $mform->addHelpButton('attachment', 'attachment', 'badges');
+
+        if ($badge->context == 2) {
+            $mform->addElement('advcheckbox', 'notification', get_string('notification', 'badges'), '', null, array(0, 1));
+            $mform->setDefault('notification', $badge->notification);
+            $mform->addHelpButton('notification', 'notification', 'badges');
+        }
+
+        $this->add_action_buttons();
     }
 
     public function validation($data, $files) {

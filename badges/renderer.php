@@ -57,7 +57,6 @@ class core_badges_renderer extends plugin_renderer_base {
 
     // Prints a table of users who have earned the badge.
     public function print_badge_overview($badge, $context) {
-        global $OUTPUT;
         $display = "";
 
         // Badge details.
@@ -79,7 +78,7 @@ class core_badges_renderer extends plugin_renderer_base {
             if ($badge->expiredate) {
                 $display .= get_string('expiredate', 'badges', userdate($badge->expiredate));
             } else if ($badge->expireperiod) {
-                $display .= get_string('expireperiod', 'badges');
+                $display .= get_string('expireperiod', 'badges', $badge->expireperiod / 60 / 60 / 24);
             }
         } else {
             $display .= get_string('noexpiry', 'badges');
@@ -109,6 +108,27 @@ class core_badges_renderer extends plugin_renderer_base {
         }
 
         return $display;
+    }
+
+    // Prints action buttons available for the badge.
+    public function print_badge_overview_actions($badge, $context) {
+        // Options: delete, activate/deactivate, duplicate
+        global $OUTPUT;
+        $actions = "";
+
+        if (has_capability('moodle/badges:deletebadge', $context)) {
+            $actions .= $OUTPUT->single_button(new moodle_url('/badges/'), get_string('duplicate'));
+        }
+
+        if (has_capability('moodle/badges:configurecriteria', $context)) {
+            $actions .= $OUTPUT->single_button(new moodle_url('/badges/'), get_string('duplicate'));
+        }
+
+        if (has_capability('moodle/badges:createbadge', $context)) {
+            $actions .= $OUTPUT->single_button(new moodle_url('/badges/'), get_string('duplicate'));
+        }
+
+        return $actions;
     }
 
     // Prints tabs for badge editing.

@@ -31,12 +31,22 @@ $badgeid = required_param('id', PARAM_INT);
 
 require_login();
 
-$context = context_system::instance();
 $badge = new badge($badgeid);
+if ($badge->context == 1) {
+    $context = context_system::instance();
+    navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => 'site')));
+} else {
+    require_login($badge->courseid);
+    $context = context_course::instance($badge->courseid);
+    navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => 'course', 'id' => $badge->courseid)));
+}
 
 $PAGE->set_context($context);
 $PAGE->set_url('/badges/overview.php', array('id' => $badgeid));
 $PAGE->set_pagelayout('standard');
+$PAGE->set_heading($badge->name);
+$PAGE->set_title($badge->name);
+$PAGE->navbar->add($badge->name);
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading($badge->name . ': ' . get_string('boverview', 'badges'));
@@ -44,5 +54,6 @@ echo $OUTPUT->heading($badge->name . ': ' . get_string('boverview', 'badges'));
 $output = $PAGE->get_renderer('core', 'badges');
 $output->print_badge_tabs($badgeid, $context, 'overview');
 echo $output->print_badge_overview($badge, $context);
+echo $output->print_badge_overview_actions($badge, $context);
 
 echo $OUTPUT->footer();

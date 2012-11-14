@@ -69,6 +69,16 @@ define('BADGE_STATUS_ACTIVE_LOCKED', 3);
  */
 define('BADGE_STATUS_ARCHIVED', 4);
 
+/*
+ * Badge type for site badges.
+ */
+define('BADGE_TYPE_SITE', 1);
+
+/*
+ * Badge type for course badges.
+ */
+define('BADGE_TYPE_COURSE', 2);
+
 /**
  * Class that represents badge.
  *
@@ -93,6 +103,7 @@ class badge {
     protected $context;
     protected $courseid;
     protected $message;
+    protected $messagesubject;
     protected $attachment;
     protected $notification;
     protected $status = 0;
@@ -266,7 +277,7 @@ class badge {
         $result = $DB->insert_record('badge_issued', $issued, true);
 
         if ($result) {
-            notify_badge_award();
+            notify_badge_award($result);
         }
     }
 
@@ -344,7 +355,7 @@ class badge {
         if (isset($this->expirydate)) {
             $expiry = $this->expirydate;
         } else if (isset($this->expiryperiod)) {
-            $expiry = $timestamp + $this->expiryperiod * 24 * 60 * 60;
+            $expiry = $timestamp + $this->expiryperiod;
         }
 
         return $expiry;
@@ -359,6 +370,15 @@ class badge {
         $this->status = BADGE_STATUS_ARCHIVED;
         $this->save();
     }
+}
+
+/**
+ * Sends notifications to users about awarded badges.
+ *
+ * @param int $issuedid ID of issued badge
+ */
+function notify_badge_award($issuedid) {
+
 }
 
 /**
