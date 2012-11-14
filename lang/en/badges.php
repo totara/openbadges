@@ -366,7 +366,7 @@ $string['sitebadges'] = 'Site badges';
 $string['defaultissuername'] = 'Default badge issuer name';
 $string['defaultissuername_desc'] = 'Name of the issuing agent or authority.';
 $string['defaultissuerurl'] = 'Default badge issuer URL';
-$string['defaultissuerurl_desc'] = 'Origin of the issuer. This setting should be in form [protocol]://[host]:[port]';
+$string['defaultissuerurl_desc'] = 'Origin of the issuer. This setting should be in form &lt;protocol>://&lt;host>:&lt;port>';
 $string['defaultissuercontact'] = 'Default badge issuer contact details';
 $string['defaultissuercontact_desc'] = 'An email address associated with the badge issuer.';
 $string['defaultbadgesalt'] = 'Default salt for constructing hash of the recepient\'s email address';
@@ -390,26 +390,95 @@ $string['badgedetails'] = 'Badge details';
 $string['issuerdetails'] = 'Issuer details';
 $string['issuancedetails'] = 'Issuance details';
 $string['expiredate'] = 'This badge expires on {$a}.';
-$string['expireperiod'] = 'This badge expires {$a} day(s) after being earned.';
-$string[''] = '';
+$string['expireperiod'] = 'This badge expires {$a} day(s) after being issued.';
 $string[''] = '';
 
 // Badge editing/creating strings.
+$string['after'] = 'after date of issue.';
 $string['awards'] = 'Awards';
+$string['attachment'] = 'Attachment';
 $string['bawards'] = 'Awards ({$a})';
+$string['badgeimage'] = 'Image';
 $string['bcriteria'] = 'Criteria';
 $string['bdetails'] = 'Edit details';
 $string['bmessage'] = 'Message';
+$string['configuremessage'] = 'Configure badge message';
 $string['boverview'] = 'Overview';
+$string['contact'] = 'Contact';
 $string['create'] = 'New badge';
+$string['createbutton'] = 'Create badge';
+$string['day'] = 'Day(s)';
+$string['description'] = 'Description';
+$string['expirydate'] = 'Expiry date';
+$string['fixed'] = 'Fixed date';
+$string['issuername'] = 'Issuer name';
+$string['issuerurl'] = 'Issuer URL';
+$string['message'] = 'Message body';
+$string['month'] = 'Month(s)';
+$string['never'] = 'Never (default)';
 $string['newbadge'] = 'Add a new badge';
 $string['noawards'] = 'This badge has not been earned yet.';
 $string['nocriteria'] = 'Criteria for this badge have not been set up yet.';
 $string['numawards'] = 'This badge has been earned by {$a} user(s).';
 $string['noexpiry'] = 'This badge does not have an expiry date.';
+$string['relative'] = 'Relative date';
+$string['subject'] = 'Message subject';
+$string['visible'] = 'Visible';
+$string['year'] = 'Year(s)';
+
+// Default badge message.
+$string['messagebody'] = 'Based on the following achievement(s):
+
+%criterialist%
+
+you have been awarded a badge %badgename%!
+
+More infromation about this badge can be found at %badgelink%.
+
+If there is no badge attached to this email, you can manage and download it from {$a} page.';
+
+$string['messagesubject'] = 'Congratulations! You just earned a badge!';
+
+// Help text for elements.
+$string['attachment_help'] = 'If this \'Attachment\' is checked, an issued badge will be attached to the recepient\'s email for download';
+$string['contact_help'] = 'An email address associated with the badge issuer.';
+$string['expirydate_help'] = 'Visible';
+$string['badgeimage_help'] = 'This image will be used when badge is issued. There are several requirements around badge images:
+
+* Images should be **square** (recommended dimensions are 90 x 90 pixels).
+
+* Image file should have PNG extension and not exceed **256kb**.
+
+* Only **one** file at a time can be used as a badge image.';
+
+$string['issuerurl_help'] = 'Origin of the issuer.
+
+This setting should be in form &lt;protocol>://&lt;host>:&lt;port>.';
+
+$string['issuername_help'] = 'Name of the issuing agent or authority.';
+$string['notification'] = 'Notify badge creator';
+$string['notification_help'] = 'If the \'Notify badge creator\' box is checked, the badge creator will also be sent a notification about the badge issue.';
+$string['variablesubstitution'] = 'Variable substitution in messages.';
+$string['variablesubstitution_help'] = 'In a badge message, certain variables can be inserted into the subject and/or body of a message so that they will be replaced with real values when the message is sent. The variables should be inserted into the the text exactly as they are shown below. The following variables can be used:
+
+%badgename%
+:   This will be replaced by the badge\'s full name.
+
+%username%
+:   This will be replaced by the recipient\'s full name.
+
+%badgelink%
+:   This will be replaced by the public URL with information about the issued badge.
+
+%criterialist%
+:   This will be replaced by the list of completed criteria for issued badge.';
+$string['visible_help'] = 'This setting indicates whether badge is visible to its potential earners.
+
+If this checkbox is checked and the badge is active, users will be able to see the badge in the list of site or course badges.';
 
 // Error messages.
 $string['error:setter'] = 'Field {$a->field} was not found in class {$s->class} ';
 $string['error:save'] = 'Cannot save the badge.';
 $string['error:nosuchbadge'] = 'Badge with id {$a} does not exist.';
 $string['error:invalidcriteriatype'] = 'Invalid criteria type.';
+$string['error:invalidbadgeurl'] = 'Invalid badge issuer URL format. If it is possible, try using {$a}';

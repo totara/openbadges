@@ -3078,8 +3078,9 @@
         <FIELD NAME="expireperiod" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" PREVIOUS="expiredate" NEXT="context"/>
         <FIELD NAME="context" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="1 = site, 2 = course" PREVIOUS="expireperiod" NEXT="courseid"/>
         <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" PREVIOUS="context" NEXT="message"/>
-        <FIELD NAME="message" TYPE="text" NOTNULL="true" SEQUENCE="false" PREVIOUS="courseid" NEXT="attachment"/>
-        <FIELD NAME="attachment" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Attach baked badge for download" PREVIOUS="message" NEXT="notification"/>
+        <FIELD NAME="message" TYPE="text" NOTNULL="true" SEQUENCE="false" PREVIOUS="courseid" NEXT="messagesubject"/>
+        <FIELD NAME="messagesubject" TYPE="text" NOTNULL="true" SEQUENCE="false" PREVIOUS="message" NEXT="attachment"/>
+        <FIELD NAME="attachment" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Attach baked badge for download" PREVIOUS="messagesubject" NEXT="notification"/>
         <FIELD NAME="notification" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Message when badge is awarded" PREVIOUS="attachment" NEXT="status"/>
         <FIELD NAME="status" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Badge status: 0 = inactive, 1 = active, 2 = active+locked, 3 = inactive+locked, 4 = archived" PREVIOUS="notification"/>
       </FIELDS>
@@ -3147,15 +3148,17 @@
     </TABLE>
     <TABLE NAME="badge_criteria_met" COMMENT="Defines criteria that were met for an issued badge" PREVIOUS="badge_issued" NEXT="badge_backpack">
       <FIELDS>
-        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" NEXT="critid"/>
-        <FIELD NAME="critid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="id" NEXT="userid"/>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" NEXT="issuedid"/>
+        <FIELD NAME="issuedid" TYPE="int" LENGTH="10" NOTNULL="false" PREVIOUS="id" NEXT="critid"/>
+        <FIELD NAME="critid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="issuedid" NEXT="userid"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="critid" NEXT="datemet"/>
         <FIELD NAME="datemet" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="userid"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="fk_critid"/>
         <KEY NAME="fk_critid" TYPE="foreign" FIELDS="critid" REFTABLE="badge_criteria" REFFIELDS="id" PREVIOUS="primary" NEXT="fk_userid"/>
-        <KEY NAME="fk_userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id" PREVIOUS="fk_critid"/>
+        <KEY NAME="fk_userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id" PREVIOUS="fk_critid" NEXT="fk_issuedid"/>
+        <KEY NAME="fk_issuedid" TYPE="foreign" FIELDS="issuedid" REFTABLE="badge_issued" REFFIELDS="id" PREVIOUS="fk_userid"/>
       </KEYS>
     </TABLE>
     <TABLE NAME="badge_backpack" COMMENT="Defines settings for connecting external backpack" PREVIOUS="badge_criteria_met">

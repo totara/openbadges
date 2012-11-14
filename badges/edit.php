@@ -33,93 +33,69 @@ $action = optional_param('action', 'details', PARAM_TEXT);
 
 require_login();
 
-if (empty($CFG->enablebadges)) {
-    print_error('badgesdisabled', 'badges');
-}
-
-$context = context_system::instance();
 $badge = new badge($badgeid);
 
+if ($badge->context == 1) {
+    $context = context_system::instance();
+    navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => 'site')));
+} else {
+    require_login($badge->courseid);
+    $context = context_course::instance($badge->courseid);
+    navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => 'course', 'id' => $badge->courseid)));
+}
+$currenturl = qualified_me();
+
 $PAGE->set_context($context);
-$PAGE->set_url('/badges/edit.php', array('id' => $badgeid, 'action' => $action));
+$PAGE->set_url($currenturl);
 $PAGE->set_pagelayout('standard');
 $PAGE->set_heading($badge->name);
 $PAGE->set_title($badge->name);
-
-// Set up navigation and breadcrumbs.
-navigation_node::override_active_url($navurl);
 $PAGE->navbar->add($badge->name);
 
 $output = $PAGE->get_renderer('core', 'badges');
 $statusmsg = '';
 $errormsg  = '';
 
-$badge->message = clean_text($badge->message, FORMAT_HTML);
-$editoroptions = array(
-        'subdirs' => 0,
-        'maxbytes' => 0,
-        'maxfiles' => 0,
-        'changeformat' => 0,
-        'context' => $context,
-        'noclean' => false,
-        'trusttext' => false
-        );
-$badge = file_prepare_standard_editor($badge, 'message', $editoroptions, $context);
+$badge = new badge($badgeid);
 
 $form_class = 'edit_' . $action . '_form';
-$form = new $form_class($currenturl, array('badge' => $badge, 'action' => $action, 'editoroptions' => $editoroptions));
+$form = new $form_class($currenturl, array('badge' => $badge, 'action' => $action));
 
-if ($form->is_cancelled()) {
+if ($action == 'details') {
+    $imageoptions = array('subdirs' => false, 'maxfiles' => 1, 'accepted_types' => array('*.png'),
+        'maxbytes' => '262144');
+    $draftitemid = file_get_submitted_draft_itemid('image');
+    file_prepare_draft_area($draftitemid, $context->id, 'badges', 'image', $badge->id, $imageoptions);
+    var_dump($draftitemid);
+    $badge->image = $draftitemid;
+}
+
+if ($form->is_cancelled()){
     redirect(new moodle_url('/badges/overview.php', array('id' => $badgeid)));
-} else if ($form->is_submitted() && $form->is_validated() && ($data = $form->get_data())) {
+} else if ($data = $form->get_data()) {
     if ($action == 'details') {
-        $badge->name = $data->name;
-        $badge->description = $data->description;
-        $badge->usermodified = $USER->id;
-        $badge->issuername = $data->issuername;
-        $badge->issuerurl = $data->issuerurl;
-        $badge->issuercontact = $data->issuercontact;
-        $badge->expiredate = ($data->expiry == 1) ? $data->expiredate : null;
-        $badge->expireperiod = ($data->expiry == 2) ? $data->expireperiod : null;
+        //process data here
 
-        // Need to unset message_editor options to avoid errors on form edit.
-        unset($badge->messageformat);
-        unset($badge->message_editor);
+    } else if ($action == 'criteria') {
+        //process data here
 
-        if ($badge->save()) {
-            badges_process_badge_image($badge, $form->save_temp_file('image'));
-            $form->set_data($badge);
-            $statusmsg = get_string('changessaved');
-        } else {
-            $errormsg = get_string('error:save', 'badges');
-        }
     } else if ($action == 'message') {
-        // Calculate next message cron if form data is different from original badge data.
-        if ($data->notification != $badge->notification) {
-            if ($data->notification > BADGE_MESSAGE_ALWAYS) {
-                $badge->nextcron = badges_calculate_message_schedule($data->notification);
-            } else {
-                $badge->nextcron = null;
-            }
-        }
-
-        $badge->message = clean_text($data->message_editor['text'], FORMAT_HTML);
+        $badge->message = $data->message;
         $badge->messagesubject = $data->messagesubject;
         $badge->notification = $data->notification;
         $badge->attachment = $data->attachment;
-
-        unset($badge->messageformat);
-        unset($badge->message_editor);
         if ($badge->save()) {
             $statusmsg = get_string('changessaved');
         } else {
             $errormsg = get_string('error:save', 'badges');
         }
     }
+
+    //redirect(new moodle_url('/badges/overview.php', array('id' => $badgeid)));
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(print_badge_image($badge, $context, 'small') . ' ' . $badge->name);
+echo $OUTPUT->heading($badge->name . ': ' . get_string('b' . $action, 'badges'));
 
 if ($errormsg !== '') {
     echo $OUTPUT->notification($errormsg);
@@ -128,23 +104,7 @@ if ($errormsg !== '') {
     echo $OUTPUT->notification($statusmsg, 'notifysuccess');
 }
 
-echo $output->print_badge_status_box($badge);
 $output->print_badge_tabs($badgeid, $context, $action);
-
-$context = context_system::instance();
-
-$PAGE->set_context($context);
-$PAGE->set_url('/badges/overview.php');
-$PAGE->set_pagelayout('standard');
-
-echo $OUTPUT->header();
-echo $OUTPUT->heading($badge->name . ': ' . get_string('b' . $action, 'badges'));
-
-$output = $PAGE->get_renderer('core', 'badges');
-$output->print_badge_tabs($badgeid, $context, $action);
-
-$form_class = 'edit_' . $action . '_form';
-$form = new $form_class();
 
 $form->display();
 

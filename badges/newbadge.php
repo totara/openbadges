@@ -26,6 +26,7 @@
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
+require_once($CFG->dirroot . '/badges/edit_form.php');
 
 $type = required_param('type', PARAM_TEXT);
 $courseid = optional_param('id', 0, PARAM_INT);
@@ -40,15 +41,64 @@ if (($type == 'course') && ($course = $DB->get_record('course', array('id' => $c
     $PAGE->set_pagelayout('course');
     $PAGE->set_url('/badges/newbadge.php', array('type' => $type, 'id' => $course->id));
     $PAGE->set_heading($course->fullname . ": " . $title);
+    $PAGE->set_title($course->fullname . ": " . $title);
 } else {
     $PAGE->set_context(context_system::instance());
     $PAGE->set_pagelayout('admin');
     $PAGE->set_url('/badges/newbadge.php', array('type' => $type));
     $PAGE->set_heading($title);
+    $PAGE->set_title($title);
+}
+$currenturl = qualified_me();
+
+$form = new edit_details_form($currenturl, array('action' => 'new'));
+
+if ($form->is_cancelled()){
+    redirect(new moodle_url('/badges/index.php', array('type' => $type, 'id' => $courseid)));
+} else if ($data = $form->get_data()) {
+    // Creating new badge here.
+    $now = time();
+
+    $fordb = new stdClass();
+    $fordb->name = $data->name;
+    $fordb->description = $data->description;
+    $fordb->visible = 0;
+    $fordb->timecreated = $now;
+    $fordb->timemodified = $now;
+    $fordb->usermodified = $USER->id;
+    $fordb->image = $data->image;
+    $fordb->issuername = $data->issuername;
+    $fordb->issuerurl = $data->issuerurl;
+    $fordb->issuercontact = $data->issuercontact;
+    switch($data->expiry) {
+        case 0:
+            $fordb->expiredate = null;
+            $fordb->expireperiod = null;
+            break;
+        case 1:
+            $fordb->expiredate = $data->expirydate;
+            $fordb->expireperiod = null;
+            break;
+        case 2:
+            $fordb->expiredate = null;
+            $fordb->expireperiod = $data->expiryvalue;
+            break;
+    }
+    $fordb->context = ($type == 'course') ? BADGE_TYPE_COURSE : BADGE_TYPE_SITE;
+    $fordb->courseid = ($type == 'course') ? $courseid : null;
+    $fordb->messagesubject = get_string('messagesubject', 'badges');
+    $fordb->message = get_string('messagebody', 'badges',
+            html_writer::link($CFG->wwwroot . '/badges/mybadges.php', get_string('mybadges','badges')));
+    $fordb->attachment = 1;
+    $fordb->notification = 0;
+    $fordb->status = 0;
+
+    $newbadge = $DB->insert_record('badge', $fordb, true);
+    redirect(new moodle_url('/badges/overview.php', array('id' => $newbadge)));
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading($title);
 
+$form->display();
 
 echo $OUTPUT->footer();
