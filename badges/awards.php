@@ -54,10 +54,10 @@ echo $OUTPUT->heading($badge->name . ': ' . get_string('awards', 'badges'));
 $output = $PAGE->get_renderer('core', 'badges');
 $output->print_badge_tabs($badgeid, $context, 'awards');
 
-var_dump($badge);
+//var_dump($badge);
 
 if ($badge->has_awards()) {
-    $output->print_awarded_table($badge->awards);
+    $output->print_awarded_table($badge->get_awards());
 }
 else {
     echo $OUTPUT->notification(get_string('noawards', 'badges'));

@@ -384,6 +384,15 @@ $string['externalbadges_help'] = 'Connection setting and badges displayed from a
 $string['visible'] = 'Visible';
 $string['hidden'] = 'Hidden';
 $string['expired'] = 'Expired';
+$string['viewbadge'] = 'View issued badge';
+
+// Badge status.
+$string['currentstatus'] = 'Current status: ';
+$string['badgestatus_0'] = 'Inactive';
+$string['badgestatus_1'] = 'Active';
+$string['badgestatus_2'] = 'Inactive and locked';
+$string['badgestatus_3'] = 'Active and locked';
+$string['badgestatus_4'] = 'Archived';
 
 // Badge details.
 $string['badgedetails'] = 'Badge details';
@@ -394,20 +403,28 @@ $string['expireperiod'] = 'This badge expires {$a} day(s) after being issued.';
 $string[''] = '';
 
 // Badge editing/creating strings.
+$string['actions'] = 'Actions';
+$string['activate'] = 'Activate';
 $string['after'] = 'after date of issue.';
 $string['awards'] = 'Awards';
 $string['attachment'] = 'Attachment';
 $string['bawards'] = 'Awards ({$a})';
 $string['badgeimage'] = 'Image';
+$string['badgeurl'] = 'Issued badge link';
 $string['bcriteria'] = 'Criteria';
 $string['bdetails'] = 'Edit details';
 $string['bmessage'] = 'Message';
 $string['configuremessage'] = 'Configure badge message';
+$string['copyof'] = 'Copy of ';
 $string['boverview'] = 'Overview';
 $string['contact'] = 'Contact';
 $string['create'] = 'New badge';
 $string['createbutton'] = 'Create badge';
+$string['dateawarded'] = 'Date issued';
 $string['day'] = 'Day(s)';
+$string['deactivate'] = 'Deactivate';
+$string['delbadge'] = 'Delete badge';
+$string['delconfirm'] = 'Are you sure you would like to delete badge \'{$a}\'?';
 $string['description'] = 'Description';
 $string['expirydate'] = 'Expiry date';
 $string['fixed'] = 'Fixed date';
@@ -423,6 +440,7 @@ $string['numawards'] = 'This badge has been earned by {$a} user(s).';
 $string['noexpiry'] = 'This badge does not have an expiry date.';
 $string['relative'] = 'Relative date';
 $string['subject'] = 'Message subject';
+$string['status'] = 'Badge status';
 $string['visible'] = 'Visible';
 $string['year'] = 'Year(s)';
 
@@ -440,6 +458,7 @@ If there is no badge attached to this email, you can manage and download it from
 $string['messagesubject'] = 'Congratulations! You just earned a badge!';
 
 // Help text for elements.
+$string['actions_help'] = '';
 $string['attachment_help'] = 'If this \'Attachment\' is checked, an issued badge will be attached to the recepient\'s email for download';
 $string['contact_help'] = 'An email address associated with the badge issuer.';
 $string['expirydate_help'] = 'Visible';
@@ -458,6 +477,7 @@ This setting should be in form &lt;protocol>://&lt;host>:&lt;port>.';
 $string['issuername_help'] = 'Name of the issuing agent or authority.';
 $string['notification'] = 'Notify badge creator';
 $string['notification_help'] = 'If the \'Notify badge creator\' box is checked, the badge creator will also be sent a notification about the badge issue.';
+$string['status_help'] = 'Badge status explanation'; //@TODO
 $string['variablesubstitution'] = 'Variable substitution in messages.';
 $string['variablesubstitution_help'] = 'In a badge message, certain variables can be inserted into the subject and/or body of a message so that they will be replaced with real values when the message is sent. The variables should be inserted into the the text exactly as they are shown below. The following variables can be used:
 
@@ -477,7 +497,8 @@ $string['visible_help'] = 'This setting indicates whether badge is visible to it
 If this checkbox is checked and the badge is active, users will be able to see the badge in the list of site or course badges.';
 
 // Error messages.
-$string['error:setter'] = 'Field {$a->field} was not found in class {$s->class} ';
+$string['error:clone'] = 'Cannot clone the badge.';
+$string['error:setter'] = 'Field {$a->field} was not found in class {$a->class}.';
 $string['error:save'] = 'Cannot save the badge.';
 $string['error:nosuchbadge'] = 'Badge with id {$a} does not exist.';
 $string['error:invalidcriteriatype'] = 'Invalid criteria type.';

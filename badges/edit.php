@@ -37,12 +37,13 @@ $badge = new badge($badgeid);
 
 if ($badge->context == 1) {
     $context = context_system::instance();
-    navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => 'site')));
+    $navurl = new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_SITE));
 } else {
     require_login($badge->courseid);
     $context = context_course::instance($badge->courseid);
-    navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => 'course', 'id' => $badge->courseid)));
+    $navurl = new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_COURSE, 'id' => $badge->courseid));
 }
+
 $currenturl = qualified_me();
 
 $PAGE->set_context($context);
@@ -50,6 +51,9 @@ $PAGE->set_url($currenturl);
 $PAGE->set_pagelayout('standard');
 $PAGE->set_heading($badge->name);
 $PAGE->set_title($badge->name);
+
+// Set up navigation and breadcrumbs.
+navigation_node::override_active_url($navurl);
 $PAGE->navbar->add($badge->name);
 
 $output = $PAGE->get_renderer('core', 'badges');
@@ -58,17 +62,18 @@ $errormsg  = '';
 
 $badge = new badge($badgeid);
 
-$form_class = 'edit_' . $action . '_form';
-$form = new $form_class($currenturl, array('badge' => $badge, 'action' => $action));
+$imageoptions = array(
+        'subdirs' => false,
+        'maxfiles' => 1,
+        'accepted_types' => array('*.png'),
+        'maxbytes' => '262144'
+        );
+$draftitemid = file_get_submitted_draft_itemid('image');
+file_prepare_draft_area($draftitemid, $context->id, 'badges', 'image', $badge->id, $imageoptions);
+var_dump($draftitemid);
 
-if ($action == 'details') {
-    $imageoptions = array('subdirs' => false, 'maxfiles' => 1, 'accepted_types' => array('*.png'),
-        'maxbytes' => '262144');
-    $draftitemid = file_get_submitted_draft_itemid('image');
-    file_prepare_draft_area($draftitemid, $context->id, 'badges', 'image', $badge->id, $imageoptions);
-    var_dump($draftitemid);
-    $badge->image = $draftitemid;
-}
+$form_class = 'edit_' . $action . '_form';
+$form = new $form_class($currenturl, array('badge' => $badge, 'action' => $action, 'imageoptions' => $imageoptions));
 
 if ($form->is_cancelled()){
     redirect(new moodle_url('/badges/overview.php', array('id' => $badgeid)));

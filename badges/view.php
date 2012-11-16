@@ -27,7 +27,7 @@
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
-$type = required_param('type', PARAM_TEXT);
+$type = required_param('type', PARAM_INT);
 $courseid = optional_param('id', 0, PARAM_INT);
 
 require_login($SITE);
@@ -37,14 +37,14 @@ if ($course = $DB->get_record('course', array('id' => $courseid))) {
     $PAGE->set_url('/badges/view.php', array('type' => $type));
 }
 
-$title = get_string($type . 'badges', 'badges');
-
-if ($type == 'site') {
+if ($type == BADGE_TYPE_SITE) {
+    $title = get_string('sitebadges', 'badges');
     $PAGE->set_context(context_system::instance());
     $PAGE->set_pagelayout('admin');
     $PAGE->set_heading($title);
 } else {
     require_login($course);
+    $title = get_string('coursebadges', 'badges');
     $PAGE->set_context(context_course::instance($course->id));
     $PAGE->set_pagelayout('course');
     $PAGE->set_heading($course->fullname . ": " . $title);
