@@ -44,8 +44,9 @@ class edit_details_form extends moodleform {
 
         $mform = $this->_form;
         $badge = (isset($this->_customdata['badge'])) ? $this->_customdata['badge'] : false;
-        $action = $this->_customdata['action'];
+        $imageoptions = $this->_customdata['imageoptions'];
 
+        $action = $this->_customdata['action'];
         $mform->addElement('header', 'badgedetails', get_string('badgedetails', 'badges'));
         $mform->addElement('text', 'name', get_string('name'), array('size' => '70'));
         $mform->setType('name', PARAM_NOTAGS);
@@ -116,6 +117,11 @@ class edit_details_form extends moodleform {
             $mform->setType('action', PARAM_TEXT);
 
             $this->add_action_buttons();
+
+            // Freeze all elements if badge is active.
+            if ($badge->is_active()) {
+                $mform->hardFreezeAllVisibleExcept(array());
+            }
         }
     }
 
@@ -162,6 +168,12 @@ class edit_criteria_form extends moodleform {
         $mform->addElement('hidden', 'action', $action);
         $mform->setType('action', PARAM_TEXT);
 
+        $this->add_action_buttons();
+
+        // Freeze all elements if badge is active.
+        if ($badge->is_active()) {
+            $mform->hardFreezeAllVisibleExcept(array());
+        }
     }
 
     public function validation($data, $files) {
@@ -212,9 +224,17 @@ class edit_message_form extends moodleform {
             $mform->addElement('advcheckbox', 'notification', get_string('notification', 'badges'), '', null, array(0, 1));
             $mform->setDefault('notification', $badge->notification);
             $mform->addHelpButton('notification', 'notification', 'badges');
+        } else {
+            $mform->addElement('hidden', 'notification', 0);
+            $mform->setType('notification', PARAM_INT);
         }
 
         $this->add_action_buttons();
+
+        // Freeze all elements if badge is active.
+        if ($badge->is_active()) {
+            $mform->hardFreezeAllVisibleExcept(array());
+        }
     }
 
     public function validation($data, $files) {

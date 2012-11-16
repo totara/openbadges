@@ -25,6 +25,8 @@
  */
 
 require_once($CFG->libdir . '/badgeslib.php');
+require_once($CFG->libdir . '/tablelib.php');
+require_once($CFG->dirroot . '/user/filters/lib.php');
 
 /**
  * Standard HTML output renderer for badges
@@ -49,26 +51,61 @@ class core_badges_renderer extends plugin_renderer_base {
     }
 
     // Prints a table of users who have earned the badge.
-    public function print_awarded_table($badges) {
-        $table = new html_table();
+    public function print_awarded_table($awards, $search = null) {
+        global $PAGE;
+        $totalcount = count($awards);
+        $perpage = 25;
 
-        return $table;
+        // create the user filter form
+        $ufiltering = new user_filtering(array('realname' => 0), $PAGE->url);
+        $ufiltering->display_add();
+        $ufiltering->display_active();
+
+        $table = new flexible_table('badge-recipients-table');
+        $table->define_columns(array('userid', 'dateissued', 'uniquehash'));
+        $table->define_headers(array(get_string('user'), get_string('dateawarded', 'badges'), get_string('badgeurl', 'badges')));
+        $table->define_baseurl($PAGE->url);
+        $table->no_sorting('uniquehash');
+        $table->sortable(true, 'dateissued', SORT_DESC);
+        $table->pageable(true);
+        $table->initialbars($totalcount > $perpage);
+        $table->pagesize($perpage, $totalcount);
+        $table->set_attribute('class', 'generaltable generalbox boxaligncenter boxwidthwide');
+        $table->setup();
+
+        foreach ($awards as $award) {
+            $row = array(
+                    fullname($award),
+                    userdate($award->dateissued),
+                    html_writer::link(
+                            new moodle_url('/badges/badge.php', array('hash' => $award->uniquehash)),
+                            get_string('viewbadge', 'badges')
+                            )
+                    );
+            $table->add_data($row);
+        }
+
+        $table->finish_output();
     }
 
     // Prints a table of users who have earned the badge.
     public function print_badge_overview($badge, $context) {
         $display = "";
 
+        // Current badge status.
+        $status = get_string('currentstatus', 'badges') . $badge->get_status_name();
+        $display .= $this->output->heading_with_help($status, 'status', 'badges');
+
         // Badge details.
         $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
         $display .= html_writer::tag('legend', get_string('badgedetails','badges'), array('class' => 'bold'));
-
+        $display .= "";
         $display .= html_writer::end_tag('fieldset');
 
         // Issuer details.
         $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
         $display .= html_writer::tag('legend', get_string('issuerdetails','badges'), array('class' => 'bold'));
-        //@TODO
+        $display .= "";
         $display .= html_writer::end_tag('fieldset');
 
         // Issuance details if any.
@@ -112,28 +149,43 @@ class core_badges_renderer extends plugin_renderer_base {
 
     // Prints action buttons available for the badge.
     public function print_badge_overview_actions($badge, $context) {
-        // Options: delete, activate/deactivate, duplicate
-        global $OUTPUT;
-        $actions = "";
+        $table = new html_table();
+        $table->attributes = array('class' => 'clearfix', 'id' => 'badgeactions');
 
+        $actions = array();
         if (has_capability('moodle/badges:deletebadge', $context)) {
-            $actions .= $OUTPUT->single_button(new moodle_url('/badges/'), get_string('duplicate'));
-        }
-
-        if (has_capability('moodle/badges:configurecriteria', $context)) {
-            $actions .= $OUTPUT->single_button(new moodle_url('/badges/'), get_string('duplicate'));
+            $actions[] = $this->output->single_button(
+                    new moodle_url('/badges/action.php', array('id' => $badge->id, 'delete' => 1)),
+                    get_string('delete'));
         }
 
         if (has_capability('moodle/badges:createbadge', $context)) {
-            $actions .= $OUTPUT->single_button(new moodle_url('/badges/'), get_string('duplicate'));
+            $actions[] = $this->output->single_button(
+                    new moodle_url('/badges/action.php', array('id' => $badge->id, 'copy' => 1)),
+                    get_string('duplicate'));
         }
 
-        return $actions;
+        if (has_capability('moodle/badges:configurecriteria', $context)) {
+            if ($badge->is_locked()) {
+                $actions[] = "";
+            } else if ($badge->is_active()) {
+                $actions[] = $this->output->single_button(
+                        new moodle_url('/badges/action.php', array('id' => $badge->id, 'lock' => 1)),
+                        get_string('deactivate', 'badges'));
+            } else {
+                $actions[] = $this->output->single_button(
+                        new moodle_url('/badges/action.php', array('id' => $badge->id, 'activate' => 1)),
+                        get_string('activate', 'badges'));
+            }
+        }
+
+        $table->data[] = $actions;
+        return html_writer::table($table);
     }
 
     // Prints tabs for badge editing.
     public function print_badge_tabs($badgeid, $context, $current = 'overview') {
-        global $CFG, $DB;
+        global $DB;
 
         $tabs = $row = array();
 

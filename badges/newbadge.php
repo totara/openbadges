@@ -28,14 +28,14 @@ require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 require_once($CFG->dirroot . '/badges/edit_form.php');
 
-$type = required_param('type', PARAM_TEXT);
+$type = required_param('type', PARAM_INT);
 $courseid = optional_param('id', 0, PARAM_INT);
 
 require_login();
 
 $title = get_string('create', 'badges');
 
-if (($type == 'course') && ($course = $DB->get_record('course', array('id' => $courseid)))) {
+if (($type == BADGE_TYPE_COURSE) && ($course = $DB->get_record('course', array('id' => $courseid)))) {
     require_login($course);
     $PAGE->set_context(context_course::instance($course->id));
     $PAGE->set_pagelayout('course');
@@ -84,8 +84,8 @@ if ($form->is_cancelled()){
             $fordb->expireperiod = $data->expiryvalue;
             break;
     }
-    $fordb->context = ($type == 'course') ? BADGE_TYPE_COURSE : BADGE_TYPE_SITE;
-    $fordb->courseid = ($type == 'course') ? $courseid : null;
+    $fordb->context = $type;
+    $fordb->courseid = ($type == BADGE_TYPE_COURSE) ? $courseid : null;
     $fordb->messagesubject = get_string('messagesubject', 'badges');
     $fordb->message = get_string('messagebody', 'badges',
             html_writer::link($CFG->wwwroot . '/badges/mybadges.php', get_string('mybadges','badges')));

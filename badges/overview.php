@@ -34,18 +34,23 @@ require_login();
 $badge = new badge($badgeid);
 if ($badge->context == 1) {
     $context = context_system::instance();
-    navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => 'site')));
+    $navurl = new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_SITE));
 } else {
     require_login($badge->courseid);
     $context = context_course::instance($badge->courseid);
-    navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => 'course', 'id' => $badge->courseid)));
+    $navurl = new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_COURSE, 'id' => $badge->courseid));
 }
 
+$currenturl = qualified_me();
+
 $PAGE->set_context($context);
-$PAGE->set_url('/badges/overview.php', array('id' => $badgeid));
+$PAGE->set_url($currenturl);
 $PAGE->set_pagelayout('standard');
 $PAGE->set_heading($badge->name);
 $PAGE->set_title($badge->name);
+
+// Set up navigation and breadcrumbs.
+navigation_node::override_active_url($navurl);
 $PAGE->navbar->add($badge->name);
 
 echo $OUTPUT->header();

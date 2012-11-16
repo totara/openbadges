@@ -111,8 +111,6 @@ class badge {
     /** @var array Badge criteria */
     protected $criteria = array();
 
-    /** @var array Badge awards */
-    protected $awards = array();
     /**
      * Constructs with badge details.
      *
@@ -134,7 +132,6 @@ class badge {
             }
         }
 
-        $this->awards = array();
         $this->criteria = self::get_criteria();
     }
 
@@ -179,13 +176,43 @@ class badge {
         foreach (get_object_vars($this) as $k => $v) {
             $fordb->{$k} = $v;
         }
-        unset($fordb->awards);
         unset($fordb->criteria);
 
         if ($DB->update_record('badge', $fordb)) {
             return true;
         } else {
             print_error('error:save', 'badges');
+            return false;
+        }
+    }
+
+    /**
+     * Creates and saves a clone of badge with all its properties.
+     * Clone is not active by default and has 'Copy of' attached to its name.
+     *
+     * @return int ID of new badge.
+     */
+    public function make_clone() {
+        global $DB;
+
+        $fordb = new stdClass();
+        foreach (get_object_vars($this) as $k => $v) {
+            $fordb->{$k} = $v;
+        }
+
+        $fordb->name = get_string('copyof', 'badges') . $this->name;
+        $fordb->status = BADGE_STATUS_INACTIVE;
+        unset($fordb->id);
+
+        $criteria = $fordb->criteria;
+        unset($fordb->criteria);
+
+        if ($new = $DB->insert_record('badge', $fordb, true)) {
+            //copy criteria here
+
+            return $new;
+        } else {
+            print_error('error:clone', 'badges');
             return false;
         }
     }
@@ -205,10 +232,18 @@ class badge {
     }
 
     /**
+     * Use to get the name of badge status.
+     *
+     */
+    public function get_status_name() {
+        return get_string('badgestatus_' . $this->status, 'badges');
+    }
+
+    /**
      * Use to set badge status.
      * Only active badges can be earned/awarded/issued.
      *
-     * @param int $status from BADGE_STATUS constants
+     * @param int $status Status from BADGE_STATUS constants
      */
     public function set_status($status = 0) {
         $this->status = $status;
@@ -230,13 +265,14 @@ class badge {
     }
 
     /**
-     * Checks if badges has been awarded.
+     * Checks if badge has been awarded to users.
      * Used in badge editing.
      *
      * @return bool A status indicating badge has been awarded at least once
      */
     public function has_awards() {
-        if (count($this->awards) > 0) {
+        global $DB;
+        if ($DB->record_exists('badge_issued', array('badgeid' => $this->id))) {
             return true;
         }
         return false;
@@ -245,10 +281,14 @@ class badge {
     /**
      * Gets list of users who have earned an instance of this badge.
      *
-     * @return array An array of users (id) who have earned the badge
+     * @return array An array of objects with information about badge awards.
      */
     public function get_awards() {
-        return $this->awards;
+        global $DB;
+
+        $awards = $DB->get_records('badge_issued', array('badgeid' => $this->id), 'dateissued DESC', 'userid, dateissued, uniquehash');
+
+        return $awards;
     }
 
     /**
@@ -479,7 +519,7 @@ function badges_add_course_navigation(navigation_node $coursenode, $course) {
     if (($allowcoursebadges == 1) && !$isfrontpage) {
         if (has_capability('moodle/badges:viewbadges', $coursecontext) && can_access_course($course, $USER)) {
             $url = new moodle_url($CFG->wwwroot . '/badges/view.php',
-                    array('type' => 'course', 'id' => $course->id));
+                    array('type' => BADGE_TYPE_COURSE, 'id' => $course->id));
 
             $coursenode->add(get_string('coursebadges', 'badges'), $url,
                     navigation_node::TYPE_CONTAINER, null, 'coursebadges',
@@ -487,7 +527,7 @@ function badges_add_course_navigation(navigation_node $coursenode, $course) {
 
             if (has_capability('moodle/badges:viewawarded', $coursecontext)) {
                 $url = new moodle_url($CFG->wwwroot . '/badges/index.php',
-                        array('type' => 'course', 'id' => $course->id));
+                        array('type' => BADGE_TYPE_COURSE, 'id' => $course->id));
 
                 $coursenode->get('coursebadges')->add(get_string('managebadges', 'badges'), $url,
                     navigation_node::TYPE_SETTING, null, 'coursebadges');
@@ -495,7 +535,7 @@ function badges_add_course_navigation(navigation_node $coursenode, $course) {
 
             if (has_capability('moodle/badges:createbadge', $coursecontext)) {
                 $url = new moodle_url($CFG->wwwroot . '/badges/newbadge.php',
-                        array('type' => 'course', 'id' => $course->id));
+                        array('type' => BADGE_TYPE_COURSE, 'id' => $course->id));
 
                 $coursenode->get('coursebadges')->add(get_string('newbadge', 'badges'), $url,
                         navigation_node::TYPE_SETTING, null, 'newbadge');

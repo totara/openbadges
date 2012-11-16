@@ -26,12 +26,13 @@
 */
 
 global $SITE;
+require_once($CFG->libdir . '/badgeslib.php');
 
 if ($hassiteconfig) {
     $ADMIN->add('badges',
             new admin_externalpage('managebadges',
                     new lang_string('managebadges', 'badges'),
-                    new moodle_url($CFG->wwwroot . '/badges/index.php', array('type' => 'site')),
+                    new moodle_url($CFG->wwwroot . '/badges/index.php', array('type' => BADGE_TYPE_SITE)),
                     array('moodle/badges:viewawarded')
             )
     );
@@ -39,7 +40,7 @@ if ($hassiteconfig) {
     $ADMIN->add('badges',
             new admin_externalpage('newbadge',
                     new lang_string('newbadge', 'badges'),
-                    new moodle_url($CFG->wwwroot . '/badges/newbadge.php', array('type' => 'site')),
+                    new moodle_url($CFG->wwwroot . '/badges/newbadge.php', array('type' => BADGE_TYPE_SITE)),
                     array('moodle/badges:createbadge')
             )
     );
@@ -60,7 +61,7 @@ if ($hassiteconfig) {
     $globalsettings->add(new admin_setting_configtext('badges_defaultissuercontact',
             new lang_string('defaultissuercontact', 'badges'),
             new lang_string('defaultissuercontact_desc', 'badges'),
-            get_config('moodle','supportemail'), PARAM_TEXT));
+            $CFG->supportemail ? $CFG->supportemail : $CFG->noreplyaddress, PARAM_TEXT));
 
     $globalsettings->add(new admin_setting_configtext('badges_defaultbadgesalt',
             new lang_string('defaultbadgesalt', 'badges'),
