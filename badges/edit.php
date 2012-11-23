@@ -62,25 +62,29 @@ $errormsg  = '';
 
 $badge = new badge($badgeid);
 
-$imageoptions = array(
-        'subdirs' => false,
-        'maxfiles' => 1,
-        'accepted_types' => array('*.png'),
-        'maxbytes' => '262144'
-        );
-$draftitemid = file_get_submitted_draft_itemid('image');
-file_prepare_draft_area($draftitemid, $context->id, 'badges', 'image', $badge->id, $imageoptions);
-var_dump($draftitemid);
-
 $form_class = 'edit_' . $action . '_form';
-$form = new $form_class($currenturl, array('badge' => $badge, 'action' => $action, 'imageoptions' => $imageoptions));
+$form = new $form_class($currenturl, array('badge' => $badge, 'action' => $action));
 
 if ($form->is_cancelled()){
     redirect(new moodle_url('/badges/overview.php', array('id' => $badgeid)));
-} else if ($data = $form->get_data()) {
+} else if ($form->is_submitted() && $form->is_validated() && ($data = $form->get_data())) {
     if ($action == 'details') {
-        //process data here
+        $badge->name = $data->name;
+        $badge->description = $data->description;
+        $badge->visible = $data->visible;
+        $badge->usermodified = $USER->id;
+        $badge->issuername = $data->issuername;
+        $badge->issuerurl = $data->issuerurl;
+        $badge->issuercontact = $data->issuercontact;
+        $badge->expiredate = ($data->expiry == 1) ? $data->expiredate : null;
+        $badge->expireperiod = ($data->expiry == 2) ? $data->expireperiod : null;
 
+        if ($badge->save()) {
+            badges_process_badge_image($badge, $PAGE->context, $data, $form);
+            $statusmsg = get_string('changessaved');
+        } else {
+            $errormsg = get_string('error:save', 'badges');
+        }
     } else if ($action == 'criteria') {
         //process data here
 
@@ -89,6 +93,7 @@ if ($form->is_cancelled()){
         $badge->messagesubject = $data->messagesubject;
         $badge->notification = $data->notification;
         $badge->attachment = $data->attachment;
+
         if ($badge->save()) {
             $statusmsg = get_string('changessaved');
         } else {
@@ -96,7 +101,7 @@ if ($form->is_cancelled()){
         }
     }
 
-    //redirect(new moodle_url('/badges/overview.php', array('id' => $badgeid)));
+    //redirect(new moodle_url('/badges/edit.php', array('id' => $badgeid, 'action' => $action)));
 }
 
 echo $OUTPUT->header();

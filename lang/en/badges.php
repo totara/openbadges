@@ -400,13 +400,13 @@ $string['issuerdetails'] = 'Issuer details';
 $string['issuancedetails'] = 'Issuance details';
 $string['expiredate'] = 'This badge expires on {$a}.';
 $string['expireperiod'] = 'This badge expires {$a} day(s) after being issued.';
-$string[''] = '';
 
 // Badge editing/creating strings.
 $string['actions'] = 'Actions';
 $string['activate'] = 'Activate';
-$string['after'] = 'after date of issue.';
+$string['after'] = 'after the date of issue.';
 $string['awards'] = 'Awards';
+$string['award'] = 'Award badge';
 $string['attachment'] = 'Attachment';
 $string['bawards'] = 'Awards ({$a})';
 $string['badgeimage'] = 'Image';
@@ -420,6 +420,7 @@ $string['boverview'] = 'Overview';
 $string['contact'] = 'Contact';
 $string['create'] = 'New badge';
 $string['createbutton'] = 'Create badge';
+$string['currentimage'] = 'Current image';
 $string['dateawarded'] = 'Date issued';
 $string['day'] = 'Day(s)';
 $string['deactivate'] = 'Deactivate';
@@ -434,10 +435,12 @@ $string['message'] = 'Message body';
 $string['month'] = 'Month(s)';
 $string['never'] = 'Never (default)';
 $string['newbadge'] = 'Add a new badge';
+$string['newimage'] = 'New image';
 $string['noawards'] = 'This badge has not been earned yet.';
 $string['nocriteria'] = 'Criteria for this badge have not been set up yet.';
 $string['numawards'] = 'This badge has been earned by {$a} user(s).';
 $string['noexpiry'] = 'This badge does not have an expiry date.';
+$string['perpage'] = 'Number of users per page';
 $string['relative'] = 'Relative date';
 $string['subject'] = 'Message subject';
 $string['status'] = 'Badge status';
@@ -462,13 +465,9 @@ $string['actions_help'] = '';
 $string['attachment_help'] = 'If this \'Attachment\' is checked, an issued badge will be attached to the recepient\'s email for download';
 $string['contact_help'] = 'An email address associated with the badge issuer.';
 $string['expirydate_help'] = 'Visible';
-$string['badgeimage_help'] = 'This image will be used when badge is issued. There are several requirements around badge images:
+$string['badgeimage_help'] = 'This is an image that will be used when this badge is issued.
 
-* Images should be **square** (recommended dimensions are 90 x 90 pixels).
-
-* Image file should have PNG extension and not exceed **256kb**.
-
-* Only **one** file at a time can be used as a badge image.';
+To add a new image, browse and select an image (in JPG or PNG format) then click "Save changes". The image will be cropped to a square and resized to match badge image requirements. ';
 
 $string['issuerurl_help'] = 'Origin of the issuer.
 
@@ -503,3 +502,5 @@ $string['error:save'] = 'Cannot save the badge.';
 $string['error:nosuchbadge'] = 'Badge with id {$a} does not exist.';
 $string['error:invalidcriteriatype'] = 'Invalid criteria type.';
 $string['error:invalidbadgeurl'] = 'Invalid badge issuer URL format. If it is possible, try using {$a}';
+$string['error:invalidexpireperiod'] = 'Expiry period cannot be negative or equal 0.';
+$string['error:invalidexpiredate'] = 'Expiry date has to be in the future.';

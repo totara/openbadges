@@ -85,31 +85,31 @@ define('BADGE_TYPE_COURSE', 2);
  */
 class badge {
     /** @var int Badge id */
-    protected $id;
+    public $id;
 
     /** Values from the table 'badge' */
-    protected $name;
-    protected $description;
-    protected $visible;
-    protected $timecreated;
-    protected $timemodified;
-    protected $usermodified;
-    protected $image;
-    protected $issuername;
-    protected $issuerurl;
-    protected $issuercontact;
-    protected $expiredate;
-    protected $expireperiod;
-    protected $context;
-    protected $courseid;
-    protected $message;
-    protected $messagesubject;
-    protected $attachment;
-    protected $notification;
-    protected $status = 0;
+    public $name;
+    public $description;
+    public $visible;
+    public $timecreated;
+    public $timemodified;
+    public $usermodified;
+    public $image;
+    public $issuername;
+    public $issuerurl;
+    public $issuercontact;
+    public $expiredate;
+    public $expireperiod;
+    public $context;
+    public $courseid;
+    public $message;
+    public $messagesubject;
+    public $attachment;
+    public $notification;
+    public $status = 0;
 
     /** @var array Badge criteria */
-    protected $criteria = array();
+    public $criteria = array();
 
     /**
      * Constructs with badge details.
@@ -136,34 +136,6 @@ class badge {
     }
 
     /**
-     * Badge property getter.
-     * @param string $key
-     * @return mixed value
-     */
-    public function __get($key) {
-        if (property_exists($this, $key)) {
-            return $this->$key;
-        }
-    }
-
-    /**
-     * Badge property setter.
-     * Does not save to database. Use save() to save changes.
-     *
-     * @param string $key
-     * @param mixed $value
-     * @return object $this
-     */
-    public function __set($property, $value) {
-        if (property_exists($this, $property)) {
-            $this->$property = $value;
-            $this->timemodified = time();
-            return $this;
-        }
-        print_error('error:setter', 'badges', array('field' => $field, 'class' => get_class($this)));
-    }
-
-    /**
      * Save/update badge information in 'badge' table only.
      * Cannot be used for updating awards and criteria settings.
      *
@@ -178,6 +150,7 @@ class badge {
         }
         unset($fordb->criteria);
 
+        $fordb->timemodified = time();
         if ($DB->update_record('badge', $fordb)) {
             return true;
         } else {
@@ -286,7 +259,11 @@ class badge {
     public function get_awards() {
         global $DB;
 
-        $awards = $DB->get_records('badge_issued', array('badgeid' => $this->id), 'dateissued DESC', 'userid, dateissued, uniquehash');
+        $awards = $DB->get_records_sql(
+                'SELECT b.userid, b.dateissued, b.uniquehash, u.firstname, u.lastname
+                    FROM {badge_issued} b INNER JOIN {user} u
+                        ON b.userid = u.id
+                    WHERE b.badgeid = ?', array('badgeid' => $this->id));
 
         return $awards;
     }
@@ -422,7 +399,35 @@ function notify_badge_award($issuedid) {
 }
 
 /**
- * Gets badges for a specific user.
+ * Gets all badges.
+ *
+ * @param string $sort An SQL field to sort by
+ * @param string $dir The sort direction ASC|DESC
+ * @param int $page The page or records to return
+ * @param int $perpage The number of records to return per page
+ * @param string $search A simple string to search for
+ * @param array $extraparams Additional parameters to use for the above $extraselect
+ */
+function get_badges($sort = '', $dir = '', $page = 0, $perpage = 20, $search = '', $extraparams) {
+    global $DB;
+    $sorting = (($sort != '' && $dir != '') ? $sort . ' ' . $dir : null);
+
+    $records = array();
+    $records = $DB->get_records('badge', $extraparams, $sorting, 'id', $page * $perpage, $perpage);
+    var_dump($records);
+    $badges = array();
+    foreach ($records as $r) {
+        $badge = new badge($r->id);
+        $badges[$r->id] = $badge;
+        $badges[$r->id]->awards = count($badge->get_awards());
+        $badges[$r->id]->statstring = $badge->get_status_name();
+    }
+
+    return $badges;
+}
+
+/**
+ * Get badges for a specific user.
  *
  * @param int $userid User ID
  * @param int $limitnum return the first $limitnum records (optional). If omitted all records are returned
@@ -542,4 +547,81 @@ function badges_add_course_navigation(navigation_node $coursenode, $course) {
             }
         }
     }
+}
+
+/**
+ * Triggered by the badge_award_criteria_review event, this function
+ * marks a badge as awarded to user if all criteria are met
+ *
+ * @param   object      $eventdata
+ * @return  boolean
+ */
+function badge_award_handle_criteria_review($eventdata) {
+    $criteriadata = (array)$eventdata;
+    $criteria = award_criteria::build($criteriadata);
+    if (!$criteria->id) {
+        return true;
+    }
+
+    // Badge award workflow.
+    // Decide which criteriatype it is.
+    // Calc if event trigger is among badge criteria:
+    // If no -> stop
+    // If yes ->
+    //     Calc if triggered criteria met:
+    //     If not -> stop
+    //     If yes ->
+    //        Calc if overall criteria met:
+    //        If not -> stop
+    //        If yes -> award badge.
+
+    return true;
+}
+
+/**
+ * Process badge image from form data
+ *
+ * @param stdClass $group group information
+ * @param stdClass $data
+ * @param stdClass $editform
+ */
+function badges_process_badge_image($badge, $context, $data, $editform) {
+    global $CFG, $DB;
+    require_once($CFG->libdir. '/gdlib.php');
+
+    $fs = get_file_storage();
+
+    if (!empty($CFG->gdversion)) {
+        if ($iconfile = $editform->save_temp_file('image')) {
+            if ($fileid = (int)process_new_icon($context, 'badges', 'badgeimage', $badge->id, $iconfile)) {
+                $badge->image = $fileid;
+                $badge->save();
+            }
+            @unlink($iconfile);
+        }
+    }
+}
+
+/**
+ * Print badge image.
+ * Put it here because got some issues calling it from renderer.
+ *
+ * @param badge $badge Badge object
+ * @param stdClass $context
+ * @param string $size
+ */
+function print_badge_image($badge, $context, $size = 'small') {
+    $image = '';
+
+    if ($size == 'small') {
+        $fsize = 'f2';
+    } else {
+        $fsize = 'f1';
+    }
+
+    $imageurl = moodle_url::make_pluginfile_url($context->id, 'badges', 'badgeimage', $badge->id, '/', $fsize);
+    $attributes = array('src' => $imageurl, 'alt' => s($badge->name));
+    $image .= html_writer::empty_tag('img', $attributes);
+
+    return $image;
 }

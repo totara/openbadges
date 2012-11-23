@@ -3760,29 +3760,19 @@ function file_pluginfile($relativepath, $forcedownload, $preview = null) {
     // ========================================================================================================================
     } else if ($component === 'badges') {
         require_once($CFG->libdir . '/badgeslib.php');
-
         $badgeid = (int)array_shift($args);
         $badge = new badge($badgeid);
         $filename = array_pop($args);
 
-        if ($filearea === 'badgeimage') {
-            if ($filename !== 'f1' && $filename !== 'f2') {
-                send_file_not_found();
-            }
-            if (!$file = $fs->get_file($context->id, 'badges', 'badgeimage', $badge->id, '/', $filename.'.png')) {
-                send_file_not_found();
-            }
-
-            session_get_instance()->write_close();
-            send_stored_file($file, 60*60, 0, $forcedownload, array('preview' => $preview));
-        } else if ($filearea === 'userbadge'  and $context->contextlevel == CONTEXT_USER) {
-            if (!$file = $fs->get_file($context->id, 'badges', 'userbadge', $badge->id, '/', $filename.'.png')) {
-                send_file_not_found();
-            }
-
-            session_get_instance()->write_close();
-            send_stored_file($file, 60*60, 0, true, array('preview' => $preview));
+        if ($filename !== 'f1' && $filename !== 'f2') {
+            send_file_not_found();
         }
+        if (!$file = $fs->get_file($context->id, 'badges', 'badgeimage', $badge->id, '/', $filename.'.png')) {
+            send_file_not_found();
+        }
+
+        session_get_instance()->write_close();
+        send_stored_file($file, 60*60, 0, false, array('preview' => $preview));
     // ========================================================================================================================
     } else if ($component === 'calendar') {
         if ($filearea === 'event_description'  and $context->contextlevel == CONTEXT_SYSTEM) {
@@ -4099,14 +4089,14 @@ function file_pluginfile($relativepath, $forcedownload, $preview = null) {
             send_file_not_found();
         }
 
-        if ($filearea === 'summary' || $filearea === 'overviewfiles') {
+        if ($filearea === 'summary') {
             if ($CFG->forcelogin) {
                 require_login();
             }
 
             $filename = array_pop($args);
             $filepath = $args ? '/'.implode('/', $args).'/' : '/';
-            if (!$file = $fs->get_file($context->id, 'course', $filearea, 0, $filepath, $filename) or $file->is_directory()) {
+            if (!$file = $fs->get_file($context->id, 'course', 'summary', 0, $filepath, $filename) or $file->is_directory()) {
                 send_file_not_found();
             }
 

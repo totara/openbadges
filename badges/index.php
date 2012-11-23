@@ -38,13 +38,22 @@ $hide = optional_param('hide', 0, PARAM_INT);
 $show = optional_param('show', 0, PARAM_INT);
 $sort = optional_param('sort', 'name', PARAM_ALPHA);
 $dir  = optional_param('dir', 'asc', PARAM_ALPHA);
+$confirm  = optional_param('confirm', 0, PARAM_INT);
+$delete = optional_param('delete', 0, PARAM_INT);
 
 require_login($SITE);
+
+$urlparams = array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage, 'page'=>$page);
+
 if ($course = $DB->get_record('course', array('id' => $courseid))) {
-    $PAGE->set_url('/badges/index.php', array('type' => $type, 'id' => $course->id));
+    $urlparams['type'] = $type;
+    $urlparams['id'] = $course->id;
 } else {
-    $PAGE->set_url('/badges/index.php', array('type' => $type));
+    $urlparams['type'] = $type;
 }
+
+$returnurl = new moodle_url('/badges/index.php', $urlparams);
+$PAGE->set_url($returnurl);
 
 if ($type == BADGE_TYPE_SITE) {
     $title = get_string('sitebadges', 'badges');
@@ -59,69 +68,12 @@ if ($type == BADGE_TYPE_SITE) {
     $PAGE->set_heading($course->fullname . ": " . $title);
 }
 
-if (!has_any_capability(array(
-        'moodle/badges:viewawarded',
-        'moodle/badges:createbadge',
-        'moodle/badges:awardbadge',
-        'moodle/badges:configuremessages',
-        'moodle/badges:configuredetails',
-        'moodle/badges:deletebadge'), $PAGE->context)) {
-    redirect($CFG->wwwroot);
-}
-
-$PAGE->set_title($hdr);
-$PAGE->requires->js('/badges/backpack.js');
-$PAGE->requires->js_init_call('check_site_access', null, false);
 $output = $PAGE->get_renderer('core', 'badges');
 
-if ($delete && has_capability('moodle/badges:deletebadge', $PAGE->context)) {
-    $badge = new badge($delete);
-    if (!$confirm) {
-        echo $output->header();
-        echo $output->confirm(
-                    get_string('delconfirm', 'badges', $badge->name),
-                    new moodle_url($PAGE->url, array('delete' => $badge->id, 'confirm' => 1)),
-                    $returnurl
-                );
-        echo $output->footer();
-        die();
-    } else {
-        require_sesskey();
-        $badge->delete();
-        redirect($returnurl);
-    }
+if ($confirm && confirm_sesskey()) {
+
 }
 
-if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context)) {
-    $badge = new badge($activate);
-
-    if (!$badge->has_criteria()) {
-        $err = get_string('error:cannotact', 'badges') . get_string('nocriteria', 'badges');
-    } else {
-        if ($badge->is_locked()) {
-            $badge->set_status(BADGE_STATUS_ACTIVE_LOCKED);
-            $msg = get_string('activatesuccess', 'badges');
-        } else {
-            require_sesskey();
-            $badge->set_status(BADGE_STATUS_ACTIVE);
-            $msg = get_string('activatesuccess', 'badges');
-        }
-        $returnurl->param('msg', $msg);
-        redirect($returnurl);
-    }
-} else if ($deactivate && has_capability('moodle/badges:configuredetails', $PAGE->context)) {
-    $badge = new badge($deactivate);
-    if ($badge->is_locked()) {
-        $badge->set_status(BADGE_STATUS_INACTIVE_LOCKED);
-        $msg = get_string('deactivatesuccess', 'badges');
-    } else {
-        require_sesskey();
-        $badge->set_status(BADGE_STATUS_INACTIVE);
-        $msg = get_string('deactivatesuccess', 'badges');
-    }
-    $returnurl->param('msg', $msg);
-    redirect($returnurl);
-}
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managebadges', 'badges'));
@@ -134,5 +86,7 @@ if (has_capability('moodle/badges:createbadge', $PAGE->context)) {
     echo $OUTPUT->single_button(new moodle_url('/badges/newbadge.php', $params), get_string('newbadge', 'badges'), 'GET');
 }
 
-echo $OUTPUT->footer();
+$badges = get_badges($type, $courseid);
+$output->print_badges_table($badges, $PAGE->context, $perpage);
 
+echo $OUTPUT->footer();

@@ -55,7 +55,7 @@ if (($hassiteconfig || has_any_capability(array(
     $globalsettings->add(new admin_setting_configtext('badges_defaultissuercontact',
             new lang_string('defaultissuercontact', 'badges'),
             new lang_string('defaultissuercontact_desc', 'badges'),
-            $CFG->supportemail ? $CFG->supportemail : $CFG->noreplyaddress, PARAM_TEXT));
+            get_config('moodle','supportemail'), PARAM_TEXT));
 
     $globalsettings->add(new admin_setting_configtext('badges_defaultbadgesalt',
             new lang_string('defaultbadgesalt', 'badges'),

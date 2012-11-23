@@ -51,6 +51,9 @@ if (($type == BADGE_TYPE_COURSE) && ($course = $DB->get_record('course', array('
 }
 $currenturl = qualified_me();
 
+$fordb = new stdClass();
+$fordb->id = null;
+
 $form = new edit_details_form($currenturl, array('action' => 'new'));
 
 if ($form->is_cancelled()){
@@ -59,31 +62,18 @@ if ($form->is_cancelled()){
     // Creating new badge here.
     $now = time();
 
-    $fordb = new stdClass();
     $fordb->name = $data->name;
     $fordb->description = $data->description;
     $fordb->visible = 0;
     $fordb->timecreated = $now;
     $fordb->timemodified = $now;
     $fordb->usermodified = $USER->id;
-    $fordb->image = $data->image;
+    $fordb->image = 0;
     $fordb->issuername = $data->issuername;
     $fordb->issuerurl = $data->issuerurl;
     $fordb->issuercontact = $data->issuercontact;
-    switch($data->expiry) {
-        case 0:
-            $fordb->expiredate = null;
-            $fordb->expireperiod = null;
-            break;
-        case 1:
-            $fordb->expiredate = $data->expirydate;
-            $fordb->expireperiod = null;
-            break;
-        case 2:
-            $fordb->expiredate = null;
-            $fordb->expireperiod = $data->expiryvalue;
-            break;
-    }
+    $fordb->expiredate = ($data->expiry == 1) ? $data->expiredate : null;
+    $fordb->expireperiod = ($data->expiry == 2) ? $data->expireperiod : null;
     $fordb->context = $type;
     $fordb->courseid = ($type == BADGE_TYPE_COURSE) ? $courseid : null;
     $fordb->messagesubject = get_string('messagesubject', 'badges');
@@ -93,8 +83,11 @@ if ($form->is_cancelled()){
     $fordb->notification = 0;
     $fordb->status = 0;
 
-    $newbadge = $DB->insert_record('badge', $fordb, true);
-    redirect(new moodle_url('/badges/overview.php', array('id' => $newbadge)));
+    $newid = $DB->insert_record('badge', $fordb, true);
+
+    $newbadge = new badge($newid);
+    badges_process_badge_image($newbadge, $PAGE->context, $data, $form);
+    redirect(new moodle_url('/badges/overview.php', array('id' => $newid)));
 }
 
 echo $OUTPUT->header();
