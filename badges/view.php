@@ -27,10 +27,29 @@
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
-$type = required_param('type', PARAM_INT);
-$courseid = optional_param('id', 0, PARAM_INT);
+$type       = required_param('type', PARAM_INT);
+$courseid   = optional_param('id', 0, PARAM_INT);
+$sortby     = optional_param('sort', 'name', PARAM_ALPHA);
+$sorthow    = optional_param('dir', 'DESC', PARAM_ALPHA);
+$page       = optional_param('page', 0, PARAM_INT);
+$updatepref = optional_param('updatepref', false, PARAM_BOOL);
+$perpage    = optional_param('perpage', 20, PARAM_INT);
+$search     = optional_param('search', '', PARAM_CLEAN);
 
 require_login($SITE);
+
+if (!in_array($sortby, array('name', 'awarded'))) {
+    $sortby = 'name';
+}
+
+if ($sorthow != 'ASC' && $sorthow != 'DESC') {
+    $sorthow = 'ACS';
+}
+
+if ($page < 0) {
+    $page = 0;
+}
+
 if ($course = $DB->get_record('course', array('id' => $courseid))) {
     $PAGE->set_url('/badges/view.php', array('type' => $type, 'id' => $course->id));
 } else {
@@ -51,8 +70,40 @@ if ($type == BADGE_TYPE_SITE) {
 }
 
 $PAGE->set_title($title);
+$output = $PAGE->get_renderer('core', 'badges');
 
-echo $OUTPUT->header();
-// Calculate how many badges are available in the course/site.
+if ($updatepref) {
+    require_sesskey();
+    if ($perpage > 0) {
+        set_user_preference('recipients_perpage', $perpage);
+    }
+    redirect($PAGE->url);
+}
+
+echo $output->header();
+
+$params = array();
+$params['context'] = $type;
+$params['courseid'] = ($type == BADGE_TYPE_COURSE) ? $courseid : null;
+$params['visible'] = 1;
+
+$totalcount = count(get_badges('', '', '', '', '', $params));
+$records = get_badges($sortby, $sorthow, $page * $perpage, $perpage, $search, $params);
+$perpage = get_user_preferences('badges_perpage', 20);
+
+if ($totalcount) {
+    $badges                 = new badge_collection($records);
+    $badges->sort       = $sortby;
+    $badges->dir        = $sorthow;
+    $badges->page       = $page;
+    $badges->perpage    = $perpage;
+    $badges->totalcount = $totalcount;
+
+    //echo $output->render($recipients);
+}
+else {
+    echo $output->notification(get_string('noawards', 'badges'));
+}
+
 
 echo $OUTPUT->footer();

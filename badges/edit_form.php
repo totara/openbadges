@@ -39,30 +39,34 @@ class edit_details_form extends moodleform {
     /**
      * Defines the form
      */
-    protected function definition() {
-        global $CFG, $OUTPUT;
+    function definition() {
+        global $CFG, $PAGE;
 
         $mform = $this->_form;
         $badge = (isset($this->_customdata['badge'])) ? $this->_customdata['badge'] : false;
-        $imageoptions = $this->_customdata['imageoptions'];
-
         $action = $this->_customdata['action'];
+
         $mform->addElement('header', 'badgedetails', get_string('badgedetails', 'badges'));
         $mform->addElement('text', 'name', get_string('name'), array('size' => '70'));
         $mform->setType('name', PARAM_NOTAGS);
-        $mform->addRule('name', null, 'required', null, 'client');
+        $mform->addRule('name', null, 'required');
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
         $mform->addElement('textarea', 'description', get_string('description', 'badges'), 'wrap="virtual" rows="10" cols="70"');
 
         $mform->addElement('advcheckbox', 'visible', get_string('visible', 'badges'), '', null, array(0, 1));
-        $mform->setDefault('visible', true);
+        $mform->setDefault('visible', false);
         $mform->addHelpButton('visible', 'visible', 'badges');
 
-        $imageoptions = array('subdirs' => false, 'maxfiles' => 1, 'accepted_types' => array('*.png'),
-                'maxbytes' => '262144');
-        $mform->addElement('filemanager', 'image', get_string('badgeimage', 'badges'), null, $imageoptions);
-        $mform->addRule('image', null, 'required', null, 'client', true);
+        $imageoptions = array('maxbytes' => 262144, 'accepted_types' => array('web_image'));
+        $mform->addElement('filepicker', 'image', get_string('newimage', 'badges'), null, $imageoptions);
+
+        if ($action == 'new') {
+            $mform->addRule('image', null, 'required');
+        } else {
+            $currentimage = $mform->createElement('static', 'currentimage', get_string('currentimage', 'badges'));
+            $mform->insertElementBefore($currentimage, 'image');
+        }
         $mform->addHelpButton('image', 'badgeimage', 'badges');
 
         $mform->addElement('header', 'issuerdetails', get_string('issuerdetails', 'badges'));
@@ -91,20 +95,20 @@ class edit_details_form extends moodleform {
         $issuancedetails[] =& $mform->createElement('radio', 'expiry', '', get_string('never', 'badges'), 0);
         $issuancedetails[] =& $mform->createElement('static', 'none_break', null, '<br/><br/>');
         $issuancedetails[] =& $mform->createElement('radio', 'expiry', '', get_string('fixed', 'badges'), 1);
-        $issuancedetails[] =& $mform->createElement('date_selector', 'expirydate', '');
+        $issuancedetails[] =& $mform->createElement('date_selector', 'expiredate', '');
         $issuancedetails[] =& $mform->createElement('static', 'expirydate_break', null, '<br/><br/>');
         $issuancedetails[] =& $mform->createElement('radio', 'expiry', '', get_string('relative', 'badges'), 2);
-        $issuancedetails[] =& $mform->createElement('duration', 'expiryvalue', '', array('defaultunit' => 86400, 'optional' => false));
+        $issuancedetails[] =& $mform->createElement('duration', 'expireperiod', '', array('defaultunit' => 86400, 'optional' => false));
         $issuancedetails[] =& $mform->createElement('static', 'expiryperiods_break', null, get_string('after', 'badges'));
 
         $mform->addGroup($issuancedetails, 'expirydategr', get_string('expirydate', 'badges'), array(' '), false);
         $mform->addHelpButton('expirydategr', 'expirydate', 'badges');
         $mform->setDefault('expiry', 0);
-        $mform->disabledIf('expirydate[day]', 'expiry', 'neq', 1);
-        $mform->disabledIf('expirydate[month]', 'expiry', 'neq', 1);
-        $mform->disabledIf('expirydate[year]', 'expiry', 'neq', 1);
-        $mform->disabledIf('expiryvalue[number]', 'expiry', 'neq', 2);
-        $mform->disabledIf('expiryvalue[timeunit]', 'expiry', 'neq', 2);
+        $mform->disabledIf('expiredate[day]', 'expiry', 'neq', 1);
+        $mform->disabledIf('expiredate[month]', 'expiry', 'neq', 1);
+        $mform->disabledIf('expiredate[year]', 'expiry', 'neq', 1);
+        $mform->disabledIf('expireperiod[number]', 'expiry', 'neq', 2);
+        $mform->disabledIf('expireperiod[timeunit]', 'expiry', 'neq', 2);
 
         if ($action == 'new') {
             $this->add_action_buttons(true, get_string('createbutton', 'badges'));
@@ -117,23 +121,61 @@ class edit_details_form extends moodleform {
             $mform->setType('action', PARAM_TEXT);
 
             $this->add_action_buttons();
+            $this->set_data($badge);
 
             // Freeze all elements if badge is active.
             if ($badge->is_active()) {
-                $mform->hardFreezeAllVisibleExcept(array());
+                $image = print_badge_image($badge, $PAGE->context);
+                $mform->insertElementBefore(
+                        $mform->createElement('html', $image, get_string('badgeimage', 'badges')),
+                        'visible');
+                $mform->hardFreeze();
             }
         }
     }
 
-    public function set_data($data) {
-        return parent::set_data($data);
+    /**
+     * Load in existing data as form defaults
+     *
+     * @param stdClass|array $default_values object or array of default values
+     */
+    function set_data($badge) {
+        $default_values = array();
+        parent::set_data($badge);
+
+        if (!empty($badge->expiredate)) {
+            $default_values['expiry'] = 1;
+            $default_values['expiredate'] = $badge->expiredate;
+        } else if (!empty($badge->expireperiod)) {
+            $default_values['expiry'] = 2;
+            $default_values['expireperiod'] = $badge->expireperiod;
+        }
+        parent::set_data($default_values);
+    }
+
+    /**
+     * Form tweaks that depend on current data.
+     */
+    function definition_after_data() {
+        global $CFG, $PAGE;
+        $mform =& $this->_form;
+        $action = $this->_customdata['action'];
+
+        if ($action != 'new') {
+            $badgeid = $mform->getElementValue('id');
+            $badge = new badge($badgeid);
+
+            if (!empty($CFG->gdversion)) {
+                $imageelement = $mform->getElement('currentimage');
+                $imageelement->setValue(print_badge_image($badge, $PAGE->context, 'large'));
+            }
+        }
     }
 
     /**
      * Validates form data
      */
-    public function validation($data, $files) {
-        $errors = array();
+    function validation($data, $files) {
         $errors = parent::validation($data, $files);
 
         $url = parse_url($data['issuerurl']);
@@ -142,7 +184,15 @@ class edit_details_form extends moodleform {
             $host     = isset($url['host']) ? $url['host'] : '';
             $port     = isset($url['port']) ? ':' . $url['port'] : '';
             $suggest = "$scheme$host$port";
-            $errors['url'] = get_string('error:invalidbadgeurl', 'badges', $suggest);
+            $errors['issuerurl'] = get_string('error:invalidbadgeurl', 'badges', $suggest);
+        }
+
+        if ($data['expiry'] == 2 && $data['expireperiod'] <= 0) {
+            $errors['expirydategr'] = get_string('error:invalidexpireperiod', 'badges');
+        }
+
+        if ($data['expiry'] == 1 && $data['expiredate'] <= time()) {
+            $errors['expirydategr'] = get_string('error:invalidexpiredate', 'badges');
         }
 
         return $errors;
@@ -154,7 +204,7 @@ class edit_details_form extends moodleform {
  *
  */
 class edit_criteria_form extends moodleform {
-    protected function definition() {
+    function definition() {
         global $CFG, $OUTPUT;
 
         $mform = $this->_form;
@@ -188,7 +238,7 @@ class edit_criteria_form extends moodleform {
  *
  */
 class edit_message_form extends moodleform {
-    protected function definition() {
+    function definition() {
         global $CFG, $OUTPUT;
 
         $mform = $this->_form;
@@ -237,7 +287,7 @@ class edit_message_form extends moodleform {
         }
     }
 
-    public function validation($data, $files) {
+    function validation($data, $files) {
         $errors = parent::validation($data, $files);
 
         return $errors;

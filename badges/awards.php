@@ -28,39 +28,80 @@ require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
 $badgeid = required_param('id', PARAM_INT);
+$sortby     = optional_param('sort', 'dateissued', PARAM_ALPHA);
+$sorthow    = optional_param('dir', 'DESC', PARAM_ALPHA);
+$page       = optional_param('page', 0, PARAM_INT);
+$updatepref = optional_param('updatepref', false, PARAM_BOOL);
+$perpage    = optional_param('perpage', 20, PARAM_INT);
 
 require_login($SITE);
+
+if (!in_array($sortby, array('firstname', 'lastname', 'dateissued'))) {
+    $sortby = 'dateissued';
+}
+
+if ($sorthow != 'ASC' and $sorthow != 'DESC') {
+    $sorthow = 'DESC';
+}
+
+if ($page < 0) {
+    $page = 0;
+}
 
 $badge = new badge($badgeid);
 if ($badge->context == 1) {
     $context = context_system::instance();
-    navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => 'site')));
+    navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => 1)));
 } else {
     require_login($badge->courseid);
     $context = context_course::instance($badge->courseid);
-    navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => 'course', 'id' => $badge->courseid)));
+    navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => 2, 'id' => $badge->courseid)));
 }
 
 $PAGE->set_context($context);
-$PAGE->set_url('/badges/awards.php', array('id' => $badgeid));
+$PAGE->set_url('/badges/awards.php', array('id' => $badgeid, 'sort' => $sortby, 'dir' => $sorthow));
 $PAGE->set_pagelayout('standard');
 $PAGE->set_heading($badge->name);
 $PAGE->set_title($badge->name);
 $PAGE->navbar->add($badge->name);
 
-echo $OUTPUT->header();
-echo $OUTPUT->heading($badge->name . ': ' . get_string('awards', 'badges'));
-
 $output = $PAGE->get_renderer('core', 'badges');
+
+if ($updatepref) {
+    require_sesskey();
+    if ($perpage > 0) {
+        set_user_preference('recipients_perpage', $perpage);
+    }
+    redirect($PAGE->url);
+}
+
+echo $output->header();
+echo $output->heading($badge->name . ': ' . get_string('awards', 'badges'));
+
 $output->print_badge_tabs($badgeid, $context, 'awards');
 
-//var_dump($badge);
+$sql = "SELECT b.userid, b.dateissued, b.uniquehash, u.firstname, u.lastname
+    FROM {badge_issued} b INNER JOIN {user} u
+        ON b.userid = u.id
+    WHERE b.badgeid = :badgeid
+    ORDER BY $sortby $sorthow";
+
+$perpage = get_user_preferences('recipients_perpage', 20);
+$totalcount = $DB->count_records('badge_issued', array('badgeid' => $badge->id));
 
 if ($badge->has_awards()) {
-    $output->print_awarded_table($badge->get_awards());
+    $users = $DB->get_records_sql($sql, array('badgeid' => $badge->id), $page * $perpage, $perpage);
+    $recipients             = new badge_recipients($users);
+    $recipients->sort       = $sortby;
+    $recipients->dir        = $sorthow;
+    $recipients->page       = $page;
+    $recipients->perpage    = $perpage;
+    $recipients->totalcount = $totalcount;
+
+    echo $output->render($recipients);
 }
 else {
-    echo $OUTPUT->notification(get_string('noawards', 'badges'));
+    echo $output->notification(get_string('noawards', 'badges'));
 }
 
-echo $OUTPUT->footer();
+echo $output->footer();

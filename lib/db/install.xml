@@ -2914,7 +2914,7 @@
         <INDEX NAME="roleid" UNIQUE="false" FIELDS="roleid" PREVIOUS="courseid"/>
       </INDEXES>
     </TABLE>
-    <TABLE NAME="temp_log_template" COMMENT="Temporary storage for daily logs" PREVIOUS="temp_enroled_template">
+    <TABLE NAME="temp_log_template" COMMENT="Temporary storage for daily logs" PREVIOUS="temp_enroled_template"  NEXT="badge">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" NEXT="userid"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" PREVIOUS="id" NEXT="course"/>
@@ -2931,7 +2931,7 @@
         <INDEX NAME="usercourseaction" UNIQUE="false" FIELDS="userid, course, action" PREVIOUS="user"/>
       </INDEXES>
     </TABLE>
-    <TABLE NAME="badge" COMMENT="Defines badge" NEXT="badge_criteria" PREVIOUS="temp_log_template" NEXT="badge_criteria">
+    <TABLE NAME="badge" COMMENT="Defines badge" NEXT="badge_criteria" PREVIOUS="temp_log_template">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" NEXT="name"/>
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" PREVIOUS="id" NEXT="description"/>
@@ -3016,7 +3016,7 @@
         <INDEX NAME="badgeuser" UNIQUE="true" FIELDS="badgeid, userid" PREVIOUS="userid"/>
       </INDEXES>
     </TABLE>
-    <TABLE NAME="badge_criteria_met" COMMENT="Defines criteria that were met for an issued badge" PREVIOUS="badge_issued" NEXT="badge_backpack">
+    <TABLE NAME="badge_criteria_met" COMMENT="Defines criteria that were met for an issued badge" PREVIOUS="badge_issued" NEXT="badge_manual_award">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" NEXT="issuedid"/>
         <FIELD NAME="issuedid" TYPE="int" LENGTH="10" NOTNULL="false" PREVIOUS="id" NEXT="critid"/>
@@ -3031,7 +3031,22 @@
         <KEY NAME="fk_issuedid" TYPE="foreign" FIELDS="issuedid" REFTABLE="badge_issued" REFFIELDS="id" PREVIOUS="fk_userid"/>
       </KEYS>
     </TABLE>
-    <TABLE NAME="badge_backpack" COMMENT="Defines settings for connecting external backpack" PREVIOUS="badge_criteria_met">
+    <TABLE NAME="badge_manual_award" COMMENT="Track manual award criteria for badges" PREVIOUS="badge_criteria_met" NEXT="badge_backpack">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" NEXT="paramid"/>
+        <FIELD NAME="paramid" TYPE="int" LENGTH="10" NOTNULL="false" PREVIOUS="id" NEXT="recipientid"/>
+        <FIELD NAME="recipientid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="paramid" NEXT="issuerid"/>
+        <FIELD NAME="issuerid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="recipientid" NEXT="datemet"/>
+        <FIELD NAME="datemet" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="issuerid"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="fk_paramid"/>
+        <KEY NAME="fk_paramid" TYPE="foreign" FIELDS="id" REFTABLE="badge_criteria_param" REFFIELDS="id" PREVIOUS="primary" NEXT="fk_recipientid"/>
+        <KEY NAME="fk_recipientid" TYPE="foreign" FIELDS="recipientid" REFTABLE="user" REFFIELDS="id" PREVIOUS="fk_paramid" NEXT="fk_issuerid"/>
+        <KEY NAME="fk_issuerid" TYPE="foreign" FIELDS="issuerid" REFTABLE="user" REFFIELDS="id" PREVIOUS="fk_recipientid"/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="badge_backpack" COMMENT="Defines settings for connecting external backpack" PREVIOUS="badge_manual_award">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" NEXT="userid"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" PREVIOUS="id" NEXT="email"/>

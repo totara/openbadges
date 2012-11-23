@@ -38,13 +38,22 @@ $hide = optional_param('hide', 0, PARAM_INT);
 $show = optional_param('show', 0, PARAM_INT);
 $sort = optional_param('sort', 'name', PARAM_ALPHA);
 $dir  = optional_param('dir', 'asc', PARAM_ALPHA);
+$confirm  = optional_param('confirm', 0, PARAM_INT);
+$delete = optional_param('delete', 0, PARAM_INT);
 
 require_login($SITE);
+
+$urlparams = array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage, 'page'=>$page);
+
 if ($course = $DB->get_record('course', array('id' => $courseid))) {
-    $PAGE->set_url('/badges/index.php', array('type' => $type, 'id' => $course->id));
+    $urlparams['type'] = $type;
+    $urlparams['id'] = $course->id;
 } else {
-    $PAGE->set_url('/badges/index.php', array('type' => $type));
+    $urlparams['type'] = $type;
 }
+
+$returnurl = new moodle_url('/badges/index.php', $urlparams);
+$PAGE->set_url($returnurl);
 
 if ($type == BADGE_TYPE_SITE) {
     $title = get_string('sitebadges', 'badges');
@@ -59,6 +68,13 @@ if ($type == BADGE_TYPE_SITE) {
     $PAGE->set_heading($course->fullname . ": " . $title);
 }
 
+$output = $PAGE->get_renderer('core', 'badges');
+
+if ($confirm && confirm_sesskey()) {
+
+}
+
+
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managebadges', 'badges'));
 
@@ -69,5 +85,8 @@ if (has_capability('moodle/badges:createbadge', $PAGE->context)) {
 
     echo $OUTPUT->single_button(new moodle_url('/badges/newbadge.php', $params), get_string('newbadge', 'badges'), 'GET');
 }
+
+$badges = get_badges($type, $courseid);
+$output->print_badges_table($badges, $PAGE->context, $perpage);
 
 echo $OUTPUT->footer();

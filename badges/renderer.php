@@ -34,7 +34,7 @@ require_once($CFG->dirroot . '/user/filters/lib.php');
 class core_badges_renderer extends plugin_renderer_base {
 
     // Outputs list in of badges in grid-like view.
-    public function display_badges_list($badges, $size = 'meduim') {
+    public function print_badges_list($badges, $size = 'meduim') {
         $items = array();
 
         foreach ($badges as $badge) {
@@ -50,45 +50,7 @@ class core_badges_renderer extends plugin_renderer_base {
         return $output;
     }
 
-    // Prints a table of users who have earned the badge.
-    public function print_awarded_table($awards, $search = null) {
-        global $PAGE;
-        $totalcount = count($awards);
-        $perpage = 25;
-
-        // create the user filter form
-        $ufiltering = new user_filtering(array('realname' => 0), $PAGE->url);
-        $ufiltering->display_add();
-        $ufiltering->display_active();
-
-        $table = new flexible_table('badge-recipients-table');
-        $table->define_columns(array('userid', 'dateissued', 'uniquehash'));
-        $table->define_headers(array(get_string('user'), get_string('dateawarded', 'badges'), get_string('badgeurl', 'badges')));
-        $table->define_baseurl($PAGE->url);
-        $table->no_sorting('uniquehash');
-        $table->sortable(true, 'dateissued', SORT_DESC);
-        $table->pageable(true);
-        $table->initialbars($totalcount > $perpage);
-        $table->pagesize($perpage, $totalcount);
-        $table->set_attribute('class', 'generaltable generalbox boxaligncenter boxwidthwide');
-        $table->setup();
-
-        foreach ($awards as $award) {
-            $row = array(
-                    fullname($award),
-                    userdate($award->dateissued),
-                    html_writer::link(
-                            new moodle_url('/badges/badge.php', array('hash' => $award->uniquehash)),
-                            get_string('viewbadge', 'badges')
-                            )
-                    );
-            $table->add_data($row);
-        }
-
-        $table->finish_output();
-    }
-
-    // Prints a table of users who have earned the badge.
+    // Prints a badge overview infomation.
     public function print_badge_overview($badge, $context) {
         $display = "";
 
@@ -99,13 +61,28 @@ class core_badges_renderer extends plugin_renderer_base {
         // Badge details.
         $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
         $display .= html_writer::tag('legend', get_string('badgedetails','badges'), array('class' => 'bold'));
-        $display .= "";
+
+        $detailstable = new html_table();
+        $detailstable->attributes = array('class' => 'clearfix', 'id' => 'badgedetails');
+        $detailstable->data[] = new html_table_row(array(get_string('name') . ":", $badge->name));
+        $detailstable->data[] = new html_table_row(array(get_string('description', 'badges') . ":", $badge->description));
+        $detailstable->data[] = new html_table_row(array(get_string('visible', 'badges') . ":",
+                $badge->visible ? get_string('yes') : get_string('no')));
+        $detailstable->data[] = new html_table_row(array(get_string('badgeimage', 'badges') . ":",
+                print_badge_image($badge, $context, 'large')));
+        $display .= html_writer::table($detailstable);
         $display .= html_writer::end_tag('fieldset');
 
         // Issuer details.
         $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
         $display .= html_writer::tag('legend', get_string('issuerdetails','badges'), array('class' => 'bold'));
-        $display .= "";
+
+        $issuertable = new html_table();
+        $issuertable->attributes = array('class' => 'clearfix', 'id' => 'badgeissuer');
+        $issuertable->data[] = new html_table_row(array(get_string('issuername', 'badges') . ":", $badge->issuername));
+        $issuertable->data[] = new html_table_row(array(get_string('issuerurl', 'badges') . ":", $badge->issuerurl));
+        $issuertable->data[] = new html_table_row(array(get_string('contact', 'badges') . ":", $badge->issuercontact));
+        $display .= html_writer::table($issuertable);
         $display .= html_writer::end_tag('fieldset');
 
         // Issuance details if any.
@@ -137,13 +114,13 @@ class core_badges_renderer extends plugin_renderer_base {
             $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
             $display .= html_writer::tag('legend', get_string('awards','badges'), array('class' => 'bold'));
             if ($badge->has_awards()) {
-                $display .= get_string('numawards', 'badges', count($badge->awards));
+                $display .= get_string('numawards', 'badges', count($badge->get_awards()));
             } else {
                 $display .= get_string('noawards', 'badges');
             }
             $display .= html_writer::end_tag('fieldset');
         }
-
+// @TODO: table styles.
         return $display;
     }
 
@@ -181,6 +158,72 @@ class core_badges_renderer extends plugin_renderer_base {
 
         $table->data[] = $actions;
         return html_writer::table($table);
+    }
+
+    // Prints action icons for the badge.
+    public function print_badge_table_actions($badge, $context) {
+        $table = new html_table();
+        $table->attributes = array('class' => 'badge-table-actions', 'id' => 'badge-table-actions');
+
+        $actions = array();
+        $actions[] = $this->output->pix_icon('t/lock', get_string('activate', 'badges'));
+        $actions[] = $this->output->pix_icon('t/enrolusers', get_string('award', 'badges'));
+
+        $actions[] = $this->output->pix_icon('t/hide', get_string('hide'));
+        $actions[] = $this->output->pix_icon('t/editstring', get_string('edit'));
+        $actions[] = $this->output->pix_icon('t/copy', get_string('copy'));
+        $actions[] = $this->output->pix_icon('t/delete', get_string('delete'));
+
+        $table->data[] = $actions;
+        return html_writer::table($table);
+    }
+
+    // Outputs table badges with actions available.
+    public function render_badge_collection(badge_collection $badges) {
+        global $PAGE;
+        $totalcount = count($badges);
+        list($extrasql, $params) = $ufiltering->get_sql_filter();
+        $table = new flexible_table('badge-table');
+        $table->define_columns(array('select', 'image', 'name', 'criteria', 'awards', 'status', 'actions'));
+        $headers = array(
+                    get_string('select'),
+                    get_string('badgeimage', 'badges'),
+                    get_string('name'),
+                    get_string('bcriteria', 'badges'),
+                    get_string('awards', 'badges'),
+                    get_string('status', 'badges'),
+                    get_string('actions', 'badges')
+                );
+
+        $table->define_headers($headers);
+        $table->define_baseurl($PAGE->url);
+        $table->column_nosort = array('select', 'image', 'criteria', 'actions');
+        $table->sortable(true, 'timemodified', SORT_DESC);
+        $table->pageable(true);
+        $table->initialbars($totalcount > $perpage);
+        $table->pagesize($perpage, $totalcount);
+        $table->set_attribute('class', 'badge-table boxaligncenter boxwidthwide');
+        $table->column_class(1, 'badge-table-image');
+        $table->setup();
+
+        if ($totalcount == 0) {
+            $table->print_nothing_to_display();
+        } else {
+            foreach ($badges as $b) {
+                $row = array(
+                        html_writer::checkbox('badgeid', $b->id, false),
+                        print_badge_image($b, $this->page->context),
+                        html_writer::link(new moodle_url('/badges/overview.php', array('id' => $b->id)), $b->name),
+                        "",
+                        html_writer::link(new moodle_url('/badges/awards.php', array('id' => $b->id)), count($b->get_awards())),
+                        $b->statstring,
+                        self::print_badge_table_actions($b, $this->page->context)
+                        );
+                $table->add_data($row);
+            }
+        }
+
+        $table->finish_output();
     }
 
     // Prints tabs for badge editing.
@@ -227,4 +270,212 @@ class core_badges_renderer extends plugin_renderer_base {
 
         print_tabs($tabs, $current);
     }
+
+    // Renders a table with users who have earned the badge.
+    // Based on stamps collection plugin.
+    protected function render_badge_recipients(badge_recipients $recipients) {
+        if (empty($recipients->userids)) {
+            return $this->output->heading(get_string('somestring', 'badges'), 3);
+        }
+
+        $htmlpagingbar = $this->render(new paging_bar($recipients->totalcount, $recipients->page, $recipients->perpage, $this->page->url, 'page'));
+        $table = new html_table();
+        $table->attributes['class'] = 'generaltable generalbox boxaligncenter boxwidthwide';
+
+        $sortbyfirstname = $this->helper_sortable_heading(get_string('firstname'),
+                'firstname', $recipients->sort, $recipients->dir);
+        $sortbylastname = $this->helper_sortable_heading(get_string('lastname'),
+                'lastname', $recipients->sort, $recipients->dir);
+        if ($this->helper_fullname_format() == 'lf') {
+            $sortbyname = $sortbylastname . ' / ' . $sortbyfirstname;
+        } else {
+            $sortbyname = $sortbyfirstname . ' / ' . $sortbylastname;
+        }
+
+        $sortbydate = $this->helper_sortable_heading(get_string('dateawarded', 'badges'),
+                'dateissued', $recipients->sort, $recipients->dir);
+
+        $table->head = array($sortbyname, $sortbydate, '');
+
+        $table->colclasses = array('fullname', 'dateissued', 'badgeurl');
+
+        foreach ($recipients->userids as $holder) {
+            $fullname = fullname($holder);
+            $fullname = html_writer::link(
+                            new moodle_url('/user/profile.php', array('id' => $holder->userid)),
+                            $fullname
+                        );
+            $awarded  = userdate($holder->dateissued);
+            $badgeurl = html_writer::link(
+                            new moodle_url('/badges/badge.php', array('hash' => $holder->uniquehash)),
+                            get_string('viewbadge', 'badges')
+                        );
+
+            $row = array($fullname, $awarded, $badgeurl);
+            $table->data[] = $row;
+        }
+
+        $htmltable       = html_writer::table($table);
+        $htmlpreferences = $this->helper_preferences_form($recipients->perpage);
+
+        return $htmlpagingbar . $htmltable . $htmlpagingbar . $htmlpreferences;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Helper methods
+    // Reused from stamps collection plugin
+    ////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Renders a form to set the view preferences
+     *
+     * @param int $perpage current value of users per page setting
+     * @return string HTML
+     */
+    protected function helper_preferences_form($perpage) {
+        global $CFG;
+        require_once($CFG->libdir . '/formslib.php');
+
+        $mform = new MoodleQuickForm('preferences',
+                                    'post',
+                                    $this->page->url,
+                                    '',
+                                    array('class' => 'preferences boxaligncenter boxwidthwide'));
+
+        $mform->addElement('hidden', 'sesskey', sesskey());
+        $mform->addElement('hidden', 'updatepref', 1);
+
+        $mform->addElement('header', 'qgprefs', get_string('preferences'));
+
+        $mform->addElement('text', 'perpage', get_string('perpage', 'badges'), array('size' => 2));
+        $mform->setDefault('perpage', $perpage);
+
+        $mform->addElement('submit', 'savepreferences', get_string('savepreferences'));
+
+        ob_start();
+        $mform->display();
+        $out = ob_get_clean();
+
+        return $out;
+    }
+    /**
+     * Renders a text with icons to sort by the given column
+     *
+     * This is intended for table headings.
+     *
+     * @param string $text    The heading text
+     * @param string $sortid  The column id used for sorting
+     * @param string $sortby  Currently sorted by (column id)
+     * @param string $sorthow Currently sorted how (ASC|DESC)
+     *
+     * @return string
+     */
+    protected function helper_sortable_heading($text, $sortid=null, $sortby=null, $sorthow=null) {
+
+        $out = html_writer::tag('span', $text, array('class'=>'text'));
+
+        if (!is_null($sortid)) {
+            if ($sortby !== $sortid or $sorthow !== 'ASC') {
+                $url = new moodle_url($this->page->url);
+                $url->params(array('sort' => $sortid, 'dir' => 'ASC'));
+                $out .= $this->output->action_icon($url,
+                        new pix_icon('t/up', get_string('sortbyx', 'core', s($text)), null, array('class' => 'sort asc')));
+            }
+            if ($sortby !== $sortid or $sorthow !== 'DESC') {
+                $url = new moodle_url($this->page->url);
+                $url->params(array('sort' => $sortid, 'dir' => 'DESC'));
+                $out .= $this->output->action_icon($url,
+                        new pix_icon('t/down', get_string('sortbyxreverse', 'core', s($text)), null, array('class' => 'sort desc')));
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Tries to guess the fullname format set at the site
+     *
+     * @return string fl|lf
+     */
+    protected function helper_fullname_format() {
+        $fake = new stdClass();
+        $fake->lastname = 'LLLL';
+        $fake->firstname = 'FFFF';
+        $fullname = get_string('fullnamedisplay', '', $fake);
+        if (strpos($fullname, 'LLLL') < strpos($fullname, 'FFFF')) {
+            return 'lf';
+        } else {
+            return 'fl';
+        }
+    }
+}
+
+/**
+ * Badge recipients rendering class
+ */
+class badge_recipients implements renderable {
+    /** @var string how are the data sorted */
+    public $sort = 'lastname';
+
+    /** @var string how are the data sorted */
+    public $dir = 'ASC';
+
+    /** @var int page number to display */
+    public $page = 0;
+
+    /** @var int number of badge recipients to display per page */
+    public $perpage = 30;
+
+    /** @var int the total number or badge recipients to display */
+    public $totalcount = null;
+
+    /** @var array internal list of  badge recipients ids */
+    public $userids = array();
+    /**
+     * Initializes the list of users to display
+     *
+     * @param array $holders List of badge holders
+     */
+    public function __construct($holders) {
+        $this->userids = $holders;
+    }
+}
+
+/**
+ * Collection of all badges for view.php page
+ */
+class badge_collection implements renderable {
+
+    /** @var string how are the data sorted */
+    public $sortedby = 'name';
+
+    /** @var string how are the data sorted */
+    public $sortedhow = 'ASC';
+
+    /** @var int page number to display */
+    public $page = 0;
+
+    /** @var int number of stamo holders to display per page */
+    public $perpage = 30;
+
+    /** @var int the total number or stamp holders to display */
+    public $totalcount = null;
+
+    /** @var int list of badges */
+    public $badges = array();
+
+    /**
+     * Initializes the list of badges to display
+     *
+     * @param array $badges Badges to render
+     * @param int $courseid Course id
+     */
+    public function __construct(array $badges = array()) {
+        $this->badges = $badges;
+    }
+}
+
+/**
+ * List of badges used at the index.php page
+ */
+class badge_management extends badge_collection implements renderable {
 }
