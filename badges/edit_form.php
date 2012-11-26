@@ -125,10 +125,6 @@ class edit_details_form extends moodleform {
 
             // Freeze all elements if badge is active.
             if ($badge->is_active()) {
-                $image = print_badge_image($badge, $PAGE->context);
-                $mform->insertElementBefore(
-                        $mform->createElement('html', $image, get_string('badgeimage', 'badges')),
-                        'visible');
                 $mform->hardFreeze();
             }
         }

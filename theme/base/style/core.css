@@ -1079,3 +1079,69 @@ html[dir=rtl] .configphp {direction:ltr;text-align:left;}
 
 table.flexible .r0, table.generaltable .r0 {background-color: #F0F0F0;}
 table.flexible .r1, table.generaltable .r1 {background-color: #FAFAFA;}
+
+/**
+ * Badges
+ */
+#page-badges-view .collection,
+#page-badges-index .collection {
+    margin: 1em auto;
+}
+
+#page-badges-view table.collection td,
+#page-badges-view table.collection th,
+#page-badges-index table.collection td,
+#page-badges-index table.collection th {
+    border-width: 1px;
+    border-style: solid;
+    border-color: #DDDDDD;
+    vertical-align: middle;
+    padding-left: 5px;
+    padding-right: 5px;
+    vertical-align: top;
+}
+
+#page-badges-view table.collection .r1,
+#page-badges-index table.collection .r1 {
+    background-color: #FFFFFF;
+}
+
+#page-badges-view table.collection .badgeimage,
+#page-badges-index table.collection .status {
+    width: 10%;
+    text-align: center;
+    vertical-align: middle;
+}
+
+#page-badges-index table.collection .badgeimage,
+#page-badges-index table.collection .select,
+#page-badges-view table.collection .awards,
+#page-badges-index table.collection .awards {
+    width: 5%;
+    text-align: center;
+    vertical-align: middle;
+}
+
+#page-badges-view table.collection .name,
+#page-badges-index table.collection .name {
+    text-align: left;
+    vertical-align: middle;
+}
+
+#page-badges-view table.collection .description {
+    width: 30%;
+    text-align: left;
+}
+
+#page-badges-view table.collection .criteria,
+#page-badges-index table.collection .criteria {
+    width: 30%;
+    text-align: left;
+}
+
+#page-badges-index table.collection .actions {
+    width: 11em;
+    text-align: center;
+    vertical-align: middle;
+}
+

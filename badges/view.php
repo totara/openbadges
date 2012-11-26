@@ -38,7 +38,7 @@ $search     = optional_param('search', '', PARAM_CLEAN);
 
 require_login($SITE);
 
-if (!in_array($sortby, array('name', 'awarded'))) {
+if (!in_array($sortby, array('name', 'dateissued'))) {
     $sortby = 'name';
 }
 
@@ -51,9 +51,9 @@ if ($page < 0) {
 }
 
 if ($course = $DB->get_record('course', array('id' => $courseid))) {
-    $PAGE->set_url('/badges/view.php', array('type' => $type, 'id' => $course->id));
+    $PAGE->set_url('/badges/view.php', array('type' => $type, 'id' => $course->id, 'sort' => $sortby, 'dir' => $sorthow));
 } else {
-    $PAGE->set_url('/badges/view.php', array('type' => $type));
+    $PAGE->set_url('/badges/view.php', array('type' => $type, 'sort' => $sortby, 'dir' => $sorthow));
 }
 
 if ($type == BADGE_TYPE_SITE) {
@@ -67,6 +67,9 @@ if ($type == BADGE_TYPE_SITE) {
     $PAGE->set_context(context_course::instance($course->id));
     $PAGE->set_pagelayout('course');
     $PAGE->set_heading($course->fullname . ": " . $title);
+    navigation_node::override_active_url(
+        new moodle_url('/badges/view.php', array('type' => BADGE_TYPE_COURSE, 'id' => $course->id))
+    );
 }
 
 $PAGE->set_title($title);
@@ -75,35 +78,30 @@ $output = $PAGE->get_renderer('core', 'badges');
 if ($updatepref) {
     require_sesskey();
     if ($perpage > 0) {
-        set_user_preference('recipients_perpage', $perpage);
+        set_user_preference('badges_perpage', $perpage);
     }
     redirect($PAGE->url);
 }
 
 echo $output->header();
+$perpage = (int)get_user_preferences('badges_perpage', 20);
 
-$params = array();
-$params['context'] = $type;
-$params['courseid'] = ($type == BADGE_TYPE_COURSE) ? $courseid : null;
-$params['visible'] = 1;
-
-$totalcount = count(get_badges('', '', '', '', '', $params));
-$records = get_badges($sortby, $sorthow, $page * $perpage, $perpage, $search, $params);
-$perpage = get_user_preferences('badges_perpage', 20);
+$totalcount = count(get_badges($type, $courseid, true, '', '', '', '', '', $USER->id));
+$records = get_badges($type, $courseid, true, $sortby, $sorthow, $page, $perpage, $search, $USER->id);
 
 if ($totalcount) {
-    $badges                 = new badge_collection($records);
+    echo $output->heading(get_string('badgestoearn', 'badges', $totalcount), 2);
+    $badges             = new badge_collection($records);
     $badges->sort       = $sortby;
     $badges->dir        = $sorthow;
     $badges->page       = $page;
     $badges->perpage    = $perpage;
     $badges->totalcount = $totalcount;
 
-    //echo $output->render($recipients);
+    echo $output->render($badges);
 }
 else {
-    echo $output->notification(get_string('noawards', 'badges'));
+    echo $output->notification(get_string('nobadges', 'badges'));
 }
 
-
-echo $OUTPUT->footer();
+echo $output->footer();
