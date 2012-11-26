@@ -401,28 +401,61 @@ function notify_badge_award($issuedid) {
 /**
  * Gets all badges.
  *
+ * @param int Type of badges to return
+ * @param int Course ID for course badges
+ * @param bool $visible Return only available badges
  * @param string $sort An SQL field to sort by
  * @param string $dir The sort direction ASC|DESC
  * @param int $page The page or records to return
  * @param int $perpage The number of records to return per page
  * @param string $search A simple string to search for
- * @param array $extraparams Additional parameters to use for the above $extraselect
+ * @param int $user User specific search
  */
-function get_badges($sort = '', $dir = '', $page = 0, $perpage = 20, $search = '', $extraparams) {
+function get_badges($type, $courseid = 0, $visible = true, $sort = '', $dir = '',
+                            $page = 0, $perpage = 20, $search = '', $user = 0) {
     global $DB;
-    $sorting = (($sort != '' && $dir != '') ? $sort . ' ' . $dir : null);
-
     $records = array();
-    $records = $DB->get_records('badge', $extraparams, $sorting, 'id', $page * $perpage, $perpage);
-    var_dump($records);
+    $params = array();
+    $where = "b.context = :context ";
+
+    $userfields = array('b.id');
+    $usersql = "";
+    if ($user != 0) {
+        $userfields[] = 'bi.dateissued';
+        $userfields[] = 'bi.uniquehash';
+        $usersql = " LEFT JOIN {badge_issued} bi ON b.id = bi.badgeid AND bi.userid = :userid ";
+        $params['userid'] = $user;
+        $where = " (b.status = 1 OR b.status = 3) ";
+    }
+    $fields = implode(', ', $userfields);
+
+    if ($courseid != 0 ) {
+        $where .= "AND b.courseid = :courseid ";
+        $params['courseid'] = $courseid;
+    }
+
+    if ($visible) {
+        $where .= "AND b.visible = 1 ";
+    }
+
+    $sorting = (($sort != '' && $dir != '') ? 'ORDER BY ' . $sort . ' ' . $dir : '');
+    $params['context'] = $type;
+
+    $sql = "SELECT $fields FROM {badge} b $usersql WHERE $where $sorting";
+    $records = $DB->get_records_sql($sql, $params, $page * $perpage, $perpage);
+
     $badges = array();
     foreach ($records as $r) {
         $badge = new badge($r->id);
         $badges[$r->id] = $badge;
-        $badges[$r->id]->awards = count($badge->get_awards());
-        $badges[$r->id]->statstring = $badge->get_status_name();
+        if ($user != 0) {
+            $badges[$r->id]->dateissued = $r->dateissued;
+            $badges[$r->id]->uniquehash = $r->uniquehash;
+        } else {
+            $badges[$r->id]->awards = count($badge->get_awards());
+            $badges[$r->id]->statstring = $badge->get_status_name();
+        }
     }
-
     return $badges;
 }
 
