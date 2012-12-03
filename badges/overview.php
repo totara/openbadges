@@ -60,5 +60,6 @@ $output = $PAGE->get_renderer('core', 'badges');
 $output->print_badge_tabs($badgeid, $context, 'overview');
 echo $output->print_badge_overview($badge, $context);
 echo $output->print_badge_overview_actions($badge, $context);
+$crit = $badge->get_criteria();
 
 echo $OUTPUT->footer();

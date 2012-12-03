@@ -29,6 +29,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/formslib.php');
 require_once($CFG->libdir . '/badgeslib.php');
 require_once($CFG->libdir . '/filelib.php');
+require_once('renderer.php');
 
 /**
  * Form to edit badge details.
@@ -123,8 +124,8 @@ class edit_details_form extends moodleform {
             $this->add_action_buttons();
             $this->set_data($badge);
 
-            // Freeze all elements if badge is active.
-            if ($badge->is_active()) {
+            // Freeze all elements if badge is active or locked.
+            if ($badge->is_active() || $badge->is_locked()) {
                 $mform->hardFreeze();
             }
         }
@@ -207,6 +208,26 @@ class edit_criteria_form extends moodleform {
         $badge = $this->_customdata['badge'];
         $action = $this->_customdata['action'];
 
+        // Criteria options actions.
+        if ($badge->has_criteria()) {
+            // Reset criteria options.
+            $mform->addElement('html', $OUTPUT->single_button(
+                    new moodle_url('/badges/action.php', array('id' => $badge->id, 'clear' => 1)),
+                    get_string('clear', 'badges')));
+            foreach ($badge->criteria as $crit) {
+                
+            }
+
+            // Add select driteria menu.
+            $mform->addElement($element);
+            $this->add_action_buttons(); // @TODO: Show action buttons only when there are criteria to save
+        } else {
+            // Start criteria options.
+            $mform->addElement('html', $OUTPUT->single_button(
+                    new moodle_url('/badges/action.php', array('id' => $badge->id, 'clear' => 1)),
+                    get_string('start', 'badges')));
+        }
+
         // Add hidden fields.
         $mform->addElement('hidden', 'id', $badge->id);
         $mform->setType('id', PARAM_INT);
@@ -214,11 +235,11 @@ class edit_criteria_form extends moodleform {
         $mform->addElement('hidden', 'action', $action);
         $mform->setType('action', PARAM_TEXT);
 
-        $this->add_action_buttons();
+
 
         // Freeze all elements if badge is active.
-        if ($badge->is_active()) {
-            $mform->hardFreezeAllVisibleExcept(array());
+        if ($badge->is_active() || $badge->is_locked()) {
+            $mform->hardFreeze();
         }
     }
 
@@ -278,8 +299,8 @@ class edit_message_form extends moodleform {
         $this->add_action_buttons();
 
         // Freeze all elements if badge is active.
-        if ($badge->is_active()) {
-            $mform->hardFreezeAllVisibleExcept(array());
+        if ($badge->is_active() || $badge->is_locked()) {
+            $mform->hardFreeze();
         }
     }
 

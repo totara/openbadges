@@ -35,66 +35,52 @@ class award_criteria_overall extends award_criteria {
     /* @var int Criteria [BADGE_CRITERIA_TYPE_OVERALL] */
     public $criteriatype = BADGE_CRITERIA_TYPE_OVERALL;
 
+    public function __construct($record) {
+        parent::__construct($record);
+    }
+
     /**
      * Add appropriate form elements to the criteria form
      *
-     * @param stdClass $data details of overall criterion
+     * @param moodleform $mform  Moodle forms object
+     * @param stdClass $data details of various modules
      */
-    public function config_form_criteria($data) {
-        global $OUTPUT;
-        $prefix = 'criteria-' . $this->id;
-        if (count($data->criteria) > 2) {
-            echo $OUTPUT->box_start();
-            echo $OUTPUT->heading($this->get_title(), 2);
-
-            $agg = $data->get_aggregation_methods();
-            if (!$data->is_locked() && !$data->is_active()) {
-                $url = new moodle_url('criteria.php', array('id' => $data->id, 'sesskey' => sesskey()));
-                $table = new html_table();
-                $table->attributes = array('class' => 'clearfix');
-                $table->colclasses = array('', 'activatebadge');
-                $table->data[] = array(
-                        $OUTPUT->single_select($url, 'update', $agg, $data->get_aggregation_method($this->criteriatype), null),
-                        get_string('overallcrit', 'badges')
-                        );
-                echo html_writer::table($table);
-            } else {
-                echo $OUTPUT->box(get_string('criteria_descr_' . $this->criteriatype, 'badges',
-                        strtoupper($agg[$data->get_aggregation_method()])), 'clearfix');
-            }
-            echo $OUTPUT->box_end();
-        }
+    public function config_form_display(&$mform, $data = null) {
+        //@TODO
     }
 
     /**
-     * Add appropriate parameter elements to the criteria form
+     * Save the criteria information stored in the database
      *
+     * @param stdClass $data Form data
      */
-    public function config_options(&$mform, $param) {
+    public function save(&$data) {
+        global $DB;
+    
     }
 
     /**
-     * Get criteria details for displaying to users
+     * Return criteria name
      *
      * @return string
      */
-    public function get_details($short = '') {
+    public function get_title() {
+        return get_string('criteria_type_activity', 'badges');
     }
 
     /**
      * Review this criteria and decide if it has been completed
      * Overall criteria review should be called only from other criteria handlers.
-     *
+     *  
      * @param int $userid User whose criteria completion needs to be reviewed.
      * @return bool Whether criteria is complete
      */
     public function review($userid) {
         global $DB;
 
-        $sql = "SELECT bc.*, bcm.critid, bcm.userid, bcm.datemet
-                FROM {badge_criteria} bc
-                LEFT JOIN {badge_criteria_met} bcm
-                    ON bc.id = bcm.critid AND bcm.userid = :userid
+        $sql = "SELECT * FROM {badge_criteria} bc 
+                LEFT JOIN {badge_criteria_met} bcm 
+                    ON bc.id = bcm.critid AND bcm.userid = :userid 
                 WHERE bc.badgeid = :badgeid
                     AND bc.criteriatype != :criteriatype ";
 
@@ -105,7 +91,7 @@ class award_criteria_overall extends award_criteria {
                 );
 
         $criteria = $DB->get_records_sql($sql, $params);
-        $overall = false;
+        $overall = null;
         foreach ($criteria as $crit) {
             if ($this->method == BADGE_CRITERIA_AGGREGATION_ALL) {
                 if ($crit->datemet === null) {
@@ -128,18 +114,10 @@ class award_criteria_overall extends award_criteria {
     }
 
     /**
-     * Add appropriate criteria elements to the form
-     *
-     */
-    public function get_options(&$mform) {
-    }
-
-    /**
      * Return criteria parameters
      *
      * @param int $critid Criterion ID
      * @return array
      */
-    public function get_params($cid) {
-    }
+    public function get_params($cid) { }
 }

@@ -418,6 +418,10 @@ $string['bmessage'] = 'Message';
 $string['configuremessage'] = 'Configure badge message';
 $string['copyof'] = 'Copy of ';
 $string['boverview'] = 'Overview';
+$string['clear'] = 'Clear criteria';
+$string['clearbadge'] = 'Remove all badge criteria';
+$string['clearconfirm'] = '<p>Are you sure you would like to remove all existing criteria for this badge?</p>
+<p><b>Warning!</b></p><p>If some users have already made progress towards earning this badge, their progress will be removed as well.</p>';
 $string['contact'] = 'Contact';
 $string['create'] = 'New badge';
 $string['createbutton'] = 'Create badge';
@@ -446,9 +450,14 @@ $string['numawards'] = 'This badge has been earned by {$a} user(s).';
 $string['noexpiry'] = 'This badge does not have an expiry date.';
 $string['perpage'] = 'Records per page';
 $string['relative'] = 'Relative date';
+$string['reviewbadge'] = 'Review badge';
+$string['reviewconfirm'] = '<p>When you activate a badge, it means that now it can be earned by users.</p>
+<p>Would you like to check if any of the users have already completed all the requirements for \'{$a}\' badge? </p>
+<p><b>Warning!</b></p><p>Depending on how many criteria are assigned to this badge and a number of users on your site, selecting to run this check may make your site slower while all badge requirements are calculated. </p>';
 $string['subject'] = 'Message subject';
 $string['selecting'] = 'With selected badges...';
 $string['status'] = 'Badge status';
+$string['start'] = 'Start';
 $string['visible'] = 'Visible';
 $string['year'] = 'Year(s)';
 

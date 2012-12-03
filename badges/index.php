@@ -98,11 +98,11 @@ if ($updatepref) {
 
 if ($delete && has_capability('moodle/badges:deletebadge', $PAGE->context)) {
     $badge = new badge($delete);
-    if (!$confirmed) {
+    if (!$confirm) {
         echo $output->header();
         echo $output->confirm(
                     get_string('delconfirm', 'badges', $badge->name),
-                    new moodle_url($PAGE->url, array('delete' => $badge->id, 'confirmed' => 1)),
+                    new moodle_url($PAGE->url, array('delete' => $badge->id, 'confirm' => 1)),
                     $returnurl
                 );
         echo $output->footer();
@@ -112,6 +112,36 @@ if ($delete && has_capability('moodle/badges:deletebadge', $PAGE->context)) {
         $badge->delete();
         redirect($returnurl);
     }
+}
+
+if ($hide && has_capability('moodle/badges:configuredetails', $PAGE->context)) {
+    $badge = new badge($hide);
+    $badge->visible = 0;
+    $badge->save();
+    redirect($returnurl);
+} else if ($show && has_capability('moodle/badges:configuredetails', $PAGE->context)) {
+    $badge = new badge($show);
+    $badge->visible = 1;
+    $badge->save();
+    redirect($returnurl);
+}
+
+if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context)) {
+    $badge = new badge($activate);
+    if ($badge->is_locked()) {
+        $badge->set_status(BADGE_STATUS_ACTIVE_LOCKED);
+    } else {
+        $badge->set_status(BADGE_STATUS_ACTIVE);
+    }
+    redirect($returnurl);
+} else if ($deactivate && has_capability('moodle/badges:configuredetails', $PAGE->context)) {
+    $badge = new badge($deactivate);
+    if ($badge->is_locked()) {
+        $badge->set_status(BADGE_STATUS_INACTIVE_LOCKED);
+    } else {
+        $badge->set_status(BADGE_STATUS_INACTIVE);
+    }
+    redirect($returnurl);
 }
 
 echo $OUTPUT->header();

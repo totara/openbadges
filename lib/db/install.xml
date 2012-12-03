@@ -3042,7 +3042,7 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="fk_paramid"/>
-        <KEY NAME="fk_paramid" TYPE="foreign" FIELDS="id" REFTABLE="badge_criteria_param" REFFIELDS="id" PREVIOUS="primary" NEXT="fk_recipientid"/>
+        <KEY NAME="fk_paramid" TYPE="foreign" FIELDS="paramid" REFTABLE="badge_criteria_param" REFFIELDS="id" PREVIOUS="primary" NEXT="fk_recipientid"/>
         <KEY NAME="fk_recipientid" TYPE="foreign" FIELDS="recipientid" REFTABLE="user" REFFIELDS="id" PREVIOUS="fk_paramid" NEXT="fk_issuerid"/>
         <KEY NAME="fk_issuerid" TYPE="foreign" FIELDS="issuerid" REFTABLE="user" REFFIELDS="id" PREVIOUS="fk_recipientid"/>
       </KEYS>

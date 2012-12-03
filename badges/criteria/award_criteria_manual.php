@@ -35,26 +35,73 @@ class award_criteria_manual extends award_criteria {
     /* @var int Criteria [BADGE_CRITERIA_TYPE_MANUAL] */
     public $criteriatype = BADGE_CRITERIA_TYPE_MANUAL;
 
-    public function __construct($record) {
+    /* @var array Parameters for criteria */
+    public $params = array();
 
+    protected $required_params = array('roleid');
+    protected $optional_params = array();
+
+    public function __construct($record) {
+        parent::__construct($record);
+        $this->params = self::get_params($record['id']);
     }
 
     /**
-     * Add appropriate form elements to the critiria form
+     * Add appropriate form elements to the criteria form
      *
      * @param moodleform $mform  Moodle forms object
      * @param stdClass $data details of various modules
      */
     public function config_form_display(&$mform, $data = null) {
+        //@TODO
+    }
+
+    /**
+     * Save the criteria information stored in the database
+     *
+     * @param stdClass $data Form data
+     */
+    public function save(&$data) {
+        global $DB;
 
     }
 
     /**
-     * Return criteria title
+     * Return criteria name
      *
      * @return string
      */
     public function get_title() {
-        return "";
+        return get_string('criteria_type_manual', 'badges');
+    }
+
+    /**
+     * Review this criteria and decide if it has been completed
+     *
+     * @param int $userid User whose criteria completion needs to be reviewed.
+     * @return bool Whether criteria is complete
+     */
+    public function review($userid) {
+        return false;
+
+    }
+
+    /**
+     * Delete this criterion
+     *
+     */
+    public function delete() {
+        global $DB;
+
+        // Remove any records of manual award.
+        $sql = "SELECT bm.id
+                FROM {badge_criteria_param} bp
+                    INNER JOIN {badge_manual_award} bm
+                        ON bm.paramid = bp.id
+                WHERE bp.critid = :critid ";
+        $list = $DB->get_fieldset_sql($sql, array('critid' => $this->id));
+        $DB->delete_records_list('badge_manual_award', 'id', $list);
+
+        parent::delete();
     }
 }

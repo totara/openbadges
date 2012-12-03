@@ -57,22 +57,29 @@ define('BADGE_CRITERIA_TYPE_SOCIAL', 3);
 define('BADGE_CRITERIA_TYPE_COURSE', 4);
 
 /**
+ * Courseset completion criteria type
+ * Criteria type constant, primarily for storing criteria type in the database.
+ */
+define('BADGE_CRITERIA_TYPE_COURSESET', 5);
+
+/**
  * Course completion criteria type
  * Criteria type constant, primarily for storing criteria type in the database.
  */
-define('BADGE_CRITERIA_TYPE_PROFILE', 5);
+define('BADGE_CRITERIA_TYPE_PROFILE', 6);
 
 /**
  * Criteria type constant to class name mapping
 */
 global $BADGE_CRITERIA_TYPES;
 $BADGE_CRITERIA_TYPES = array(
-    BADGE_CRITERIA_TYPE_OVERALL  => 'overall',
-    BADGE_CRITERIA_TYPE_ACTIVITY => 'activity',
-    BADGE_CRITERIA_TYPE_MANUAL   => 'manual',
-    BADGE_CRITERIA_TYPE_SOCIAL   => 'social',
-    BADGE_CRITERIA_TYPE_COURSE   => 'course',
-    BADGE_CRITERIA_TYPE_PROFILE  => 'profile'
+    BADGE_CRITERIA_TYPE_OVERALL   => 'overall',
+    BADGE_CRITERIA_TYPE_ACTIVITY  => 'activity',
+    BADGE_CRITERIA_TYPE_MANUAL    => 'manual',
+    BADGE_CRITERIA_TYPE_SOCIAL    => 'social',
+    BADGE_CRITERIA_TYPE_COURSE    => 'course',
+    BADGE_CRITERIA_TYPE_COURSESET => 'courseset',
+    BADGE_CRITERIA_TYPE_PROFILE   => 'profile'
 );
 
 /**
@@ -80,6 +87,24 @@ $BADGE_CRITERIA_TYPES = array(
  *
  */
 abstract class award_criteria {
+
+    public $id;
+
+    public $method;
+
+    public $badgeid;
+
+    /**
+     * The base constructor
+     *
+     * @param array $params
+     */
+    public function __construct($params) {
+        $this->id = $params['id'];
+        $this->method = $params['method'];
+        $this->badgeid = $params['badgeid'];
+    }
+
     /**
      * Factory method for creating criteria class object
      *
@@ -113,4 +138,70 @@ abstract class award_criteria {
      * @param mixed $data optional Any additional data that can be used to set default values in the form
      */
     abstract public function config_form_display(&$mform, $data = null);
+
+    /**
+     * Save the criteria information stored in the database
+     *
+     * @param array $data Form data
+     * @return void
+     */
+    abstract public function save(&$data);
+
+    /**
+     * Review this criteria and decide if the user has completed
+     *
+     * @param int $userid User whose criteria completion needs to be reviewed.
+     * @return bool Whether criteria is complete
+     */
+    abstract public function review($userid);
+
+    /**
+     * Mark this criteria as complete for a user
+     *
+     * @param int $userid User whose criteria is completed.
+     */
+    public function mark_complete($userid) {
+        global $DB;
+        $obj = array();
+        $obj['critid'] = $this->id;
+        $obj['userid'] = $userid;
+        $obj['datemet'] = time();
+        $DB->insert_record('badge_criteria_met', $obj);
+    }
+
+    /**
+     * Return criteria parameters
+     *
+     * @param int $critid Criterion ID
+     * @return array
+     */
+    public function get_params($cid){
+        global $DB;
+        $params = array();
+
+        $records = $DB->get_records('badge_criteria_param', array('critid' => $cid));
+        foreach ($records as $rec) {
+            $arr = explode('_', $rec->name);
+            $params[$arr[1]][$arr[0]] = $rec->value;
+        }
+
+        return $params;
+    }
+
+    /**
+     * Delete this criterion
+     *
+     */
+    public function delete() {
+        global $DB;
+
+        // Remove any records if it has already been met.
+        $DB->delete_records('badge_criteria_met', array('critid' => $this->id));
+
+        // Remove all parameters records.
+        $DB->delete_records('badge_criteria_param', array('critid' => $this->id));
+
+        // Finally remove criterion itself.
+        $DB->delete_records('badge_criteria', array('id' => $this->id));
+    }
 }
