@@ -143,9 +143,7 @@ class core_badges_renderer extends plugin_renderer_base {
         }
 
         if (has_capability('moodle/badges:configurecriteria', $context)) {
-            if ($badge->is_locked()) {
-                $actions[] = "";
-            } else if ($badge->is_active()) {
+            if ($badge->is_active()) {
                 $actions[] = $this->output->single_button(
                         new moodle_url('/badges/action.php', array('id' => $badge->id, 'lock' => 1)),
                         get_string('deactivate', 'badges'));
@@ -167,44 +165,46 @@ class core_badges_renderer extends plugin_renderer_base {
         if (has_capability('moodle/badges:configuredetails', $context)) {
             // Activate/deactivate badge.
             if ($badge->status == BADGE_STATUS_INACTIVE || $badge->status == BADGE_STATUS_INACTIVE_LOCKED) {
-                $url = new moodle_url('badges/1.php', array('hide' => $badge->id));
-                $actions .= $this->output->action_icon($url, new pix_icon('t/go', get_string('activate', 'badges'))) . " ";
+                $url = new moodle_url('/badges/index.php', array('activate' => $badge->id, 'type' => $badge->context));
+                $actions .= $this->output->action_icon($url, new pix_icon('t/stop', get_string('activate', 'badges'))) . " ";
             } else {
-                $url = new moodle_url('badges/1.php', array('show' => $badge->id));
-                $actions .= $this->output->action_icon($url, new pix_icon('t/stop', get_string('deactivate', 'badges'))) . " ";
+                $url = new moodle_url('/badges/index.php', array('lock' => $badge->id, 'type' => $badge->context));
+                $actions .= $this->output->action_icon($url, new pix_icon('t/go', get_string('deactivate', 'badges'))) . " ";
             }
 
             // Show/hide badge.
             if (!empty($badge->visible)) {
-                $url = new moodle_url('badges/1.php', array('hide' => $badge->id));
+                $url = new moodle_url('/badges/index.php', array('hide' => $badge->id, 'type' => $badge->context));
                 $actions .= $this->output->action_icon($url, new pix_icon('t/hide', get_string('hide'))) . " ";
             } else {
-                $url = new moodle_url('badges/1.php', array('show' => $badge->id));
+                $url = new moodle_url('/badges/index.php', array('show' => $badge->id, 'type' => $badge->context));
                 $actions .= $this->output->action_icon($url, new pix_icon('t/show', get_string('show'))) . " ";
             }
         }
 
         // Award badge manually.
-        if (has_capability('moodle/badges:awardbadge', $context)) { // @TODO: check if can be awarded manually
-            $url = new moodle_url('/enrol/users.php', array('id' => $badge->id));
+        if ($badge->has_manual_award_criteria() &&
+                has_capability('moodle/badges:awardbadge', $context) &&
+                $badge->is_active()) {
+            $url = new moodle_url('/badges/award.php', array('id' => $badge->id));
             $actions .= $this->output->action_icon($url, new pix_icon('t/enrolusers', get_string('award', 'badges'))) . " ";
         }
 
         // Edit badge.
         if (has_capability('moodle/badges:configuredetails', $context)) {
-            $url = new moodle_url('/course/edit.php', array('id' => $badge->id));
+            $url = new moodle_url('/badges/edit.php', array('id' => $badge->id, 'action' => 'details'));
             $actions .= $this->output->action_icon($url, new pix_icon('t/edit', get_string('edit'))) . " ";
         }
 
         // Duplicate badge.
         if (has_capability('moodle/badges:createbadge', $context)) {
-            $url = new moodle_url('/backup/restorefile.php', array('contextid' => ''));
+            $url = new moodle_url('/badges/action.php', array('copy' => '1', 'id' => $badge->id));
             $actions .= $this->output->action_icon($url, new pix_icon('t/copy', get_string('copy'))) . " ";
         }
 
         // Delete badge.
         if (has_capability('moodle/badges:deletebadge', $context)) {
-            $url = new moodle_url('/badges/delete.php', array('id' => $badge->id));
+            $url = new moodle_url('/badges/index.php', array('delete' => $badge->id, 'type' => $badge->context));
             $actions .= $this->output->action_icon($url, new pix_icon('t/delete', get_string('delete'))) . " ";
         }
 
@@ -277,7 +277,7 @@ class core_badges_renderer extends plugin_renderer_base {
         $table->colclasses = array('select', 'badgeimage', 'name', 'status', 'criteria', 'awards', 'actions');
 
         foreach ($badges->badges as $b) {
-            $select = html_writer::checkbox('badgeid', $b->id, false);
+            $select = html_writer::checkbox('badgeid_' . $b->id, $b->id, false);
             $badgeimage = print_badge_image($b, $this->page->context); // @TODO: Figure out what is wrong with styles
 
             $name = html_writer::link(new moodle_url('/badges/overview.php', array('id' => $b->id)), $b->name);
@@ -498,13 +498,13 @@ class core_badges_renderer extends plugin_renderer_base {
         $mform->addElement('header', 'qgprefs', '');
 
         $actions = array(0 => get_string('choose') . '...');
-        if (has_capability('moodle/user:update', $this->page->context)) {
+        if (has_capability('moodle/badges:configuredetails', $this->page->context)) {
             $actions[1] = get_string('hide');
         }
-        if (has_capability('moodle/site:readallmessages', $this->page->context)) {
+        if (has_capability('moodle/badges:configuredetails', $this->page->context)) {
             $actions[2] = get_string('makevisible', 'badges');
         }
-        if (has_capability('moodle/user:delete', $this->page->context)) {
+        if (has_capability('moodle/badges:deletebadge', $this->page->context)) {
             $actions[3] = get_string('delete');
         }
 

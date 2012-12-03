@@ -29,6 +29,7 @@ require_once($CFG->libdir . '/badgeslib.php');
 
 $badgeid = required_param('id', PARAM_INT);
 $copy = optional_param('copy', 0, PARAM_BOOL);
+$clear = optional_param('clear', 0, PARAM_BOOL);
 $delete    = optional_param('delete', 0, PARAM_BOOL);
 $activate = optional_param('activate', 0, PARAM_BOOL);
 $deactivate = optional_param('lock', 0, PARAM_BOOL);
@@ -58,7 +59,7 @@ if ($delete) {
     require_capability('moodle/badges:deletebadge', $context);
 
     $PAGE->url->param('delete', 1);
-    if ($confirm and confirm_sesskey()) {
+    if ($confirm && confirm_sesskey()) {
         $badge->delete();
         redirect(new moodle_url('/badges/index.php', array('type' => $badge->context, 'id' => $badge->courseid)));
     }
@@ -70,16 +71,53 @@ if ($delete) {
     echo $OUTPUT->header();
     echo $OUTPUT->heading($strheading);
 
-    $continue = new moodle_url('/badges/action.php', array('id' => $badge->id, 'delete' => 1, 'confirm' => 1,'sesskey' => sesskey()));
+    $urlparams = array(
+        'id' => $badge->id,
+        'delete' => 1,
+        'confirm' => 1,
+        'sesskey' => sesskey()
+    );
+    $continue = new moodle_url('/badges/action.php', $urlparams);
 
     $message = get_string('delconfirm', 'badges', $badge->name);
     echo $OUTPUT->confirm($message, $continue, $returnurl);
-
     echo $OUTPUT->footer();
     die;
 }
 
-if ($copy) {
+if ($clear) {
+    require_capability('moodle/badges:configurecriteria', $context);
+
+    $returnurl = new moodle_url('/badges/edit.php', array('action' => 'criteria', 'id' => $badge->id));
+    $PAGE->url->param('clear', 1);
+
+    if ($confirm && confirm_sesskey()) {
+        $badge->clear_criteria();
+        redirect($returnurl);
+    }
+
+    $strheading = get_string('clearbadge', 'badges');
+    $PAGE->navbar->add($strheading);
+    $PAGE->set_title($strheading);
+    $PAGE->set_heading($badge->name);
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading($strheading);
+
+    $urlparams = array(
+        'id' => $badge->id,
+        'clear' => 1,
+        'confirm' => 1,
+        'sesskey' => sesskey()
+    );
+    $continue = new moodle_url('/badges/action.php', $urlparams);
+
+    $message = get_string('clearconfirm', 'badges');
+    echo $OUTPUT->confirm($message, $continue, $returnurl);
+    echo $OUTPUT->footer();
+    die;
+}
+
+if ($copy) { // @TODO: create and copy image when duplicating a badge.
     require_capability('moodle/badges:createbadge', $context);
 
     $cloneid = $badge->make_clone();
@@ -89,8 +127,31 @@ if ($copy) {
 if ($activate) {
     require_capability('moodle/badges:configurecriteria', $context);
 
-    $badge->set_status($badge->status + 1);
-    redirect($returnurl);
+    $PAGE->url->param('activate', 1);
+    if ($confirm == 1 && confirm_sesskey()) {
+        $badge->set_status($badge->status + 1);
+        $badge->review_all_criteria();
+        redirect($returnurl);
+    } else if ($confirm == 2 && confirm_sesskey()) {
+        $badge->set_status($badge->status + 1);
+        redirect($returnurl);
+    }
+
+    $strheading = get_string('reviewbadge', 'badges');
+    $PAGE->navbar->add($strheading);
+    $PAGE->set_title($strheading);
+    $PAGE->set_heading($badge->name);
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading($strheading);
+
+    $params = array('id' => $badge->id, 'activate' => 1, 'sesskey' => sesskey());
+    $urlyes = new moodle_url('/badges/action.php', array_merge($params, array('confirm' => 1)));
+    $urlno = new moodle_url('/badges/action.php', array_merge($params, array('confirm' => 2)));
+
+    $message = get_string('reviewconfirm', 'badges', $badge->name);
+    echo $OUTPUT->confirm($message, new single_button($urlyes, get_string('yes')), new single_button($urlno, get_string('no')));
+    echo $OUTPUT->footer();
+    die;
 }
 
 if ($deactivate) {

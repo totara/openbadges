@@ -294,8 +294,57 @@ class badge {
         $result = $DB->insert_record('badge_issued', $issued, true);
 
         if ($result) {
-            notify_badge_award($result);
+            // Lock the badge, so that its criteria could not be changed any more;
+             if ($this->status == BADGE_STATUS_ACTIVE) {
+                 $this->set_status(BADGE_STATUS_ACTIVE_LOCKED);
+             }
+
+            // Update details in criteria_met table.
+            $compl = $this->get_criteria_completions($userid);
+            foreach ($compl as $c) {
+                $obj = new stdClass();
+                $obj->id = $c->id;
+                $obj->issuedid = $result;
+                $DB->update_record('badge_criteria_met', $obj, true);
+            }
+
+            notify_badge_award($this, $result);
         }
+    }
+
+    /**
+     * Reviews all badge criteria and checks if badge can be instantly awarded.
+     *
+     * @return int Number of awards
+     */
+    public function review_all_criteria() {
+        $awards = 0;
+
+        foreach ($this->criteria as $crit) {
+            if ($crit->criteriatype != BADGE_CRITERIA_TYPE_OVERALL) {
+
+            }
+        }
+
+        return $awards;
+    }
+
+    /**
+     * Gets an array of completed criteria from 'badge_criteria_met' table.
+     *
+     * @param int $userid Completions for a user
+     * @return array Records of criteria completions
+     */
+    public function get_criteria_completions($userid) {
+        global $DB;
+        $completions = array();
+        $sql = "SELECT bcm.id
+                FROM {badge_criteria_met} bcm
+                    INNER JOIN {badge_criteria} bc ON bcm.critid = bc.id
+                WHERE bc.badgeid = :badgeid AND bcm.userid = :userid ";
+        $completions = $DB->get_records_sql($sql, array('badgeid' => $this->id, 'userid' => $userid));
+
+        return $completions;
     }
 
     /**
@@ -321,7 +370,7 @@ class badge {
 
         if ($records = (array)$DB->get_records('badge_criteria', array('badgeid' => $this->id))) {
             foreach ($records as $record) {
-                $criteria[$record->id] = award_criteria::build((array)$record);
+                $criteria[$record->criteriatype] = award_criteria::build((array)$record);
             }
         }
 
@@ -379,6 +428,29 @@ class badge {
     }
 
     /**
+     * Checks if badge has manual award criteria set.
+     *
+     * @return bool A status indicating badge can be awarded manually
+     */
+    public function has_manual_award_criteria() {
+        foreach ($this->criteria as $criterion) {
+            if ($criterion->criteriatype == BADGE_CRITERIA_TYPE_MANUAL) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Clear all badge criteria
+     */
+    public function clear_criteria() {
+        foreach ($this->criteria as $crit) {
+            $crit->delete();
+        }
+    }
+
+    /**
      * Marks the badge as archived.
      * For reporting and historical purposed we cannot completely delete badges.
      * We will just change their status to BADGE_STATUS_ARCHIVED.
@@ -392,10 +464,47 @@ class badge {
 /**
  * Sends notifications to users about awarded badges.
  *
+ * @param badge $badge Badge that was issued
  * @param int $issuedid ID of issued badge
  */
-function notify_badge_award($issuedid) {
+function notify_badge_award(badge $badge, $issuedid) {
+    global $CFG;
 
+    $admin = get_admin();
+    $userfrom = new stdClass();
+    $userfrom->email = $CFG->badges_defaultissuercontact ? $CFG->badges_defaultissuercontact : $admin->email;
+    $userfrom->firstname = $CFG->badges_defaultissuername ? $CFG->badges_defaultissuername : $admin->firstname;
+    $userfrom->lastname = $CFG->badges_defaultissuername ? '' : $admin->lastname;
+
+    $plaintext = format_text_email($badge->message, FORMAT_HTML);
+
+    $eventdata = new stdClass();
+    $eventdata->component        = 'moodle';
+    $eventdata->name             = 'instantmessage';
+    $eventdata->userfrom         = $userfrom;
+    $eventdata->userto           = $userto; // @TODO
+    $eventdata->subject          = $badge->messagesubject;
+    $eventdata->fullmessage      = $plaintext;
+    $eventdata->fullmessageformat = FORMAT_PLAIN;
+    $eventdata->fullmessagehtml  = $badge->message;
+    $eventdata->smallmessage     = '';
+    $eventdata->notification = 1;
+
+    message_send($eventdata);
+
+    // Notify badge creator about the award.
+    if ($badge->notification) {
+        $eventdata->userfrom         = $userfrom;
+        $eventdata->userto           = $creator; // @TODO
+        $eventdata->subject          = $badge->messagesubject;
+        $eventdata->fullmessage      = $plaintext;
+        $eventdata->fullmessageformat = FORMAT_PLAIN;
+        $eventdata->fullmessagehtml  = $badge->message;
+        $eventdata->smallmessage     = '';
+        $eventdata->notification = 1;
+
+        message_send($eventdata);
+    }
 }
 
 /**
@@ -416,7 +525,8 @@ function get_badges($type, $courseid = 0, $visible = true, $sort = '', $dir = ''
     global $DB;
     $records = array();
     $params = array();
-    $where = "b.context = :context ";
+    $where = "b. status != :deleted AND b.context = :context ";
+    $params['deleted'] = BADGE_STATUS_ARCHIVED;
 
     $userfields = array('b.id');
     $usersql = "";
@@ -515,22 +625,30 @@ function get_issued_badge_info($hash) {
             array($hash), IGNORE_MISSING);
 
     if ($record) {
+        if ($record->context == BADGE_TYPE_SITE) {
+            $context = context_system::instance();
+        } else {
+            $context = context_course::instance($record->courseid);
+        }
+
+        $url = new moodle_url('/badges/badge.php', array('b' => $hash));
+
         // Recipient's email is hashed: <algorithm>$<hash(email + salt)>.
-        $a['recipient'] = 'sha256$' . hash('sha256', $record->email . $CFG->badges_badgesalt);
-        $a['salt'] = $CFG->badges_badgesalt;
+        $a['recipient'] = 'sha256$' . hash('sha256', $record->email . $CFG->badges_defaultbadgesalt);
+        $a['salt'] = $CFG->badges_defaultbadgesalt;
 
         if ($record->dateexpire) {
             $a['expires'] = date('Y-m-d', $record->dateexpire);
         }
 
         $a['issued_on'] = date('Y-m-d', $record->dateissued);
-        $a['evidence'] = new moodle_url('/badges/badge.php', array('b' => $hash)); // URL.
+        $a['evidence'] = $url->out(); // Issued badge URL.
         $a['badge'] = array();
         $a['badge']['version'] = '0.5.0'; // Version of OBI specification, 0.5.0 - current beta.
         $a['badge']['name'] = $record->name;
-        $a['badge']['image'] = ''; // Image URL.
+        $a['badge']['image'] = moodle_url::make_pluginfile_url($context->id, 'badges', 'badgeimage', $record->id, '/', 'f1')->out();
         $a['badge']['description'] = $record->description;
-        $a['badge']['criteria'] = new moodle_url('/badges/badge.php', array('b' => $hash)); // URL.
+        $a['badge']['criteria'] = $url->out(); // Issued badge URL.
         $a['badge']['issuer'] = array();
         $a['badge']['issuer']['origin'] = $record->issuerurl;
         $a['badge']['issuer']['name'] = $record->issuername;
@@ -583,30 +701,55 @@ function badges_add_course_navigation(navigation_node $coursenode, $course) {
 }
 
 /**
- * Triggered by the badge_award_criteria_review event, this function
+ * Triggered by the badges_award_criteria_review event, this function
  * marks a badge as awarded to user if all criteria are met
  *
  * @param   object      $eventdata
  * @return  boolean
  */
-function badge_award_handle_criteria_review($eventdata) {
+function badges_award_handle_TYPE_criteria_review($eventdata) {
     $criteriadata = (array)$eventdata;
     $criteria = award_criteria::build($criteriadata);
-    if (!$criteria->id) {
-        return true;
-    }
 
     // Badge award workflow.
-    // Decide which criteriatype it is.
+
     // Calc if event trigger is among badge criteria:
     // If no -> stop
     // If yes ->
-    //     Calc if triggered criteria met:
-    //     If not -> stop
+    //     Is this badge active?
+    //     If no -> stop
     //     If yes ->
-    //        Calc if overall criteria met:
-    //        If not -> stop
-    //        If yes -> award badge.
+    //         Calc if triggered criteria met:
+    //         If not -> stop
+    //         If yes ->
+    //            Mark it complete
+    //            Calc if overall criteria met:
+    //            If not -> stop
+    //            If yes ->
+    //                 Mark overall criteria complete.
+    //                 Issue badge to a user.
+
+    // Pseudocode
+    // $criteriadata = (array)$eventdata;
+    // $criteria = new award_criteria_TYPE($criteriadata);
+    // // If it's not criteria, finish here.
+    // if (!$criteria->id) {
+    //    return true;
+    // }
+    //
+    // $badge = new badge($criteria->badgeid);
+    // if (!$badge->is_active()) {
+    //     return true;
+    // }
+    //
+    // if ($criteria->review($userid)) {
+    //     $criteria->mark_complete($userid);
+    //
+    //     if ($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->review($userid)) {
+    //         $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->mark_complete($userid);
+    //         $badge->issue($userid);
+    //     }
+    // }
 
     return true;
 }
@@ -637,7 +780,6 @@ function badges_process_badge_image($badge, $context, $data, $editform) {
 
 /**
  * Print badge image.
- * Put it here because got some issues calling it from renderer.
  *
  * @param badge $badge Badge object
  * @param stdClass $context

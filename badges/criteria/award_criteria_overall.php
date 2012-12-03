@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This file contains the manual badge award criteria type class
+ * This file contains the overall badge award criteria type
  *
  * @package    core
  * @subpackage badges
@@ -27,23 +27,16 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Manual badge award criteria
+ * Overall badge award criteria
  *
  */
-class award_criteria_manual extends award_criteria {
+class award_criteria_overall extends award_criteria {
 
-    /* @var int Criteria [BADGE_CRITERIA_TYPE_MANUAL] */
-    public $criteriatype = BADGE_CRITERIA_TYPE_MANUAL;
-
-    /* @var array Parameters for criteria */
-    public $params = array();
-
-    protected $required_params = array('roleid');
-    protected $optional_params = array();
+    /* @var int Criteria [BADGE_CRITERIA_TYPE_OVERALL] */
+    public $criteriatype = BADGE_CRITERIA_TYPE_OVERALL;
 
     public function __construct($record) {
         parent::__construct($record);
-        $this->params = self::get_params($record['id']);
     }
 
     /**
@@ -63,7 +56,7 @@ class award_criteria_manual extends award_criteria {
      */
     public function save(&$data) {
         global $DB;
-
+    
     }
 
     /**
@@ -72,36 +65,59 @@ class award_criteria_manual extends award_criteria {
      * @return string
      */
     public function get_title() {
-        return get_string('criteria_type_manual', 'badges');
+        return get_string('criteria_type_activity', 'badges');
     }
 
     /**
      * Review this criteria and decide if it has been completed
-     *
+     * Overall criteria review should be called only from other criteria handlers.
+     *  
      * @param int $userid User whose criteria completion needs to be reviewed.
      * @return bool Whether criteria is complete
      */
     public function review($userid) {
-        return false;
+        global $DB;
 
+        $sql = "SELECT * FROM {badge_criteria} bc 
+                LEFT JOIN {badge_criteria_met} bcm 
+                    ON bc.id = bcm.critid AND bcm.userid = :userid 
+                WHERE bc.badgeid = :badgeid
+                    AND bc.criteriatype != :criteriatype ";
+
+        $params = array(
+                    'userid' => $userid,
+                    'badgeid' => $this->badgeid,
+                    'criteriatype' => BADGE_CRITERIA_TYPE_OVERALL
+                );
+
+        $criteria = $DB->get_records_sql($sql, $params);
+        $overall = null;
+        foreach ($criteria as $crit) {
+            if ($this->method == BADGE_CRITERIA_AGGREGATION_ALL) {
+                if ($crit->datemet === null) {
+                    return false;
+                } else {
+                    $overall = true;
+                    continue;
+                }
+            } else if ($this->method == BADGE_CRITERIA_AGGREGATION_ANY) {
+                if ($crit->datemet === null) {
+                    $overall = false;
+                    continue;
+                } else {
+                    return true;
+                }
+            }
+        }
+
+        return $overall;
     }
 
     /**
-     * Delete this criterion
+     * Return criteria parameters
      *
+     * @param int $critid Criterion ID
+     * @return array
      */
-    public function delete() {
-        global $DB;
-
-        // Remove any records of manual award.
-        $sql = "SELECT bm.id
-                FROM {badge_criteria_param} bp
-                    INNER JOIN {badge_manual_award} bm
-                        ON bm.paramid = bp.id
-                WHERE bp.critid = :critid ";
-        $list = $DB->get_fieldset_sql($sql, array('critid' => $this->id));
-        $DB->delete_records_list('badge_manual_award', 'id', $list);
-
-        parent::delete();
-    }
+    public function get_params($cid) { }
 }

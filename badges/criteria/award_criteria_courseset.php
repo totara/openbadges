@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This file contains the course completion badge award criteria type class
+ * This file contains the courseset completion badge award criteria type class
  *
  * @package    core
  * @subpackage badges
@@ -29,24 +29,13 @@ require_once($CFG->libdir . '/completionlib.php');
 require_once($CFG->dirroot . '/grade/querylib.php');
 
 /**
- * Badge award criteria -- award on course completion
+ * Badge award criteria -- award on courseset completion
  *
  */
-class award_criteria_course extends award_criteria {
+class award_criteria_courseset extends award_criteria_course {
 
-    /* @var int Criteria [BADGE_CRITERIA_TYPE_COURSE] */
-    public $criteriatype = BADGE_CRITERIA_TYPE_COURSE;
-
-    /* @var array Parameters of course criteria */
-    public $params = array();
-
-    protected $required_params = array('courseid');
-    protected $optional_params = array('grade', 'bydate');
-
-    public function __construct($record) {
-        parent::__construct($record);
-        $this->params = self::get_params($record['id']);
-    }
+    /* @var int Criteria [BADGE_CRITERIA_TYPE_COURSESET] */
+    public $criteriatype = BADGE_CRITERIA_TYPE_COURSESET;
 
     /**
      * Add appropriate form elements to the criteria form
@@ -74,16 +63,15 @@ class award_criteria_course extends award_criteria {
      * @return string
      */
     public function get_title() {
-        return get_string('criteria_type_course', 'badges');
+        return get_string('criteria_type_courseset', 'badges');
     }
 
     /**
      * Review this criteria and decide if it has been completed
      *
-     * @param int $userid User whose criteria completion needs to be reviewed.
      * @return bool Whether criteria is complete
      */
-    public function review($userid) {
+    public function review() {
         global $DB;
         foreach ($this->params as $param) {
             $course = $DB->get_record('course', array('id' => $param['courseid']));
@@ -106,11 +94,24 @@ class award_criteria_course extends award_criteria {
                 $check_date = ($date <= $param['bydate']);
             }
 
-            if ($info->is_course_complete($userid) && $check_grade && $check_date) {
-                return true;
+            $overall = null;
+            if ($this->method == BADGE_CRITERIA_AGGREGATION_ALL) {
+                if ($info->is_course_complete($userid) && $check_grade && $check_date) {
+                    $overall = true;
+                    continue;
+                } else {
+                    return false;
+                }
+            } else if ($this->method == BADGE_CRITERIA_AGGREGATION_ANY) {
+                if ($info->is_course_complete($userid) && $check_grade && $check_date) {
+                    return true;
+                } else {
+                    $overall = false;
+                    continue;
+                }
             }
         }
 
-        return false;
+        return $overall;
     }
 }

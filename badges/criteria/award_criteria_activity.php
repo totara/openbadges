@@ -25,6 +25,8 @@
  */
 
 defined('MOODLE_INTERNAL') || die();
+require_once($CFG->libdir . '/completionlib.php');
+require_once($CFG->dirroot . '/grade/querylib.php');
 
 /**
  * Badge award criteria -- award on activity completion
@@ -35,8 +37,16 @@ class award_criteria_activity extends award_criteria {
     /* @var int Criteria [BADGE_CRITERIA_TYPE_ACTIVITY] */
     public $criteriatype = BADGE_CRITERIA_TYPE_ACTIVITY;
 
+    public $params = array();
+    private $courseid;
+
+    protected $required_params = array('module');
+    protected $optional_params = array('bydate');
+
     public function __construct($record) {
-        //@TODO
+        parent::__construct($record);
+        $this->params = self::get_params($record['id']);
+        $this->courseid = self::get_course();
     }
 
     /**
@@ -50,11 +60,76 @@ class award_criteria_activity extends award_criteria {
     }
 
     /**
-     * Return criteria title
+     * Save the criteria information stored in the database
+     *
+     * @param stdClass $data Form data
+     */
+    public function save(&$data) {
+        global $DB;
+
+    }
+
+    /**
+     * Return criteria name
      *
      * @return string
      */
     public function get_title() {
-        return "";
+        return get_string('criteria_type_activity', 'badges');
+    }
+
+    /**
+     * Return course ID for activities
+     *
+     * @return int
+     */
+    private function get_course() {
+        global $DB;
+        $courseid = $DB->get_field('badge', 'courseid', array('id' =>$this->badgeid));
+        return $courseid;
+    }
+    /**
+     * Review this criteria and decide if it has been completed
+     *
+     * @param int $userid User whose criteria completion needs to be reviewed.
+     * @return bool Whether criteria is complete
+     */
+    public function review($userid) {
+        global $DB;
+        $completionstates = array(COMPLETION_COMPLETE, COMPLETION_COMPLETE_PASS);
+        $course = $DB->get_record('course', array('id' => $this->courseid));
+        $info = new completion_info($course);
+
+        foreach ($this->params as $param) {
+            $overall = null;
+            $cm = new stdClass();
+            $cm->id = $param['module'];
+
+            $data = $info->get_data($cm, false, $userid);
+            $check_date = true;
+
+            if (isset($param['bydate'])) {
+                $date = $data->timemodified;
+                $check_date = ($date <= $param['bydate']);
+            }
+
+            if ($this->method == BADGE_CRITERIA_AGGREGATION_ALL) {
+                if (in_array($data->completionstate, $completionstates) && $check_date) {
+                    $overall = true;
+                    continue;
+                } else {
+                    return false;
+                }
+            } else if ($this->method == BADGE_CRITERIA_AGGREGATION_ANY) {
+                if (in_array($data->completionstate, $completionstates) && $check_date) {
+                    return true;
+                } else {
+                    $overall = false;
+                    continue;
+                }
+            }
+        }
+
+        return $overall;
     }
 }
