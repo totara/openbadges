@@ -165,19 +165,23 @@ class core_badges_renderer extends plugin_renderer_base {
         if (has_capability('moodle/badges:configuredetails', $context)) {
             // Activate/deactivate badge.
             if ($badge->status == BADGE_STATUS_INACTIVE || $badge->status == BADGE_STATUS_INACTIVE_LOCKED) {
-                $url = new moodle_url('/badges/index.php', array('activate' => $badge->id, 'type' => $badge->context));
+                $url = new moodle_url(qualified_me());
+                $url->param('activate', $badge->id);
                 $actions .= $this->output->action_icon($url, new pix_icon('t/stop', get_string('activate', 'badges'))) . " ";
             } else {
-                $url = new moodle_url('/badges/index.php', array('lock' => $badge->id, 'type' => $badge->context));
+                $url = new moodle_url(qualified_me());
+                $url->param('lock', $badge->id);
                 $actions .= $this->output->action_icon($url, new pix_icon('t/go', get_string('deactivate', 'badges'))) . " ";
             }
 
             // Show/hide badge.
             if (!empty($badge->visible)) {
-                $url = new moodle_url('/badges/index.php', array('hide' => $badge->id, 'type' => $badge->context));
+                $url = new moodle_url(qualified_me());
+                $url->param('hide', $badge->id);
                 $actions .= $this->output->action_icon($url, new pix_icon('t/hide', get_string('hide'))) . " ";
             } else {
-                $url = new moodle_url('/badges/index.php', array('show' => $badge->id, 'type' => $badge->context));
+                $url = new moodle_url(qualified_me());
+                $url->param('show', $badge->id);
                 $actions .= $this->output->action_icon($url, new pix_icon('t/show', get_string('show'))) . " ";
             }
         }
@@ -204,7 +208,8 @@ class core_badges_renderer extends plugin_renderer_base {
 
         // Delete badge.
         if (has_capability('moodle/badges:deletebadge', $context)) {
-            $url = new moodle_url('/badges/index.php', array('delete' => $badge->id, 'type' => $badge->context));
+            $url = new moodle_url(qualified_me());
+            $url->param('delete', $badge->id);
             $actions .= $this->output->action_icon($url, new pix_icon('t/delete', get_string('delete'))) . " ";
         }
 
@@ -259,7 +264,7 @@ class core_badges_renderer extends plugin_renderer_base {
         $paging = new paging_bar($badges->totalcount, $badges->page, $badges->perpage, $this->page->url, 'page');
         $htmlpagingbar = $this->render($paging);
         $table = new html_table();
-        $table->attributes['class'] = 'collection boxaligncenter boxwidthwide';
+        $table->attributes['class'] = 'collection';
 
         $sortbyname = $this->helper_sortable_heading(get_string('name'),
                 'name', $badges->sort, $badges->dir);
@@ -277,7 +282,7 @@ class core_badges_renderer extends plugin_renderer_base {
         $table->colclasses = array('select', 'badgeimage', 'name', 'status', 'criteria', 'awards', 'actions');
 
         foreach ($badges->badges as $b) {
-            $select = html_writer::checkbox('badgeid_' . $b->id, $b->id, false);
+            $select = html_writer::checkbox('badgeid_' . $b->id, $b->id, false, null, array('class' => 'badgecheckbox'));
             $badgeimage = print_badge_image($b, $this->page->context); // @TODO: Figure out what is wrong with styles
 
             $name = html_writer::link(new moodle_url('/badges/overview.php', array('id' => $b->id)), $b->name);
@@ -297,10 +302,18 @@ class core_badges_renderer extends plugin_renderer_base {
         }
 
         $htmltable       = html_writer::table($table);
-        $htmlactions     = $this->helper_bulk_action_form();
+        $htmlactions     = $this->bulk_action_form();
         $htmlpreferences = $this->helper_preferences_form($badges->perpage);
 
-        return $htmlactions . $htmlpagingbar . $htmltable . $htmlpagingbar . $htmlpreferences;
+        $attributes = array(
+                'id'     => 'bulkaction',
+                'action' => 'bulk_action.php',
+                'method' => 'post',
+                'class'  => 'mform boxaligncenter boxwidthwide'
+                );
+        $htmlform = html_writer::tag('form', $htmlactions . $htmltable, $attributes);
+
+        return $htmlpagingbar . $htmlform . $htmlpagingbar . $htmlpreferences;
     }
 
     // Prints tabs for badge editing.
@@ -481,44 +494,29 @@ class core_badges_renderer extends plugin_renderer_base {
     /**
      * Renders a form for bulk actions with badges
      *
-     * @param int $perpage current value of users per page setting
      * @return string HTML
      */
-    protected function helper_bulk_action_form() {
-        global $CFG;
-        require_once($CFG->libdir . '/formslib.php');
-
-        $mform = new MoodleQuickForm('preferences',
-                'post',
-                $this->page->url,
-                '',
-                array('class' => 'preferences boxaligncenter boxwidthwide'));
-
-        $mform->addElement('hidden', 'sesskey', sesskey());
-        $mform->addElement('header', 'qgprefs', '');
-
-        $actions = array(0 => get_string('choose') . '...');
+    protected function bulk_action_form() {
+        $actions = array();
         if (has_capability('moodle/badges:configuredetails', $this->page->context)) {
-            $actions[1] = get_string('hide');
+            $actions['hide'] = get_string('hide');
         }
         if (has_capability('moodle/badges:configuredetails', $this->page->context)) {
-            $actions[2] = get_string('makevisible', 'badges');
+            $actions['show'] = get_string('makevisible', 'badges');
         }
         if (has_capability('moodle/badges:deletebadge', $this->page->context)) {
-            $actions[3] = get_string('delete');
+            $actions['delete'] = get_string('delete');
         }
 
-        $objs = array();
-        $objs[] =& $mform->createElement('select', 'action', null, $actions);
-        $objs[] =& $mform->createElement('submit', 'doaction', get_string('go'));
-        $mform->disabledIf('doaction', 'action', 'eq', 0);
-        $mform->addElement('group', 'actionsgrp', get_string('selecting', 'badges'), $objs, ' ', false);
+        $output = html_writer::tag('fieldset',
+                html_writer::label(get_string('selecting', 'badges'), 'menuaction') .
+                html_writer::select($actions, 'action', null, array('' => 'choosedots')) .
+                html_writer::empty_tag('input', array('type' => 'submit', 'value' => get_string('go'))) .
+                html_writer::empty_tag('input', array('type' => 'hidden', 'value' => sesskey(), 'name' => 'sesskey')) .
+                html_writer::empty_tag('input', array('type' => 'hidden', 'value' => qualified_me(), 'name' => 'returnto')),
+                array('class' => 'boxaligncenter boxwidthwide'));
 
-        ob_start();
-        $mform->display();
-        $out = ob_get_clean();
-
-        return $out;
+        return $output;
     }
 }
 
@@ -589,5 +587,5 @@ class badge_collection implements renderable {
 /**
  * Collection of badges used at the index.php page
  */
-class badge_management extends badge_collection implements renderable {
+ class badge_management extends badge_collection implements renderable {
 }

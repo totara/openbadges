@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Processing bulk badge action from index.php
+ * Handling ajax requests for badge criteria
  *
  * @package    core
  * @subpackage badges
@@ -24,41 +24,24 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
+define('AJAX_SCRIPT', true);
+
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
-require_login();
+$badgeid = required_param('badgeid', PARAM_INT);
+$ctype   = required_param('criteriatype', PARAM_INT);
+$paramid = optional_param('paramid', 0,  PARAM_INT);
 
-if (isguestuser() || !confirm_sesskey()) {
-    redirect($CFG->wwwroot);
-}
+$badge = new badge($badgeid);
 
-$returnto = optional_param('returnto', $CFG->wwwroot, PARAM_LOCALURL);
-$action = optional_param('action', '', PARAM_TEXT);
+//$criterion = award_criteria::build($params);
 
-if ($action == '') {
-    redirect($returnto);
-}
+$output = '<div>' . $badge->name . '</div>';
 
-$bids = array();
+$PAGE->set_url('/badges/criteria_ajax.php');
 
-// Get Badges Ids from the POST parameters.
-foreach ($_POST as $par => $value) {
-    if (preg_match('/^badgeid\_(\d+)$/', $par)) {
-        $bid = optional_param($par, NULL, PARAM_INT);
-        if ($bid) {
-            $bids[]=$bid;
-        }
-    }
-}
-if (!empty($bids)) {
-    list($sql, $params) = $DB->get_in_or_equal($bids);
-    if ($action == 'hide') {
-        $DB->set_field_select('badge', 'visible', 0, "id $sql", $params);
-    } else if ($action == 'show') {
-        $DB->set_field_select('badge', 'visible', 1, "id $sql", $params);
-    } else if ($action == 'delete') {
-        $DB->set_field_select('badge', 'status', BADGE_STATUS_ARCHIVED, "id $sql", $params);
-    }
-}
-redirect($returnto);
+// Process ajax request.
+echo $output;
+
+die();

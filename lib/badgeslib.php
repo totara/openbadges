@@ -136,6 +136,44 @@ class badge {
     }
 
     /**
+     * Return array of aggregation methods
+     * @return array
+     */
+    public static function get_aggregation_methods() {
+        return array(
+                BADGE_CRITERIA_AGGREGATION_ALL => get_string('all', 'badges'),
+                BADGE_CRITERIA_AGGREGATION_ANY => get_string('any', 'badges'),
+        );
+    }
+
+    /**
+     * Return array of accepted criteria types for this badge
+     * @return array
+     */
+    public function get_accepted_criteria() {
+        $criteriatypes = array();
+
+        if ($this->context == BADGE_TYPE_COURSE) {
+            $criteriatypes = array(
+                    BADGE_CRITERIA_TYPE_OVERALL,
+                    BADGE_CRITERIA_TYPE_MANUAL,
+                    BADGE_CRITERIA_TYPE_COURSE,
+                    BADGE_CRITERIA_TYPE_ACTIVITY
+            );
+        } else if ($this->context == BADGE_TYPE_SITE) {
+            $criteriatypes = array(
+                    BADGE_CRITERIA_TYPE_OVERALL,
+                    BADGE_CRITERIA_TYPE_MANUAL,
+                    BADGE_CRITERIA_TYPE_COURSESET,
+                    //BADGE_CRITERIA_TYPE_PROFILE,
+                    //BADGE_CRITERIA_TYPE_SOCIAL
+            );
+        }
+
+        return $criteriatypes;
+    }
+
+    /**
      * Save/update badge information in 'badge' table only.
      * Cannot be used for updating awards and criteria settings.
      *
@@ -389,9 +427,8 @@ class badge {
 
         $aggregation = $DB->get_record('badge_criteria', $params, IGNORE_MULTIPLE);
 
-        // If this criteria doesn't have aggregation method, return null.
-        if (!$aggregation->method) {
-            return null;
+        if (!$aggregation) {
+            return BADGE_CRITERIA_AGGREGATION_ALL;
         }
 
         return $aggregation->method;

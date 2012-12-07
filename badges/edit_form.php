@@ -207,26 +207,51 @@ class edit_criteria_form extends moodleform {
         $mform = $this->_form;
         $badge = $this->_customdata['badge'];
         $action = $this->_customdata['action'];
+        $accepted = $badge->get_accepted_criteria();
+        $potential = array_diff($accepted, array_keys($badge->criteria));
 
+        //Criteria selector.
+        if (!empty($potential)) {
+            foreach ($potential as $p) {
+                if ($p != 0) $select[$p] = get_string('criteria_' . $p, 'badges');
+            }
+        }
+
+        $selectcriteria = html_writer::select($select, 'select-criteria');
+        $addbutton = html_writer::empty_tag('input', array('type' => 'button', 'value' => get_string('addcriteria', 'badges'), 'id' => 'add-criteria'));
+        $mform->addElement('html', '<div id="select-criteria">' .$selectcriteria . $addbutton . '</div>');
+        
         // Criteria options actions.
         if ($badge->has_criteria()) {
+            ksort($badge->criteria);
             // Reset criteria options.
             $mform->addElement('html', $OUTPUT->single_button(
                     new moodle_url('/badges/action.php', array('id' => $badge->id, 'clear' => 1)),
                     get_string('clear', 'badges')));
+
+            $current_form = "";
             foreach ($badge->criteria as $crit) {
-                
+                $current_form .= $crit->config_form_criteria($mform, $badge);
             }
 
-            // Add select driteria menu.
-            $mform->addElement($element);
-            $this->add_action_buttons(); // @TODO: Show action buttons only when there are criteria to save
+            $mform->addElement('html', '<div id="current-criteria-body">' . $current_form . '</div>');
+            //$this->add_action_buttons(); // @TODO: Show action buttons only when there are criteria to save
         } else {
-            // Start criteria options.
-            $mform->addElement('html', $OUTPUT->single_button(
-                    new moodle_url('/badges/action.php', array('id' => $badge->id, 'clear' => 1)),
-                    get_string('start', 'badges')));
+            $mform->addElement('html', '<div>'. get_string('nocriteria', 'badges') . '</div>');
+            $mform->addElement('html', '<div id="current-criteria-body"></div>');
         }
+
+        $all_forms = "";
+        foreach ($accepted as $a) {
+            $params = array();
+            $params['criteriatype'] = $a;
+            $params['badgeid'] = $badge->id;
+            $criteria = award_criteria::build($params);
+            $all_forms .= $criteria->config_form_criteria($mform, $badge);
+        }
+
+        $mform->addElement('html', '<div id="potential-criteria-list">' . html_writer::alist($potential) . '</div>');
+        $mform->addElement('html', '<div id="potential-criteria-body">' . $all_forms . '</div>');
 
         // Add hidden fields.
         $mform->addElement('hidden', 'id', $badge->id);
@@ -234,8 +259,6 @@ class edit_criteria_form extends moodleform {
 
         $mform->addElement('hidden', 'action', $action);
         $mform->setType('action', PARAM_TEXT);
-
-
 
         // Freeze all elements if badge is active.
         if ($badge->is_active() || $badge->is_locked()) {

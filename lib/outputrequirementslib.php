@@ -435,6 +435,11 @@ class page_requirements_manager {
                                     'requires' => array('node', 'event', 'json', 'core_filepicker'),
                                     'strings'  => array(array('uploadformlimit', 'moodle'), array('droptoupload', 'moodle'), array('maxfilesreached', 'moodle'), array('dndenabled_inbox', 'moodle'), array('fileexists', 'moodle')));
                     break;
+                case 'core_badges':
+                    $module = array('name'     => 'core_badges',
+                                    'fullpath' => '/badges/criteria.js',
+                                    'requires' => array('node', 'event', 'overlay', 'io-base', 'json', 'anim', 'panel'));
+                    break;
             }
 
         } else {

@@ -1085,6 +1085,7 @@ table.flexible .r1, table.generaltable .r1 {background-color: #FAFAFA;}
  */
 #page-badges-view .collection,
 #page-badges-index .collection {
+    width: 100%;
     margin: 1em auto;
 }
 

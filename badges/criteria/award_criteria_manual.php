@@ -43,7 +43,9 @@ class award_criteria_manual extends award_criteria {
 
     public function __construct($record) {
         parent::__construct($record);
-        $this->params = self::get_params($record['id']);
+        if (isset($record['id'])) {
+            $this->params = self::get_params($record['id']);
+        }
     }
 
     /**
@@ -52,8 +54,26 @@ class award_criteria_manual extends award_criteria {
      * @param moodleform $mform  Moodle forms object
      * @param stdClass $data details of various modules
      */
-    public function config_form_display(&$mform, $data = null) {
-        //@TODO
+    public function config_form_criteria(&$mform, $data = null) {
+        global $DB, $OUTPUT;
+        $aggregation_methods = $data->get_aggregation_methods();
+
+        $output = html_writer::start_tag('div', array('id' => 'criteria-type-' . BADGE_CRITERIA_TYPE_MANUAL, 'class' => 'criteria-type'));
+
+        // Aggregation choice.
+        $agg = html_writer::label(get_string('aggregationmethod', 'badges'), 'menuagg');
+        $agg .= html_writer::select($aggregation_methods, 'agg', 'all', false);
+        $aggregatecrit = $OUTPUT->container($agg, 'criteria-aggregation', 'aggregate-criteria-type-' . BADGE_CRITERIA_TYPE_MANUAL);
+        $output .= $aggregatecrit . html_writer::end_tag('div');
+
+        return $output;
+    }
+
+    /**
+     * Add appropriate parameter elements to the criteria form
+     *
+     */
+    public function config_form_criteria_param($param) {
     }
 
     /**
