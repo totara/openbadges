@@ -25,6 +25,7 @@
  */
 
 defined('MOODLE_INTERNAL') || die();
+require_once('award_criteria_course.php');
 require_once($CFG->libdir . '/completionlib.php');
 require_once($CFG->dirroot . '/grade/querylib.php');
 
@@ -43,8 +44,44 @@ class award_criteria_courseset extends award_criteria_course {
      * @param moodleform $mform  Moodle forms object
      * @param stdClass $data details of various modules
      */
-    public function config_form_display(&$mform, $data = null) {
-        //@TODO
+    public function config_form_criteria(&$mform, $data = null) {
+        global $DB, $OUTPUT;
+        $aggregation_methods = $data->get_aggregation_methods();
+
+        $output = html_writer::start_tag('div', array('id' => 'criteria-type-' . BADGE_CRITERIA_TYPE_COURSESET, 'class' => 'criteria-type'));
+
+        // Aggregation choice.
+        $agg = html_writer::label(get_string('aggregationmethod', 'badges'), 'menuagg');
+        $agg .= html_writer::select($aggregation_methods, 'agg', 'all', false);
+        $aggregatecrit = $OUTPUT->container($agg, 'criteria-aggregation', 'aggregate-criteria-type-' . BADGE_CRITERIA_TYPE_COURSESET);
+
+        // Delete criteria button.
+        $deletecrit  = html_writer::start_tag('div', array('class'=>'comment-delete'));
+        $deletecrit .= html_writer::start_tag('a', array('href' => '#', 'id' => 'remove-criteria-type-' . BADGE_CRITERIA_TYPE_COURSESET));
+        $deletecrit .= $OUTPUT->pix_icon('t/delete', get_string('delete'));
+        $deletecrit .= html_writer::end_tag('a');
+        $deletecrit .= html_writer::end_tag('div');
+        $output .= $deletecrit . $OUTPUT->heading_with_help('Course set criteria type', 'variablesubstitution', 'badges') . $aggregatecrit;
+
+        // Existing parameters.
+        if (!empty($this->params)) {
+            foreach ($this->params as $param) {
+                $output .= $this->config_form_criteria_param($param);
+            }
+        }
+
+        // Add more parameters button.
+        $addmore = html_writer::empty_tag('input', array('type' => 'button', 'value' => get_string('addparameter', 'badges'), 'id' => 'add-param'));
+        $output .= $addmore . html_writer::end_tag('div');
+        return $output;
+    }
+
+    /**
+     * Add appropriate parameter elements to the criteria form
+     *
+     */
+    public function config_form_criteria_param($param) {
+        return "";
     }
 
     /**
@@ -71,7 +108,7 @@ class award_criteria_courseset extends award_criteria_course {
      *
      * @return bool Whether criteria is complete
      */
-    public function review() {
+    public function review($userid) {
         global $DB;
         foreach ($this->params as $param) {
             $course = $DB->get_record('course', array('id' => $param['courseid']));

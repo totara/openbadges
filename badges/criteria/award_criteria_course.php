@@ -45,7 +45,9 @@ class award_criteria_course extends award_criteria {
 
     public function __construct($record) {
         parent::__construct($record);
-        $this->params = self::get_params($record['id']);
+        if (isset($record['id'])) {
+            $this->params = self::get_params($record['id']);
+        }
     }
 
     /**
@@ -54,8 +56,27 @@ class award_criteria_course extends award_criteria {
      * @param moodleform $mform  Moodle forms object
      * @param stdClass $data details of various modules
      */
-    public function config_form_display(&$mform, $data = null) {
-        //@TODO
+    public function config_form_criteria(&$mform, $data = null) {
+        $output = html_writer::start_tag('div', array('id' => 'criteria-type-' . BADGE_CRITERIA_TYPE_COURSE, 'class' => 'criteria-type'));
+        // Existing parameters.
+        if (!empty($this->params)) {
+            foreach ($this->params as $param) {
+                $output .= $this->config_form_criteria_param($param);
+            }
+        }
+
+        $output .= html_writer::end_tag('div');
+
+        return $output;
+    }
+
+    /**
+     * Add appropriate parameter elements to the criteria form
+     *
+     */
+    public function config_form_criteria_param($param) {
+
+        return "";
     }
 
     /**

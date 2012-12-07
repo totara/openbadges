@@ -1286,6 +1286,7 @@ body.jsenabled .formlisting {
  */
 #page-badges-view .collection,
 #page-badges-index .collection {
+    width: 100%;
     margin: 1em auto;
 }
 

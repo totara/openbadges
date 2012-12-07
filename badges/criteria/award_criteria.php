@@ -100,8 +100,8 @@ abstract class award_criteria {
      * @param array $params
      */
     public function __construct($params) {
-        $this->id = $params['id'];
-        $this->method = $params['method'];
+        $this->id = isset($params['id']) ? $params['id'] : 0;
+        $this->method = isset($params['method']) ? $params['method'] : BADGE_CRITERIA_AGGREGATION_ALL;
         $this->badgeid = $params['badgeid'];
     }
 
@@ -132,12 +132,16 @@ abstract class award_criteria {
     abstract public function get_title();
 
     /**
-     * Add appropriate form elements to the criteria form
+     * Add appropriate criteria elemetnts to the form
      *
-     * @param moodleform $mform Moodle forms object
-     * @param mixed $data optional Any additional data that can be used to set default values in the form
      */
-    abstract public function config_form_display(&$mform, $data = null);
+    abstract public function config_form_criteria(&$mform, $data);
+
+    /**
+     * Add appropriate parameter elements to the criteria form
+     *
+     */
+    abstract public function config_form_criteria_param($data);
 
     /**
      * Save the criteria information stored in the database

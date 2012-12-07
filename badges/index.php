@@ -126,7 +126,7 @@ if ($hide && has_capability('moodle/badges:configuredetails', $PAGE->context)) {
     redirect($returnurl);
 }
 
-if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context)) {
+if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context)) { // @TODO: message about activation
     $badge = new badge($activate);
     if ($badge->is_locked()) {
         $badge->set_status(BADGE_STATUS_ACTIVE_LOCKED);
@@ -146,14 +146,6 @@ if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managebadges', 'badges'));
-
-if (has_capability('moodle/badges:createbadge', $PAGE->context)) {
-    $params = array();
-    $params['type'] = $type;
-    $params['id'] = $courseid ? $courseid : null;
-
-    echo $OUTPUT->single_button(new moodle_url('/badges/newbadge.php', $params), get_string('newbadge', 'badges'), 'GET');
-}
 
 $perpage = (int)get_user_preferences('badgesmng_perpage', 20);
 

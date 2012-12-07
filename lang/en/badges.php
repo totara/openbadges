@@ -394,6 +394,15 @@ $string['badgestatus_2'] = 'Inactive and locked';
 $string['badgestatus_3'] = 'Active and locked';
 $string['badgestatus_4'] = 'Archived';
 
+// Badge criteria.
+$string['criteria_0'] = 'Overall badge criteria';
+$string['criteria_1'] = 'Activity';
+$string['criteria_2'] = 'Role';
+$string['criteria_3'] = 'Social';
+$string['criteria_4'] = 'Course';
+$string['criteria_5'] = 'Courseset';
+$string['criteria_6'] = 'Profile';
+
 // Badge details.
 $string['badgedetails'] = 'Badge details';
 $string['issuerdetails'] = 'Issuer details';
@@ -404,7 +413,13 @@ $string['expireperiod'] = 'This badge expires {$a} day(s) after being issued.';
 // Badge editing/creating strings.
 $string['actions'] = 'Actions';
 $string['activate'] = 'Activate';
+$string['activitiescriteria'] = 'Activity completion criteria';
+$string['addcriteria'] = 'Add criteria';
+$string['addparameter'] = 'Add parameter';
 $string['after'] = 'after the date of issue.';
+$string['aggregationmethod']='Aggregation method';
+$string['all']='All';
+$string['any']='Any';
 $string['awards'] = 'Awards';
 $string['award'] = 'Award badge';
 $string['attachment'] = 'Attachment';
@@ -415,10 +430,11 @@ $string['badgestoearn'] = 'Number of badges available: {$a}';
 $string['bcriteria'] = 'Criteria';
 $string['bdetails'] = 'Edit details';
 $string['bmessage'] = 'Message';
+$string['bydate'] = ' complete by';
 $string['configuremessage'] = 'Configure badge message';
 $string['copyof'] = 'Copy of ';
 $string['boverview'] = 'Overview';
-$string['clear'] = 'Clear criteria';
+$string['clear'] = 'Clear all criteria';
 $string['clearbadge'] = 'Remove all badge criteria';
 $string['clearconfirm'] = '<p>Are you sure you would like to remove all existing criteria for this badge?</p>
 <p><b>Warning!</b></p><p>If some users have already made progress towards earning this badge, their progress will be removed as well.</p>';
@@ -448,6 +464,7 @@ $string['nobadges'] = 'There are no badges available.';
 $string['nocriteria'] = 'Criteria for this badge have not been set up yet.';
 $string['numawards'] = 'This badge has been earned by {$a} user(s).';
 $string['noexpiry'] = 'This badge does not have an expiry date.';
+$string['overallcriteriaaggregation'] = 'Overall badge criteria aggregation';
 $string['perpage'] = 'Records per page';
 $string['relative'] = 'Relative date';
 $string['reviewbadge'] = 'Review badge';
@@ -457,7 +474,6 @@ $string['reviewconfirm'] = '<p>When you activate a badge, it means that now it c
 $string['subject'] = 'Message subject';
 $string['selecting'] = 'With selected badges...';
 $string['status'] = 'Badge status';
-$string['start'] = 'Start';
 $string['visible'] = 'Visible';
 $string['year'] = 'Year(s)';
 
@@ -513,6 +529,7 @@ If this checkbox is checked and the badge is active, users will be able to see t
 $string['error:clone'] = 'Cannot clone the badge.';
 $string['error:setter'] = 'Field {$a->field} was not found in class {$a->class}.';
 $string['error:save'] = 'Cannot save the badge.';
+$string['error:noactivities'] = 'No activities with completion criteria enabled.';
 $string['error:nosuchbadge'] = 'Badge with id {$a} does not exist.';
 $string['error:invalidcriteriatype'] = 'Invalid criteria type.';
 $string['error:invalidbadgeurl'] = 'Invalid badge issuer URL format. If it is possible, try using {$a}';

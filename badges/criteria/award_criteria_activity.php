@@ -45,7 +45,9 @@ class award_criteria_activity extends award_criteria {
 
     public function __construct($record) {
         parent::__construct($record);
-        $this->params = self::get_params($record['id']);
+        if (isset($record['id'])) {
+            $this->params = self::get_params($record['id']);
+        }
         $this->courseid = self::get_course();
     }
 
@@ -55,8 +57,83 @@ class award_criteria_activity extends award_criteria {
      * @param moodleform $mform  Moodle forms object
      * @param stdClass $data details of various modules
      */
-    public function config_form_display(&$mform, $data = null) {
-        //@TODO
+    public function config_form_criteria(&$mform, $data = null) {
+        global $DB, $OUTPUT;
+
+        $course = $DB->get_record('course', array('id' => $this->courseid));
+        $info = new completion_info($course);
+        $mods = $info->get_activities();
+
+        $aggregation_methods = $data->get_aggregation_methods();
+
+        $output = html_writer::start_tag('div', array('id' => 'criteria-type-' . BADGE_CRITERIA_TYPE_ACTIVITY, 'class' => 'criteria-type'));
+
+        // Aggregation choice.
+        $agg = html_writer::label(get_string('aggregationmethod', 'badges'), 'menuagg');
+        $agg .= html_writer::select($aggregation_methods, 'agg', 'all', false);
+        $aggregatecrit = $OUTPUT->container($agg, 'criteria-aggregation', 'aggregate-criteria-type-' . BADGE_CRITERIA_TYPE_ACTIVITY);
+
+        // Delete criteria button.
+        $deletecrit  = html_writer::start_tag('div', array('class'=>'comment-delete'));
+        $deletecrit .= html_writer::start_tag('a', array('href' => '#', 'id' => 'remove-criteria-type-' . BADGE_CRITERIA_TYPE_ACTIVITY));
+        $deletecrit .= $OUTPUT->pix_icon('t/delete', get_string('delete'));
+        $deletecrit .= html_writer::end_tag('a');
+        $deletecrit .= html_writer::end_tag('div');
+        $output .= $deletecrit . $OUTPUT->heading_with_help('Activity criteria type', 'variablesubstitution', 'badges') . $aggregatecrit;
+
+        // Existing parameters.
+        if (!empty($this->params)) {
+            foreach ($this->params as $param) {
+                $output .= $this->config_form_criteria_param($param);
+            }
+        }
+
+        // Add more parameters button.
+        $addmore = html_writer::empty_tag('input', array('type' => 'button', 'value' => get_string('addparameter', 'badges'), 'id' => 'add-param'));
+        $output .= $addmore . html_writer::end_tag('div');
+        return $output;
+    }
+
+    /**
+     * Gets the module instance from the database and returns it.
+     * If no module instance exists this function returns false.
+     *
+     * @return stdClass|bool
+     */
+    public function get_mod_instance($cmid) {
+        global $DB;
+        $rec = $DB->get_record_sql("SELECT md.name
+                               FROM {course_modules} cm,
+                                    {modules} md
+                               WHERE cm.id = ? AND
+                                     md.id = cm.module", array($cmid));
+        return get_coursemodule_from_id($rec->name, $cmid);
+    }
+
+    /**
+     * Add appropriate parameter elements to the criteria form
+     *
+     */
+    public function config_form_criteria_param($param) {
+        global $DB, $OUTPUT;
+
+        $mod = self::get_mod_instance($param['module']);
+        $output = html_writer::start_tag('div', array('id' => 'criteria-param-' . $mod->id, 'class' => 'criteria-param'));
+        $output .= html_writer::label(ucfirst($mod->modname) . ' - ' . $mod->name, null, false, array('class' => 'param-name'));
+        $output .= html_writer::label(get_string('bydate', 'badges'), null, false);
+        $dayselector = html_writer::select_time('days', '');
+        $monthselector = html_writer::select_time('months', '');
+        $yearselector = html_writer::select_time('years', '');
+
+        $output .= $dayselector . $monthselector . $yearselector;
+
+        $deleteparam  = html_writer::start_tag('div', array('class'=>'comment-delete'));
+        $deleteparam .= html_writer::start_tag('a', array('href' => '#', 'id' => 'remove-criteria-param-' . $mod->id));
+        $deleteparam .= $OUTPUT->pix_icon('t/delete', get_string('delete'));
+        $deleteparam .= html_writer::end_tag('a');
+        $deleteparam .= html_writer::end_tag('div');
+        $output .= $deleteparam . html_writer::end_tag('div');
+        return $output;
     }
 
     /**
@@ -75,7 +152,7 @@ class award_criteria_activity extends award_criteria {
      * @return string
      */
     public function get_title() {
-        return get_string('criteria_type_activity', 'badges');
+        return get_string('criteria_' . $this->criteriatype, 'badges');
     }
 
     /**
@@ -88,6 +165,7 @@ class award_criteria_activity extends award_criteria {
         $courseid = $DB->get_field('badge', 'courseid', array('id' =>$this->badgeid));
         return $courseid;
     }
+
     /**
      * Review this criteria and decide if it has been completed
      *
