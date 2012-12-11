@@ -1146,11 +1146,6 @@ table.flexible .r1, table.generaltable .r1 {background-color: #FAFAFA;}
     vertical-align: middle;
 }
 
-#potential-criteria-body,
-#potential-criteria-list {
-    display: none;
-}
-
 div.criteria-header {
     padding: 0 1px;
     height: 12px;
