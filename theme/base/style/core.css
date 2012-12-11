@@ -1347,11 +1347,6 @@ body.jsenabled .formlisting {
     vertical-align: middle;
 }
 
-#potential-criteria-body,
-#potential-criteria-list {
-    display: none;
-}
-
 div.criteria-header {
     padding: 0 1px;
     height: 12px;

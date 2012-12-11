@@ -708,11 +708,6 @@ class page_requirements_manager {
                                                         array('maxareabytesreached', 'moodle')
                                                     ));
                     break;
-                case 'core_badges':
-                    $module = array('name'     => 'core_badges',
-                                    'fullpath' => '/badges/criteria.js',
-                                    'requires' => array('node', 'event', 'overlay', 'io-base', 'json', 'anim', 'panel'));
-                    break;
             }
 
         } else {
