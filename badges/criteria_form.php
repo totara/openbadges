@@ -34,56 +34,35 @@ require_once($CFG->libdir . '/badgeslib.php');
  *
  */
 class edit_criteria_form extends moodleform {
-    public function definition() {
-        global $DB;
+    function definition() {
         $mform = $this->_form;
-        $criteria = $this->_customdata['criteria'];
-        $addcourse = $this->_customdata['addcourse'];
+        $badge = $this->_customdata['badge'];
 
-        // Get course selector first if it's a new courseset criteria.
-        if (($criteria->id == 0 || $addcourse) && $criteria->criteriatype == BADGE_CRITERIA_TYPE_COURSESET) {
-            $criteria->get_courses($mform);
-        } else {
-            list($none, $message) = $criteria->get_options($mform);
+        if ($badge->has_criteria()) {
+            ksort($badge->criteria);
 
-            if ($none) {
-                $mform->addElement('html', html_writer::tag('div', $message));
-                $mform->addElement('submit', 'cancel', get_string('continue'));
-            } else {
-                $mform->closeHeaderBefore('buttonar');
-                $this->add_action_buttons(true, get_string('save', 'badges'));
+            foreach ($badge->criteria as $crit) {
+                $crit->config_form_criteria($mform, $badge);
             }
+
+            $this->add_action_buttons(false, get_string('update'));
+        } else {
+            $mform->addElement('html', '<div>'. get_string('nocriteria', 'badges') . '</div>');
+        }
+
+        // Add hidden fields.
+        $mform->addElement('hidden', 'id', $badge->id);
+        $mform->setType('id', PARAM_INT);
+
+        // Freeze all elements if badge is active.
+        if ($badge->is_active() || $badge->is_locked()) {
+            $mform->hardFreeze();
         }
     }
 
-    /**
-     * Validates form data
-     */
     public function validation($data, $files) {
-        global $OUTPUT;
         $errors = parent::validation($data, $files);
-        $addcourse = $this->_customdata['addcourse'];
 
-        if (!$addcourse) {
-            $required = $this->_customdata['criteria']->required_param;
-            $pattern1 = '/^' . $required . '_(\d+)$/';
-            $pattern2 = '/^' . $required . '_(\w+)$/';
-
-            $ok = false;
-            foreach ($data as $key => $value) {
-                if ((preg_match($pattern1, $key) || preg_match($pattern2, $key)) && !($value === 0 || $value == '0')) {
-                    $ok = true;
-                }
-            }
-
-            $warning = $this->_form->createElement('html',
-                    $OUTPUT->notification(get_string('error:parameter', 'badges'), 'notifyproblem'), 'submissionerror');
-
-            if (!$ok) {
-                $errors['formerrors'] = 'Error';
-                $this->_form->insertElementBefore($warning, 'first_header');
-            }
-        }
         return $errors;
     }
 }

@@ -398,6 +398,51 @@ class badge {
     }
 
     /**
+     * Saves criteria from form data.
+     *
+     * @return bool A status indicating criteria were saved.
+     */
+    public function save_criteria($form) {
+        global $DB;
+        $transaction = $DB->start_delegated_transaction();
+        foreach ($form as $key => $value) {
+            if (preg_match('/^criteria-(\d+)-(\w+)$/', $key)) {
+                $arr = explode('-', $key);
+
+                // If no value supplied, remove.
+                if ($value == 0 || $value == '') {
+                    $DB->delete_records('badge_criteria_param', array('critid' => $arr[1], 'name' => $arr[2]));
+                } else {
+                    // Else update or insert.
+                    if ($arr[2] == 'aggregation') {
+                        $obj = new stdClass();
+                        $obj->id = $arr[1];
+                        $obj->method = $value;
+                        $DB->update_record('badge_criteria', $obj, true);
+                    } else {
+                        if ($rec = $DB->get_record('badge_criteria_param', array('critid' => $arr[1], 'name' => $arr[2]))){
+                            $obj = new stdClass();
+                            $obj->id = $rec->id;
+                            $obj->critid = $rec->critid;
+                            $obj->name = $rec->name;
+                            $obj->value = $value;
+                            $DB->update_record('badge_criteria_param', $obj, true);
+                        } else {
+                            $obj = new stdClass();
+                            $obj->critid = $arr[1];
+                            $obj->name = $arr[2];
+                            $obj->value = $value;
+                            $DB->insert_record('badge_criteria_param', $obj, false, true);
+                        }
+                    }
+                }
+            }
+        }
+        $transaction->allow_commit();
+        return true;
+    }
+
+    /**
      * Returns badge award criteria
      *
      * @return array An array of badge criteria
@@ -424,14 +469,13 @@ class badge {
     public function get_aggregation_method($criteriatype = 0) {
         global $DB;
         $params = array('badgeid' => $this->id, 'criteriatype' => $criteriatype);
-
-        $aggregation = $DB->get_record('badge_criteria', $params, IGNORE_MULTIPLE);
+        $aggregation = $DB->get_field('badge_criteria', 'method', $params, IGNORE_MULTIPLE);
 
         if (!$aggregation) {
             return BADGE_CRITERIA_AGGREGATION_ALL;
         }
 
-        return $aggregation->method;
+        return $aggregation;
     }
 
     /**

@@ -60,8 +60,6 @@ $output = $PAGE->get_renderer('core', 'badges');
 $statusmsg = '';
 $errormsg  = '';
 
-$badge = new badge($badgeid);
-
 $form_class = 'edit_' . $action . '_form';
 $form = new $form_class($currenturl, array('badge' => $badge, 'action' => $action));
 
@@ -85,9 +83,6 @@ if ($form->is_cancelled()){
         } else {
             $errormsg = get_string('error:save', 'badges');
         }
-    } else if ($action == 'criteria') {
-        //process data here
-
     } else if ($action == 'message') {
         $badge->message = $data->message;
         $badge->messagesubject = $data->messagesubject;
@@ -104,10 +99,10 @@ if ($form->is_cancelled()){
     //redirect(new moodle_url('/badges/edit.php', array('id' => $badgeid, 'action' => $action)));
 }
 
-$jsoptions = new stdClass();
-$jsoptions->badgeid = $badge->id;
+// $jsoptions = new stdClass();
+// $jsoptions->badgeid = $badge->id;
 
-$PAGE->requires->js_init_call('M.core_badges.init', array($jsoptions), true);
+// $PAGE->requires->js_init_call('M.core_badges.init', array($jsoptions), true);
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading($badge->name . ': ' . get_string('b' . $action, 'badges'));

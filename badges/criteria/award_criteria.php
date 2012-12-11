@@ -141,15 +141,7 @@ abstract class award_criteria {
      * Add appropriate parameter elements to the criteria form
      *
      */
-    abstract public function config_form_criteria_param($data);
-
-    /**
-     * Save the criteria information stored in the database
-     *
-     * @param array $data Form data
-     * @return void
-     */
-    abstract public function save(&$data);
+    abstract public function config_form_criteria_param(&$mform, $data);
 
     /**
      * Review this criteria and decide if the user has completed
@@ -207,5 +199,28 @@ abstract class award_criteria {
 
         // Finally remove criterion itself.
         $DB->delete_records('badge_criteria', array('id' => $this->id));
+    }
+
+    /**
+     * Save this criterion
+     *
+     */
+    public function create(array $params) {
+        global $DB;
+        $fordb = new stdClass();
+        $fordb->criteriatype = $this->criteriatype;
+        $fordb->method = $this->method;
+        $fordb->badgeid = $this->badgeid;
+        $t = $DB->start_delegated_transaction();
+        if ($newc = $DB->insert_record('badge_criteria', $fordb, true)) {
+            foreach ($params as $p) {
+                $newp = new stdClass();
+                $newp->critid = $newc;
+                $newp->name = $this->required_param . '_' . $p;
+                $newp->value = $p;
+                $DB->insert_record('badge_criteria_param', $newp);
+            }
+        }
+        $t->allow_commit();
     }
 }

@@ -40,8 +40,8 @@ class award_criteria_activity extends award_criteria {
     public $params = array();
     private $courseid;
 
-    protected $required_params = array('module');
-    protected $optional_params = array('bydate');
+    public $required_param = 'module';
+    public $optional_params = array('bydate');
 
     public function __construct($record) {
         parent::__construct($record);
@@ -59,39 +59,36 @@ class award_criteria_activity extends award_criteria {
      */
     public function config_form_criteria(&$mform, $data = null) {
         global $DB, $OUTPUT;
+        $prefix = 'criteria-' . $this->id;
+
+        $aggregation_methods = $data->get_aggregation_methods();
+
+        $deleteurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'type' => $this->criteriatype, 'delete' => true));
+        $editaction = $OUTPUT->action_icon("URL", new pix_icon('t/edit', get_string('edit')), null, array('class' => 'criteria-action')); //@TODO
+        $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
+
+        // Criteria aggregation
+        $mform->addElement('header', $prefix, '');
+        $mform->addElement('html', html_writer::tag('div', $deleteaction . $editaction, array('class' => 'criteria-header')));
+        $mform->addElement('html', $OUTPUT->heading_with_help($this->get_title(),  'variablesubstitution', 'badges'));
+        if (!empty($this->params) && count($this->params) > 1) {
+            $mform->addElement('select', $prefix . '-aggregation', get_string('aggregationmethod', 'badges'), $aggregation_methods);
+            $mform->setDefault($prefix . '-aggregation', $data->get_aggregation_method(BADGE_CRITERIA_TYPE_ACTIVITY));
+        } else {
+            $mform->addElement('hidden', $prefix . '-aggregation', $data->get_aggregation_method(BADGE_CRITERIA_TYPE_ACTIVITY));
+            $mform->setType($prefix . '-aggregation', PARAM_INT);
+        }
 
         $course = $DB->get_record('course', array('id' => $this->courseid));
         $info = new completion_info($course);
         $mods = $info->get_activities();
 
-        $aggregation_methods = $data->get_aggregation_methods();
-
-        $output = html_writer::start_tag('div', array('id' => 'criteria-type-' . BADGE_CRITERIA_TYPE_ACTIVITY, 'class' => 'criteria-type'));
-
-        // Aggregation choice.
-        $agg = html_writer::label(get_string('aggregationmethod', 'badges'), 'menuagg');
-        $agg .= html_writer::select($aggregation_methods, 'agg', 'all', false);
-        $aggregatecrit = $OUTPUT->container($agg, 'criteria-aggregation', 'aggregate-criteria-type-' . BADGE_CRITERIA_TYPE_ACTIVITY);
-
-        // Delete criteria button.
-        $deletecrit  = html_writer::start_tag('div', array('class'=>'comment-delete'));
-        $deletecrit .= html_writer::start_tag('a', array('href' => '#', 'id' => 'remove-criteria-type-' . BADGE_CRITERIA_TYPE_ACTIVITY));
-        $deletecrit .= $OUTPUT->pix_icon('t/delete', get_string('delete'));
-        $deletecrit .= html_writer::end_tag('a');
-        $deletecrit .= html_writer::end_tag('div');
-        $output .= $deletecrit . $OUTPUT->heading_with_help('Activity criteria type', 'variablesubstitution', 'badges') . $aggregatecrit;
-
-        // Existing parameters.
+        // Add existing parameters to the form.
         if (!empty($this->params)) {
             foreach ($this->params as $param) {
-                $output .= $this->config_form_criteria_param($param);
+                $this->config_form_criteria_param($mform, $param);
             }
         }
-
-        // Add more parameters button.
-        $addmore = html_writer::empty_tag('input', array('type' => 'button', 'value' => get_string('addparameter', 'badges'), 'id' => 'add-param'));
-        $output .= $addmore . html_writer::end_tag('div');
-        return $output;
     }
 
     /**
@@ -100,50 +97,59 @@ class award_criteria_activity extends award_criteria {
      *
      * @return stdClass|bool
      */
-    public function get_mod_instance($cmid) {
+    private function get_mod_instance($cmid) {
         global $DB;
         $rec = $DB->get_record_sql("SELECT md.name
                                FROM {course_modules} cm,
                                     {modules} md
                                WHERE cm.id = ? AND
                                      md.id = cm.module", array($cmid));
-        return get_coursemodule_from_id($rec->name, $cmid);
+
+        if ($rec) {
+            return get_coursemodule_from_id($rec->name, $cmid);
+        } else {
+            return null;
+        }
     }
 
     /**
      * Add appropriate parameter elements to the criteria form
      *
      */
-    public function config_form_criteria_param($param) {
-        global $DB, $OUTPUT;
+    public function config_form_criteria_param(&$mform, $param) {
+        global $OUTPUT;
+        $prefix = 'criteria-' . $this->id;
 
+        $params = array(
+                'badgeid' => $this->badgeid,
+                'crit' => $this->id,
+                'param' => 'module_' . $param['module'],
+                'type' => $this->criteriatype
+        );
+        $url = new moodle_url('/badges/criteria_action.php', $params);
+        $delete = $OUTPUT->action_icon($url, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
+
+        $parameter = array();
         $mod = self::get_mod_instance($param['module']);
-        $output = html_writer::start_tag('div', array('id' => 'criteria-param-' . $mod->id, 'class' => 'criteria-param'));
-        $output .= html_writer::label(ucfirst($mod->modname) . ' - ' . $mod->name, null, false, array('class' => 'param-name'));
-        $output .= html_writer::label(get_string('bydate', 'badges'), null, false);
-        $dayselector = html_writer::select_time('days', '');
-        $monthselector = html_writer::select_time('months', '');
-        $yearselector = html_writer::select_time('years', '');
+        if (!$mod) {
+            $parameter[] =& $mform->createElement('static', $prefix . '-complby_' . $param['module'], null, $OUTPUT->error_text('Something is wrong with this module')); // @TODO
+            $parameter[] =& $mform->createElement('static', $prefix . '-action_' . $param['module'], null, $delete);
+            $mform->addGroup($parameter, $prefix . 'param' . $param['module'], get_string('error'), array(' '), false);
+        } else {
+            $parameter[] =& $mform->createElement('static', $prefix . '-complby_' . $param['module'], null, get_string('bydate', 'badges'));
+            $parameter[] =& $mform->createElement('date_selector', $prefix . '-bydate_' . $param['module'], "", array('optional' => true));
+            $parameter[] =& $mform->createElement('static', $prefix . '-action_' . $param['module'], null, $delete);
+            $mform->addGroup($parameter, $prefix . '-param' . $param['module'], ucfirst($mod->modname) . ' - ' . $mod->name, array(' '), false);
 
-        $output .= $dayselector . $monthselector . $yearselector;
+            // Set existing values.
+            if (isset($param['bydate'])) {
+                $mform->setDefault($prefix . '-bydate_' . $param['module'], $param['bydate']);
+            }
 
-        $deleteparam  = html_writer::start_tag('div', array('class'=>'comment-delete'));
-        $deleteparam .= html_writer::start_tag('a', array('href' => '#', 'id' => 'remove-criteria-param-' . $mod->id));
-        $deleteparam .= $OUTPUT->pix_icon('t/delete', get_string('delete'));
-        $deleteparam .= html_writer::end_tag('a');
-        $deleteparam .= html_writer::end_tag('div');
-        $output .= $deleteparam . html_writer::end_tag('div');
-        return $output;
-    }
-
-    /**
-     * Save the criteria information stored in the database
-     *
-     * @param stdClass $data Form data
-     */
-    public function save(&$data) {
-        global $DB;
-
+            if (isset($param['grade'])) {
+                $mform->setDefault($prefix . '-grade_' . $param['module'], $param['grade']);
+            }
+        }
     }
 
     /**

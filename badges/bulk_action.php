@@ -42,7 +42,7 @@ if ($action == '') {
 
 $bids = array();
 
-// Get Badges Ids from the POST parameters.
+// Get Badges IDs from the POST parameters.
 foreach ($_POST as $par => $value) {
     if (preg_match('/^badgeid\_(\d+)$/', $par)) {
         $bid = optional_param($par, NULL, PARAM_INT);

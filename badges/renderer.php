@@ -336,7 +336,7 @@ class core_badges_renderer extends plugin_renderer_base {
 
         if (has_capability('moodle/badges:configurecriteria', $context)) {
             $row[] = new tabobject('criteria',
-                        new moodle_url('/badges/edit.php', array('id' => $badgeid, 'action' => 'criteria')),
+                        new moodle_url('/badges/criteria.php', array('id' => $badgeid)),
                         get_string('bcriteria', 'badges')
                     );
         }
@@ -359,6 +359,45 @@ class core_badges_renderer extends plugin_renderer_base {
         $tabs[] = $row;
 
         print_tabs($tabs, $current);
+    }
+
+    // Prints criteria actions for badge editing.
+    public function print_criteria_actions(badge $badge) {
+        $table = new html_table();
+        $table->attributes = array('class' => 'clearfix', 'id' => 'badgeactions');
+
+        $actions = array();
+        if (!$badge->is_active() && !$badge->is_locked()) {
+            // Clear all criteria button.
+            if ($badge->has_criteria()) {
+                $actions[] = get_string('clear', 'badges');
+                $actions[] = $this->output->single_button(new moodle_url('/badges/action.php', array('id' => $badge->id, 'clear' => 1)), get_string('clear'));
+            }
+            $table->data[] = $actions;
+            $actions = array();
+
+            // Add criteria button.
+            $accepted = $badge->get_accepted_criteria();
+            $potential = array_diff($accepted, array_keys($badge->criteria));
+
+            if (!empty($potential)) {
+                foreach ($potential as $p) {
+                    if ($p != 0) $select[$p] = get_string('criteria_' . $p, 'badges');
+                }
+                $actions[] = get_string('addcriteria', 'badges');
+                $actions[] = $this->output->single_select(
+                        new moodle_url('/badges/criteria_action.php', array('badgeid' => $badge->id, 'add' => true)),
+                        'type',
+                        $select,
+                        false,
+                        array('value' => get_string('addcriteria', 'badges')));
+            } else {
+                $actions[] = $this->output->box(get_string('nothingtoadd', 'badges'), 'clearfix');
+            }
+        }
+
+        $table->data[] = $actions;
+        return html_writer::table($table);
     }
 
     // Renders a table with users who have earned the badge.

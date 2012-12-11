@@ -395,13 +395,16 @@ $string['badgestatus_3'] = 'Active and locked';
 $string['badgestatus_4'] = 'Archived';
 
 // Badge criteria.
-$string['criteria_0'] = 'Overall badge criteria';
-$string['criteria_1'] = 'Activity';
-$string['criteria_2'] = 'Role';
-$string['criteria_3'] = 'Social';
-$string['criteria_4'] = 'Course';
-$string['criteria_5'] = 'Courseset';
-$string['criteria_6'] = 'Profile';
+$string['criteria_0'] = 'Overall criteria aggregation';
+$string['criteria_1'] = 'Activity completion';
+$string['criteria_2'] = 'Manual badge issue';
+$string['criteria_3'] = 'Social pariticipation';
+$string['criteria_4'] = 'Course completion';
+$string['criteria_5'] = 'Courseset completion';
+$string['criteria_6'] = 'Profile completion';
+$string['coursecompletion'] = 'Learners must complete this course. ';
+$string['mingrade'] = 'Minimum grade required';
+$string['nothingtoadd'] = 'There are no available criteria to add.';
 
 // Badge details.
 $string['badgedetails'] = 'Badge details';
@@ -414,7 +417,7 @@ $string['expireperiod'] = 'This badge expires {$a} day(s) after being issued.';
 $string['actions'] = 'Actions';
 $string['activate'] = 'Activate';
 $string['activitiescriteria'] = 'Activity completion criteria';
-$string['addcriteria'] = 'Add criteria';
+$string['addcriteria'] = 'Add new criteria';
 $string['addparameter'] = 'Add parameter';
 $string['after'] = 'after the date of issue.';
 $string['aggregationmethod']='Aggregation method';
@@ -447,7 +450,9 @@ $string['dateearned'] = 'Earned on {$a}';
 $string['day'] = 'Day(s)';
 $string['deactivate'] = 'Deactivate';
 $string['delbadge'] = 'Delete badge';
-$string['delconfirm'] = 'Are you sure you would like to delete badge \'{$a}\'?';
+$string['delcritconfirm'] = 'Are you sure that you want to delete this criterion?';
+$string['delparamconfirm'] = 'Are you sure that you want to delete this parameter?';
+$string['delconfirm'] = 'Are you sure that you want to delete badge \'{$a}\'?';
 $string['description'] = 'Description';
 $string['expirydate'] = 'Expiry date';
 $string['fixed'] = 'Fixed date';

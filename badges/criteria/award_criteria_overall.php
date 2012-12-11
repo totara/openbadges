@@ -46,35 +46,26 @@ class award_criteria_overall extends award_criteria {
      * @param stdClass $data details of various modules
      */
     public function config_form_criteria(&$mform, $data = null) {
-        global $DB, $OUTPUT;
-        $aggregation_methods = $data->get_aggregation_methods();
+        $prefix = 'criteria-' . $this->id;
+        if (count($data->criteria) > 2) {
+            $aggregation_methods = $data->get_aggregation_methods();
 
-        $output = html_writer::start_tag('div', array('id' => 'criteria-type-' . BADGE_CRITERIA_TYPE_OVERALL, 'class' => 'criteria-type'));
-
-        // Aggregation choice.
-        $agg = html_writer::label(get_string('aggregationmethod', 'badges'), 'menuagg');
-        $agg .= html_writer::select($aggregation_methods, 'agg', 'all', false);
-        $aggregatecrit = $OUTPUT->container($agg, 'criteria-aggregation', 'aggregate-criteria-type-' . BADGE_CRITERIA_TYPE_OVERALL);
-        $output .= $aggregatecrit . html_writer::end_tag('div');
-
-        return $output;
+            // Overall criteria aggregation
+            $mform->addElement('header', $prefix, $this->get_title());
+            $mform->addElement('select', $prefix . '-aggregation', get_string('aggregationmethod', 'badges'), $aggregation_methods);
+            $mform->setDefault($prefix . '-aggregation', $data->get_aggregation_method(BADGE_CRITERIA_TYPE_OVERALL));
+        } else {
+            // Add hidden aggregation.
+            $mform->addElement('hidden', $prefix . '-aggregation', $data->get_aggregation_method(BADGE_CRITERIA_TYPE_OVERALL));
+            $mform->setType($prefix . '-aggregation', PARAM_INT);
+        }
     }
 
     /**
      * Add appropriate parameter elements to the criteria form
      *
      */
-    public function config_form_criteria_param($param) {
-    }
-    /**
-     * Save the criteria information stored in the database
-     *
-     * @param stdClass $data Form data
-     */
-    public function save(&$data) {
-        global $DB;
-    
-    }
+    public function config_form_criteria_param(&$mform, $param) { }
 
     /**
      * Return criteria name

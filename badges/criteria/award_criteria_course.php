@@ -40,8 +40,8 @@ class award_criteria_course extends award_criteria {
     /* @var array Parameters of course criteria */
     public $params = array();
 
-    protected $required_params = array('courseid');
-    protected $optional_params = array('grade', 'bydate');
+    public $required_param = 'course';
+    public $optional_params = array('grade', 'bydate');
 
     public function __construct($record) {
         parent::__construct($record);
@@ -57,36 +57,45 @@ class award_criteria_course extends award_criteria {
      * @param stdClass $data details of various modules
      */
     public function config_form_criteria(&$mform, $data = null) {
-        $output = html_writer::start_tag('div', array('id' => 'criteria-type-' . BADGE_CRITERIA_TYPE_COURSE, 'class' => 'criteria-type'));
+        global $OUTPUT;
+        $prefix = 'criteria-' . $this->id;
+
+        $deleteurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'type' => $this->criteriatype, 'delete' => true));
+        $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action')); //@TODO
+        $mform->addElement('header', $prefix, '');
+        $mform->addElement('html', html_writer::tag('div', $deleteaction, array('class' => 'criteria-header')));
+        $mform->addElement('html', $OUTPUT->heading_with_help($this->get_title(),  'variablesubstitution', 'badges'));
+        $mform->addElement('html', $OUTPUT->heading(get_string('coursecompletion', 'badges'), 4));
+
         // Existing parameters.
         if (!empty($this->params)) {
             foreach ($this->params as $param) {
-                $output .= $this->config_form_criteria_param($param);
+                $this->config_form_criteria_param($mform, $param);
             }
         }
-
-        $output .= html_writer::end_tag('div');
-
-        return $output;
     }
 
     /**
      * Add appropriate parameter elements to the criteria form
      *
      */
-    public function config_form_criteria_param($param) {
+    public function config_form_criteria_param(&$mform, $param) {
+        $prefix = 'criteria-' . $this->id;
+        $parameter = array();
+        $parameter[] =& $mform->createElement('static', $prefix . '-grade', null, get_string('mingrade', 'badges'));
+        $parameter[] =& $mform->createElement('text', $prefix . '-grade_' . $param['course'], '', array('size' => '5'));
+        $parameter[] =& $mform->createElement('static', $prefix . '-complby_' . $param['course'], null, get_string('bydate', 'badges'));
+        $parameter[] =& $mform->createElement('date_selector', $prefix . '-bydate_' . $param['course'], "", array('optional' => true));
+        $mform->addGroup($parameter, $prefix . '-course' . $param['course'], "Optional requirements: ", array(' '), false);
 
-        return "";
-    }
+        // Set existing values.
+        if (isset($param['bydate'])) {
+            $mform->setDefault($prefix . '-bydate_' . $param['course'], $param['bydate']);
+        }
 
-    /**
-     * Save the criteria information stored in the database
-     *
-     * @param stdClass $data Form data
-     */
-    public function save(&$data) {
-        global $DB;
-
+        if (isset($param['grade'])) {
+            $mform->setDefault($prefix . '-grade_' . $param['course'], $param['grade']);
+        }
     }
 
     /**
@@ -95,7 +104,7 @@ class award_criteria_course extends award_criteria {
      * @return string
      */
     public function get_title() {
-        return get_string('criteria_type_course', 'badges');
+        return get_string('criteria_' . $this->criteriatype, 'badges');
     }
 
     /**

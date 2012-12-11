@@ -26,26 +26,24 @@
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
+require_once($CFG->dirroot . '/badges/criteria_form.php');
 
 $badgeid = required_param('id', PARAM_INT);
-$update = optional_param('update', 0, PARAM_INT);
 
 require_login();
 
-if (empty($CFG->enablebadges)) {
-    print_error('badgesdisabled', 'badges');
-}
-
 $badge = new badge($badgeid);
-$context = $badge->get_context();
-$navurl = new moodle_url('/badges/index.php', array('type' => $badge->type));
 
-if ($badge->type == BADGE_TYPE_COURSE) {
+if ($badge->context == 1) {
+    $context = context_system::instance();
+    $navurl = new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_SITE));
+} else {
     require_login($badge->courseid);
-    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->type, 'id' => $badge->courseid));
+    $context = context_course::instance($badge->courseid);
+    $navurl = new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_COURSE, 'id' => $badge->courseid));
 }
 
-$currenturl = new moodle_url('/badges/criteria.php', array('id' => $badge->id));
+$currenturl = qualified_me();
 
 $PAGE->set_context($context);
 $PAGE->set_url($currenturl);
@@ -58,46 +56,36 @@ navigation_node::override_active_url($navurl);
 $PAGE->navbar->add($badge->name);
 
 $output = $PAGE->get_renderer('core', 'badges');
-$msg = optional_param('msg', '', PARAM_TEXT);
-$emsg = optional_param('emsg', '', PARAM_TEXT);
+$statusmsg = '';
+$errormsg  = '';
 
-if ((($update == BADGE_CRITERIA_AGGREGATION_ALL) || ($update == BADGE_CRITERIA_AGGREGATION_ANY))) {
-    require_sesskey();
-    require_capability('moodle/badges:configurecriteria', $context);
-    $obj = new stdClass();
-    $obj->id = $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->id;
-    $obj->method = $update;
-    if ($DB->update_record('badge_criteria', $obj)) {
-        $msg = get_string('changessaved');
+$form = new edit_criteria_form($currenturl, array('badge' => $badge));
+
+if ($form->is_cancelled()){
+    redirect(new moodle_url('/badges/overview.php', array('id' => $badgeid)));
+} else if ($form->is_submitted() && $form->is_validated() && ($data = $form->get_data())) {
+    if ($badge->save_criteria($data)) {
+        $statusmsg = get_string('changessaved');
     } else {
-        $emsg = get_string('error:save', 'badges');
+        $errormsg = get_string('error:save', 'badges');
     }
+    //redirect(new moodle_url('/badges/edit.php', array('id' => $badgeid, 'action' => $action)));
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(print_badge_image($badge, $context, 'small') . ' ' . $badge->name);
+echo $OUTPUT->heading($badge->name . ': ' . get_string('bcriteria', 'badges'));
 
-if ($emsg !== '') {
-    echo $OUTPUT->notification($emsg);
-} else if ($msg !== '') {
-    echo $OUTPUT->notification($msg, 'notifysuccess');
+if ($errormsg !== '') {
+    echo $OUTPUT->notification($errormsg);
+
+} else if ($statusmsg !== '') {
+    echo $OUTPUT->notification($statusmsg, 'notifysuccess');
 }
 
-echo $output->print_badge_status_box($badge);
 $output->print_badge_tabs($badgeid, $context, 'criteria');
 
-if (!$badge->is_locked() && !$badge->is_active()) {
-    echo $output->print_criteria_actions($badge);
-}
+echo $output->print_criteria_actions($badge);
 
-if ($badge->has_criteria()) {
-    ksort($badge->criteria);
-
-    foreach ($badge->criteria as $crit) {
-        $crit->config_form_criteria($badge);
-    }
-} else {
-    echo $OUTPUT->box(get_string('addcriteriatext', 'badges'));
-}
+$form->display();
 
 echo $OUTPUT->footer();

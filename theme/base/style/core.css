@@ -1346,3 +1346,24 @@ body.jsenabled .formlisting {
     text-align: center;
     vertical-align: middle;
 }
+
+#potential-criteria-body,
+#potential-criteria-list {
+    display: none;
+}
+
+div.criteria-header {
+    padding: 0 1px;
+    height: 12px;
+}
+
+a.criteria-action {
+    float: right;
+}
+
+label.param-name {
+    font-weight: bold;
+    font-size: 1.0em;
+    font-style: italic;
+    padding: 1px 1px;
+}
