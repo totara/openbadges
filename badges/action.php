@@ -88,7 +88,7 @@ if ($delete) {
 if ($clear) {
     require_capability('moodle/badges:configurecriteria', $context);
 
-    $returnurl = new moodle_url('/badges/edit.php', array('action' => 'criteria', 'id' => $badge->id));
+    $returnurl = new moodle_url('/badges/criteria.php', array('id' => $badge->id));
     $PAGE->url->param('clear', 1);
 
     if ($confirm && confirm_sesskey()) {

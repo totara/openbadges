@@ -26,10 +26,9 @@
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
-require_once($CFG->dirroot . '/badges/edit_form.php');
+require_once($CFG->dirroot . '/badges/criteria_form.php');
 
 $badgeid = required_param('id', PARAM_INT);
-$action = optional_param('action', 'details', PARAM_TEXT);
 
 require_login();
 
@@ -60,52 +59,21 @@ $output = $PAGE->get_renderer('core', 'badges');
 $statusmsg = '';
 $errormsg  = '';
 
-$form_class = 'edit_' . $action . '_form';
-$form = new $form_class($currenturl, array('badge' => $badge, 'action' => $action));
+$form = new edit_criteria_form($currenturl, array('badge' => $badge));
 
 if ($form->is_cancelled()){
     redirect(new moodle_url('/badges/overview.php', array('id' => $badgeid)));
 } else if ($form->is_submitted() && $form->is_validated() && ($data = $form->get_data())) {
-    if ($action == 'details') {
-        $badge->name = $data->name;
-        $badge->description = $data->description;
-        $badge->visible = $data->visible;
-        $badge->usermodified = $USER->id;
-        $badge->issuername = $data->issuername;
-        $badge->issuerurl = $data->issuerurl;
-        $badge->issuercontact = $data->issuercontact;
-        $badge->expiredate = ($data->expiry == 1) ? $data->expiredate : null;
-        $badge->expireperiod = ($data->expiry == 2) ? $data->expireperiod : null;
-
-        if ($badge->save()) {
-            badges_process_badge_image($badge, $PAGE->context, $data, $form);
-            $statusmsg = get_string('changessaved');
-        } else {
-            $errormsg = get_string('error:save', 'badges');
-        }
-    } else if ($action == 'message') {
-        $badge->message = $data->message;
-        $badge->messagesubject = $data->messagesubject;
-        $badge->notification = $data->notification;
-        $badge->attachment = $data->attachment;
-
-        if ($badge->save()) {
-            $statusmsg = get_string('changessaved');
-        } else {
-            $errormsg = get_string('error:save', 'badges');
-        }
+    if ($badge->save_criteria($data)) {
+        $statusmsg = get_string('changessaved');
+    } else {
+        $errormsg = get_string('error:save', 'badges');
     }
-
     //redirect(new moodle_url('/badges/edit.php', array('id' => $badgeid, 'action' => $action)));
 }
 
-// $jsoptions = new stdClass();
-// $jsoptions->badgeid = $badge->id;
-
-// $PAGE->requires->js_init_call('M.core_badges.init', array($jsoptions), true);
-
 echo $OUTPUT->header();
-echo $OUTPUT->heading($badge->name . ': ' . get_string('b' . $action, 'badges'));
+echo $OUTPUT->heading($badge->name . ': ' . get_string('bcriteria', 'badges'));
 
 if ($errormsg !== '') {
     echo $OUTPUT->notification($errormsg);
@@ -114,7 +82,9 @@ if ($errormsg !== '') {
     echo $OUTPUT->notification($statusmsg, 'notifysuccess');
 }
 
-$output->print_badge_tabs($badgeid, $context, $action);
+$output->print_badge_tabs($badgeid, $context, 'criteria');
+
+echo $output->print_criteria_actions($badge);
 
 $form->display();
 
