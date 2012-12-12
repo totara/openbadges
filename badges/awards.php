@@ -99,8 +99,7 @@ if ($badge->has_awards()) {
     $recipients->totalcount = $totalcount;
 
     echo $output->render($recipients);
-}
-else {
+} else {
     echo $output->notification(get_string('noawards', 'badges'));
 }
 

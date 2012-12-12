@@ -61,10 +61,10 @@ class award_criteria_course extends award_criteria {
         $prefix = 'criteria-' . $this->id;
 
         $deleteurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'type' => $this->criteriatype, 'delete' => true));
-        $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action')); //@TODO
+        $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
         $mform->addElement('header', $prefix, '');
         $mform->addElement('html', html_writer::tag('div', $deleteaction, array('class' => 'criteria-header')));
-        $mform->addElement('html', $OUTPUT->heading_with_help($this->get_title(),  'variablesubstitution', 'badges'));
+        $mform->addElement('html', $OUTPUT->heading_with_help($this->get_title(), 'criteria_' . BADGE_CRITERIA_TYPE_COURSE, 'badges'));
         $mform->addElement('html', $OUTPUT->heading(get_string('coursecompletion', 'badges'), 4));
 
         // Existing parameters.
@@ -105,6 +105,34 @@ class award_criteria_course extends award_criteria {
      */
     public function get_title() {
         return get_string('criteria_' . $this->criteriatype, 'badges');
+    }
+
+    /**
+     * Get criteria details for displaying to users
+     *
+     * @return string
+     */
+    public function get_details() {
+        return "";
+    }
+
+    /**
+     * Add appropriate new criteria options to the form
+     *
+     */
+    public function get_options() {
+        global $PAGE, $DB;
+        $course = $DB->get_record('course', array('id' => $PAGE->course->id));
+        $options = html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'options[]', 'value' => $PAGE->course->id));
+        $options .= get_string('noparamstoadd', 'badges');
+        if (!($course->enablecompletion == COMPLETION_ENABLED)) {
+            $none = true;
+            $message = get_string('completionnotenabled', 'badges');
+        } else {
+            $none = false;
+            $message = '';
+        }
+        return array($none, $options, $message);
     }
 
     /**

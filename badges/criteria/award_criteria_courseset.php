@@ -47,13 +47,28 @@ class award_criteria_courseset extends award_criteria_course {
     public function config_form_criteria(&$mform, $data = null) {
         global $OUTPUT;
         $prefix = 'criteria-' . $this->id;
+        $aggregation_methods = $data->get_aggregation_methods();
 
-        $deleteurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'type' => $this->criteriatype, 'delete' => true));
-        $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action')); //@TODO
+        $editurl = new moodle_url('/badges/criteria_action.php',
+                array('badgeid' => $this->badgeid,
+                      'edit' => true,
+                      'type' => $this->criteriatype,
+                      'crit' => $this->id));
+        $deleteurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'delete' => true, 'type' => $this->criteriatype));
+        $editaction = $OUTPUT->action_icon($editurl, new pix_icon('t/edit', get_string('edit')), null, array('class' => 'criteria-action'));
+        $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
+
+        // Criteria aggregation.
         $mform->addElement('header', $prefix, '');
-        $mform->addElement('html', html_writer::tag('div', $deleteaction, array('class' => 'criteria-header')));
-        $mform->addElement('html', $OUTPUT->heading_with_help($this->get_title(),  'variablesubstitution', 'badges'));
-        $mform->addElement('html', $OUTPUT->heading(get_string('coursecompletion', 'badges'), 4));
+        $mform->addElement('html', html_writer::tag('div', $deleteaction . $editaction, array('class' => 'criteria-header')));
+        $mform->addElement('html', $OUTPUT->heading_with_help($this->get_title(), 'criteria_' . BADGE_CRITERIA_TYPE_COURSESET, 'badges'));
+        if (!empty($this->params) && count($this->params) > 1) {
+            $mform->addElement('select', $prefix . '-aggregation', get_string('aggregationmethod', 'badges'), $aggregation_methods);
+            $mform->setDefault($prefix . '-aggregation', $data->get_aggregation_method(BADGE_CRITERIA_TYPE_COURSESET));
+        } else {
+            $mform->addElement('hidden', $prefix . '-aggregation', $data->get_aggregation_method(BADGE_CRITERIA_TYPE_COURSESET));
+            $mform->setType($prefix . '-aggregation', PARAM_INT);
+        }
 
         // Existing parameters.
         if (!empty($this->params)) {
@@ -68,7 +83,7 @@ class award_criteria_courseset extends award_criteria_course {
      *
      */
     public function config_form_criteria_param(&$mform, $param) {
-        global $DB;
+        global $DB, $OUTPUT;
         $prefix = 'criteria-' . $this->id;
 
         $params = array(
@@ -112,6 +127,43 @@ class award_criteria_courseset extends award_criteria_course {
      */
     public function get_title() {
         return get_string('criteria_' . $this->criteriatype, 'badges');
+    }
+
+    /**
+     * Get criteria details for displaying to users
+     *
+     * @return string
+     */
+    public function get_details() {
+        return "";
+    }
+
+    /**
+     * Add appropriate new criteria options to the form
+     *
+     */
+    public function get_options() {
+        global $DB;
+        $options = "";
+        $none = true;
+        $exisiting = array();
+
+        $courses = $DB->get_records('course', array('enablecompletion' => COMPLETION_ENABLED, 'visible' => 1));
+
+        // If it is an existing criterion, show only available params.
+        if ($this->id !== 0) {
+            $exisiting = array_keys($this->params);
+        }
+
+        if (!empty($courses)) {
+            foreach ($courses as $course) {
+                if (!in_array($course->id, $exisiting)) {
+                    $options .= html_writer::checkbox('options[]', $course->id, false, ucfirst($course->fullname)) . '<br/>';
+                    $none = false;
+                }
+            }
+        }
+        return array($none, $options, get_string('noparamstoadd', 'badges'));
     }
 
     /**

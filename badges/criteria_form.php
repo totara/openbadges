@@ -34,7 +34,7 @@ require_once($CFG->libdir . '/badgeslib.php');
  *
  */
 class edit_criteria_form extends moodleform {
-    function definition() {
+    public function definition() {
         $mform = $this->_form;
         $badge = $this->_customdata['badge'];
 

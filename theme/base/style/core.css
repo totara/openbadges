@@ -1138,6 +1138,7 @@ table.flexible .r1, table.generaltable .r1 {background-color: #FAFAFA;}
 #page-badges-index table.collection .criteria {
     width: 30%;
     text-align: left;
+    vertical-align: middle;
 }
 
 #page-badges-index table.collection .actions {
