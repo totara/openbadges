@@ -61,7 +61,7 @@ $errormsg  = '';
 
 $form = new edit_criteria_form($currenturl, array('badge' => $badge));
 
-if ($form->is_cancelled()){
+if ($form->is_cancelled()) {
     redirect(new moodle_url('/badges/overview.php', array('id' => $badgeid)));
 } else if ($form->is_submitted() && $form->is_validated() && ($data = $form->get_data())) {
     if ($badge->save_criteria($data)) {
@@ -69,7 +69,7 @@ if ($form->is_cancelled()){
     } else {
         $errormsg = get_string('error:save', 'badges');
     }
-    //redirect(new moodle_url('/badges/edit.php', array('id' => $badgeid, 'action' => $action)));
+    // redirect(new moodle_url('/badges/edit.php', array('id' => $badgeid, 'action' => $action)));
 }
 
 echo $OUTPUT->header();
@@ -84,8 +84,10 @@ if ($errormsg !== '') {
 
 $output->print_badge_tabs($badgeid, $context, 'criteria');
 
-echo $output->print_criteria_actions($badge);
-
-$form->display();
-
+if ($badge->is_locked() || $badge->is_active()) {
+    echo $output->print_badge_criteria($badge);
+} else {
+    echo $output->print_criteria_actions($badge);
+    $form->display();
+}
 echo $OUTPUT->footer();

@@ -60,14 +60,15 @@ class award_criteria_manual extends award_criteria {
 
         $aggregation_methods = $data->get_aggregation_methods();
 
+        $editurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'edit' => true, 'type' => $this->criteriatype, 'crit' => $this->id));
         $deleteurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'delete' => true, 'type' => $this->criteriatype));
-        $editaction = $OUTPUT->action_icon("URL", new pix_icon('t/edit', get_string('edit')), null, array('class' => 'criteria-action')); //@TODO
-        $deleteaction = $OUTPUT->action_link($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
+        $editaction = $OUTPUT->action_icon($editurl, new pix_icon('t/edit', get_string('edit')), null, array('class' => 'criteria-action'));
+        $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
 
-        // Criteria aggregation
+        // Criteria aggregation.
         $mform->addElement('header', $prefix, '');
         $mform->addElement('html', html_writer::tag('div', $deleteaction . $editaction, array('class' => 'criteria-header')));
-        $mform->addElement('html', $OUTPUT->heading_with_help($this->get_title(),  'variablesubstitution', 'badges'));
+        $mform->addElement('html', $OUTPUT->heading_with_help($this->get_title(), 'criteria_' . BADGE_CRITERIA_TYPE_MANUAL, 'badges'));
         if (!empty($this->params) && count($this->params) > 1) {
             $mform->addElement('select', $prefix . '-aggregation', get_string('aggregationmethod', 'badges'), $aggregation_methods);
             $mform->setDefault($prefix . '-aggregation', $data->get_aggregation_method(BADGE_CRITERIA_TYPE_MANUAL));
@@ -99,6 +100,32 @@ class award_criteria_manual extends award_criteria {
         } else {
             return null;
         }
+    }
+
+    /**
+     * Add appropriate new criteria options to the form
+     *
+     */
+    public function get_options() {
+        global $PAGE;
+        $options = "";
+        $none = true;
+        $roles = get_roles_with_capability('moodle/badges:awardbadge', CAP_ALLOW, $PAGE->context);
+        $exisiting = array();
+        // If it is an existing criterion, show only available params.
+        if ($this->id !== 0) {
+            $exisiting = array_keys($this->params);
+        }
+
+        if (!empty($roles)) {
+            foreach ($roles as $role) {
+                if (!in_array($role->id, $exisiting)) {
+                    $options .= html_writer::checkbox('options[]', $role->id, false, self::get_role_name($role->id)) . '<br/>';
+                    $none = false;
+                }
+            }
+        }
+        return array($none, $options, get_string('noparamstoadd', 'badges'));
     }
 
     /**
@@ -138,6 +165,15 @@ class award_criteria_manual extends award_criteria {
      */
     public function get_title() {
         return get_string('criteria_' . $this->criteriatype, 'badges');
+    }
+
+    /**
+     * Get criteria details for displaying to users
+     *
+     * @return string
+     */
+    public function get_details() {
+        return "";
     }
 
     /**

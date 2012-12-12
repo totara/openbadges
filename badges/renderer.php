@@ -60,7 +60,7 @@ class core_badges_renderer extends plugin_renderer_base {
 
         // Badge details.
         $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
-        $display .= html_writer::tag('legend', get_string('badgedetails','badges'), array('class' => 'bold'));
+        $display .= html_writer::tag('legend', get_string('badgedetails', 'badges'), array('class' => 'bold'));
 
         $detailstable = new html_table();
         $detailstable->attributes = array('class' => 'clearfix', 'id' => 'badgedetails');
@@ -75,7 +75,7 @@ class core_badges_renderer extends plugin_renderer_base {
 
         // Issuer details.
         $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
-        $display .= html_writer::tag('legend', get_string('issuerdetails','badges'), array('class' => 'bold'));
+        $display .= html_writer::tag('legend', get_string('issuerdetails', 'badges'), array('class' => 'bold'));
 
         $issuertable = new html_table();
         $issuertable->attributes = array('class' => 'clearfix', 'id' => 'badgeissuer');
@@ -87,7 +87,7 @@ class core_badges_renderer extends plugin_renderer_base {
 
         // Issuance details if any.
         $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
-        $display .= html_writer::tag('legend', get_string('issuancedetails','badges'), array('class' => 'bold'));
+        $display .= html_writer::tag('legend', get_string('issuancedetails', 'badges'), array('class' => 'bold'));
         if ($badge->can_expire()) {
             if ($badge->expiredate) {
                 $display .= get_string('expiredate', 'badges', userdate($badge->expiredate));
@@ -101,7 +101,7 @@ class core_badges_renderer extends plugin_renderer_base {
 
         // Criteria details if any.
         $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
-        $display .= html_writer::tag('legend', get_string('bcriteria','badges'), array('class' => 'bold'));
+        $display .= html_writer::tag('legend', get_string('bcriteria', 'badges'), array('class' => 'bold'));
         if ($badge->has_criteria()) {
             $display .= '';
         } else {
@@ -112,7 +112,7 @@ class core_badges_renderer extends plugin_renderer_base {
         // Awards details if any.
         if (has_capability('moodle/badges:viewawarded', $context)) {
             $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
-            $display .= html_writer::tag('legend', get_string('awards','badges'), array('class' => 'bold'));
+            $display .= html_writer::tag('legend', get_string('awards', 'badges'), array('class' => 'bold'));
             if ($badge->has_awards()) {
                 $display .= get_string('numawards', 'badges', count($badge->get_awards()));
             } else {
@@ -287,7 +287,7 @@ class core_badges_renderer extends plugin_renderer_base {
 
             $name = html_writer::link(new moodle_url('/badges/overview.php', array('id' => $b->id)), $b->name);
             $status = $b->statstring;
-            $criteria = ""; // @TODO: output criteria for a badge.
+            $criteria = self::print_badge_criteria($b);
 
             if (has_capability('moodle/badges:viewawarded', $this->page->context)) {
                 $awards = html_writer::link(new moodle_url('/badges/awards.php', array('id' => $b->id)), $b->awards);
@@ -361,6 +361,18 @@ class core_badges_renderer extends plugin_renderer_base {
         print_tabs($tabs, $current);
     }
 
+    // Prints badge criteria.
+    public function print_badge_criteria(badge $badge) {
+        $output = "";
+        if (empty($badge->criteria)) {
+            $output .= get_string('nocriteria', 'badges');
+        }
+        foreach ($badge->criteria as $c) {
+            $output .= $c->get_details();
+        }
+        return $output;
+    }
+
     // Prints criteria actions for badge editing.
     public function print_criteria_actions(badge $badge) {
         $table = new html_table();
@@ -382,7 +394,9 @@ class core_badges_renderer extends plugin_renderer_base {
 
             if (!empty($potential)) {
                 foreach ($potential as $p) {
-                    if ($p != 0) $select[$p] = get_string('criteria_' . $p, 'badges');
+                    if ($p != 0) {
+                        $select[$p] = get_string('criteria_' . $p, 'badges');
+                    }
                 }
                 $actions[] = get_string('addcriteria', 'badges');
                 $actions[] = $this->output->single_select(
@@ -626,5 +640,5 @@ class badge_collection implements renderable {
 /**
  * Collection of badges used at the index.php page
  */
- class badge_management extends badge_collection implements renderable {
+class badge_management extends badge_collection implements renderable {
 }

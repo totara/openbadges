@@ -40,7 +40,7 @@ class edit_details_form extends moodleform {
     /**
      * Defines the form
      */
-    function definition() {
+    public function definition() {
         global $CFG, $PAGE;
 
         $mform = $this->_form;
@@ -136,7 +136,7 @@ class edit_details_form extends moodleform {
      *
      * @param stdClass|array $default_values object or array of default values
      */
-    function set_data($badge) {
+    public function set_data($badge) {
         $default_values = array();
         parent::set_data($badge);
 
@@ -153,7 +153,7 @@ class edit_details_form extends moodleform {
     /**
      * Form tweaks that depend on current data.
      */
-    function definition_after_data() {
+    public function definition_after_data() {
         global $CFG, $PAGE;
         $mform =& $this->_form;
         $action = $this->_customdata['action'];
@@ -172,7 +172,7 @@ class edit_details_form extends moodleform {
     /**
      * Validates form data
      */
-    function validation($data, $files) {
+    public function validation($data, $files) {
         $errors = parent::validation($data, $files);
 
         $url = parse_url($data['issuerurl']);
@@ -201,7 +201,7 @@ class edit_details_form extends moodleform {
  *
  */
 class edit_message_form extends moodleform {
-    function definition() {
+    public function definition() {
         global $CFG, $OUTPUT;
 
         $mform = $this->_form;
@@ -250,7 +250,7 @@ class edit_message_form extends moodleform {
         }
     }
 
-    function validation($data, $files) {
+    public function validation($data, $files) {
         $errors = parent::validation($data, $files);
 
         return $errors;

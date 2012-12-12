@@ -56,7 +56,7 @@ $fordb->id = null;
 
 $form = new edit_details_form($currenturl, array('action' => 'new'));
 
-if ($form->is_cancelled()){
+if ($form->is_cancelled()) {
     redirect(new moodle_url('/badges/index.php', array('type' => $type, 'id' => $courseid)));
 } else if ($data = $form->get_data()) {
     // Creating new badge here.
@@ -78,7 +78,7 @@ if ($form->is_cancelled()){
     $fordb->courseid = ($type == BADGE_TYPE_COURSE) ? $courseid : null;
     $fordb->messagesubject = get_string('messagesubject', 'badges');
     $fordb->message = get_string('messagebody', 'badges',
-            html_writer::link($CFG->wwwroot . '/badges/mybadges.php', get_string('mybadges','badges')));
+            html_writer::link($CFG->wwwroot . '/badges/mybadges.php', get_string('mybadges', 'badges')));
     $fordb->attachment = 1;
     $fordb->notification = 0;
     $fordb->status = 0;

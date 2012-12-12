@@ -26,51 +26,51 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-/**
+/*
  * Role completion criteria type
  * Criteria type constant, primarily for storing criteria type in the database.
  */
 define('BADGE_CRITERIA_TYPE_OVERALL', 0);
 
-/**
+/*
  * Activity completion criteria type
  * Criteria type constant, primarily for storing criteria type in the database.
-*/
+ */
 define('BADGE_CRITERIA_TYPE_ACTIVITY', 1);
 
-/**
+/*
  * Duration completion criteria type
  * Criteria type constant, primarily for storing criteria type in the database.
-*/
+ */
 define('BADGE_CRITERIA_TYPE_MANUAL', 2);
 
-/**
+/*
  * Grade completion criteria type
  * Criteria type constant, primarily for storing criteria type in the database.
-*/
+ */
 define('BADGE_CRITERIA_TYPE_SOCIAL', 3);
 
-/**
+/*
  * Course completion criteria type
  * Criteria type constant, primarily for storing criteria type in the database.
 */
 define('BADGE_CRITERIA_TYPE_COURSE', 4);
 
-/**
+/*
  * Courseset completion criteria type
  * Criteria type constant, primarily for storing criteria type in the database.
  */
 define('BADGE_CRITERIA_TYPE_COURSESET', 5);
 
-/**
+/*
  * Course completion criteria type
  * Criteria type constant, primarily for storing criteria type in the database.
  */
 define('BADGE_CRITERIA_TYPE_PROFILE', 6);
 
-/**
+/*
  * Criteria type constant to class name mapping
-*/
+ */
 global $BADGE_CRITERIA_TYPES;
 $BADGE_CRITERIA_TYPES = array(
     BADGE_CRITERIA_TYPE_OVERALL   => 'overall',
@@ -132,7 +132,20 @@ abstract class award_criteria {
     abstract public function get_title();
 
     /**
-     * Add appropriate criteria elemetnts to the form
+     * Get criteria details for displaying to users
+     *
+     * @return string
+     */
+    abstract public function get_details();
+
+    /**
+     * Add appropriate criteria options to the form
+     *
+     */
+    abstract public function get_options();
+
+    /**
+     * Add appropriate criteria elements to the form
      *
      */
     abstract public function config_form_criteria(&$mform, $data);
@@ -171,7 +184,7 @@ abstract class award_criteria {
      * @param int $critid Criterion ID
      * @return array
      */
-    public function get_params($cid){
+    public function get_params($cid) {
         global $DB;
         $params = array();
 
@@ -205,17 +218,22 @@ abstract class award_criteria {
      * Save this criterion
      *
      */
-    public function create(array $params) {
+    public function save(array $params) {
         global $DB;
         $fordb = new stdClass();
         $fordb->criteriatype = $this->criteriatype;
         $fordb->method = $this->method;
         $fordb->badgeid = $this->badgeid;
         $t = $DB->start_delegated_transaction();
-        if ($newc = $DB->insert_record('badge_criteria', $fordb, true)) {
+        if ($this->id !== 0) {
+            $cid = $this->id;
+        } else {
+            $cid = $DB->insert_record('badge_criteria', $fordb, true);
+        }
+        if ($cid) {
             foreach ($params as $p) {
                 $newp = new stdClass();
-                $newp->critid = $newc;
+                $newp->critid = $cid;
                 $newp->name = $this->required_param . '_' . $p;
                 $newp->value = $p;
                 $DB->insert_record('badge_criteria_param', $newp);

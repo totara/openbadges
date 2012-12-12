@@ -402,8 +402,10 @@ $string['criteria_3'] = 'Social pariticipation';
 $string['criteria_4'] = 'Course completion';
 $string['criteria_5'] = 'Courseset completion';
 $string['criteria_6'] = 'Profile completion';
+$string['completionnotenabled'] = 'Course completion is not enabled for this course, so it cannot be included in badge criteria. <br/> You can enable course completion in the course settings.';
 $string['coursecompletion'] = 'Learners must complete this course. ';
 $string['mingrade'] = 'Minimum grade required';
+$string['noparamstoadd'] = 'There are no additional parameters available to add to this badge requirement.';
 $string['nothingtoadd'] = 'There are no available criteria to add.';
 
 // Badge details.
@@ -418,7 +420,7 @@ $string['actions'] = 'Actions';
 $string['activate'] = 'Activate';
 $string['activitiescriteria'] = 'Activity completion criteria';
 $string['addcriteria'] = 'Add new criteria';
-$string['addparameter'] = 'Add parameter';
+$string['additionalparameters'] = 'Additional parameters';
 $string['after'] = 'after the date of issue.';
 $string['aggregationmethod']='Aggregation method';
 $string['all']='All';
@@ -471,6 +473,7 @@ $string['numawards'] = 'This badge has been earned by {$a} user(s).';
 $string['noexpiry'] = 'This badge does not have an expiry date.';
 $string['overallcriteriaaggregation'] = 'Overall badge criteria aggregation';
 $string['perpage'] = 'Records per page';
+$string['proceed'] = 'Proceed';
 $string['relative'] = 'Relative date';
 $string['reviewbadge'] = 'Review badge';
 $string['reviewconfirm'] = '<p>When you activate a badge, it means that now it can be earned by users.</p>
@@ -499,6 +502,13 @@ $string['messagesubject'] = 'Congratulations! You just earned a badge!';
 $string['actions_help'] = '';
 $string['attachment_help'] = 'If this \'Attachment\' is checked, an issued badge will be attached to the recepient\'s email for download';
 $string['contact_help'] = 'An email address associated with the badge issuer.';
+$string['criteria_0_help'] = "Overall help";
+$string['criteria_1_help'] = "Help";
+$string['criteria_2_help'] = "Role help";
+$string['criteria_3_help'] = "Social help";
+$string['criteria_4_help'] = "Course help";
+$string['criteria_5_help'] = "Courseset Help";
+$string['criteria_6_help'] = "Profile help";
 $string['expirydate_help'] = 'Visible';
 $string['badgeimage_help'] = 'This is an image that will be used when this badge is issued.
 
@@ -532,7 +542,6 @@ If this checkbox is checked and the badge is active, users will be able to see t
 
 // Error messages.
 $string['error:clone'] = 'Cannot clone the badge.';
-$string['error:setter'] = 'Field {$a->field} was not found in class {$a->class}.';
 $string['error:save'] = 'Cannot save the badge.';
 $string['error:noactivities'] = 'No activities with completion criteria enabled.';
 $string['error:nosuchbadge'] = 'Badge with id {$a} does not exist.';

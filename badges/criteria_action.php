@@ -41,6 +41,11 @@ require_login();
 $return = new moodle_url('/badges/criteria.php', array('id' => $badgeid));
 $badge = new badge($badgeid);
 
+// Make sure that no actions available for locked or active badges.
+if ($badge->is_active() || $badge->is_locked()) {
+    redirect($return);
+}
+
 if ($badge->context == 1) {
     $context = context_system::instance();
     $navurl = new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_SITE));
@@ -51,7 +56,7 @@ if ($badge->context == 1) {
 }
 
 $PAGE->set_context($context);
-$PAGE->set_url('/badge/criteria_action.php');
+$PAGE->set_url('/badges/criteria_action.php');
 $PAGE->set_pagelayout('standard');
 $PAGE->set_heading($badge->name);
 $PAGE->set_title($badge->name);
@@ -106,21 +111,57 @@ if ($delete && has_capability('moodle/badges:configurecriteria', $context)) {
         }
     }
     redirect($return);
-} else if ($edit && has_capability('moodle/badges:configurecriteria', $context)) {
-    if ($type == BADGE_CRITERIA_TYPE_COURSE) {
-        $coursecriteria = award_criteria::build(array('criteriatype' => BADGE_CRITERIA_TYPE_COURSE, 'badgeid' => $badge->id));
+} else if (($add || $edit) && has_capability('moodle/badges:configurecriteria', $context)) {
+    require_once($CFG->libdir . '/formslib.php');
+    $cparams = array('criteriatype' => $type, 'badgeid' => $badge->id);
+    if ($edit) {
+        $cparams['id'] = $crit;
+    }
+    $criteria = award_criteria::build($cparams);
 
+    $options = optional_param_array('options', array(), PARAM_TEXT);
+    $goback = optional_param('back', "", PARAM_TEXT);
+    if (!empty($goback)) {
+        redirect($return);
     }
-    redirect($return);
-} else if ($add && has_capability('moodle/badges:configurecriteria', $context)) {
-    // If no criteria yet, add overall aggregation.
-    if (count($badge->criteria) == 0) {
-        $criteria = award_criteria::build(array('criteriatype' => BADGE_CRITERIA_TYPE_OVERALL, 'badgeid' => $badge->id));
-        $criteria->create(array());
+    if (!empty($options)) {
+        require_sesskey();
+        // If no criteria yet, add overall aggregation.
+        if (count($badge->criteria) == 0) {
+            $criteria_overall = award_criteria::build(array('criteriatype' => BADGE_CRITERIA_TYPE_OVERALL, 'badgeid' => $badge->id));
+            $criteria_overall->save(array());
+        }
+        $criteria->save($options);
+        redirect($return);
     }
-    $criteria = award_criteria::build(array('criteriatype' => $type, 'badgeid' => $badge->id));
-    $criteria->create(array($badge->courseid));
-    redirect($return);
+
+    $urlparams = array('badgeid' => $badgeid, 'add' => $add, 'edit' => $edit, 'type' => $type, 'crit' => $crit);
+    $mform = new MoodleQuickForm('preferences',
+            'post',
+            new moodle_url('/badges/criteria_action.php', $urlparams),
+            '',
+            array('class' => 'preferences boxaligncenter boxwidthwide'));
+
+    list($none, $options, $message) = $criteria->get_options();
+
+    $mform->addElement('hidden', 'sesskey', sesskey());
+    $mform->addElement('header', 'ghoptions', get_string('additionalparameters', 'badges'));
+    if ($none) {
+        $mform->addElement('html', html_writer::tag('div', $message));
+        $mform->addElement('submit', 'back', get_string('back'));
+    } else {
+        $mform->addElement('html', html_writer::tag('div', $options));
+        $buttonarray = array();
+        $buttonarray[] =& $mform->createElement('submit', 'submitbutton', get_string('proceed', 'badges'));
+        $buttonarray[] =& $mform->createElement('submit', 'back', get_string('cancel'));
+        $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
+    }
+
+    echo $OUTPUT->header();
+    $mform->display();
+    echo $OUTPUT->footer();
+
+    die();
 }
 
-redirect($return);
+//redirect($return);

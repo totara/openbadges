@@ -99,8 +99,7 @@ if ($totalcount) {
     $badges->totalcount = $totalcount;
 
     echo $output->render($badges);
-}
-else {
+} else {
     echo $output->notification(get_string('nobadges', 'badges'));
 }
 
