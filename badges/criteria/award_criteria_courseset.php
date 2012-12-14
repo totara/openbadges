@@ -98,9 +98,10 @@ class award_criteria_courseset extends award_criteria_course {
         $parameter = array();
         $course = $DB->get_record('course', array('id' => $param['course']));
         if (!$course) {
-            $parameter[] =& $mform->createElement('static', $prefix . '-complby_' . $param['course'], null, $OUTPUT->error_text('Something is wrong with this course. Suggest to remove it')); // @TODO
+            $parameter[] =& $mform->createElement('static', $prefix . '-complby_' . $param['course'], null,
+                    $OUTPUT->error_text(get_string('error:missingcourse', 'badges')));
             $parameter[] =& $mform->createElement('static', $prefix . '-action_' . $param['course'], null, $delete);
-            $mform->addGroup($parameter, $prefix . 'param' . $param['course'], get_string('error'), array(' '), false);
+            $mform->addGroup($parameter, $prefix . 'param' . $param['course'], $OUTPUT->error_text(get_string('error')), array(' '), false);
         } else {
             $parameter[] =& $mform->createElement('static', $prefix . '-grade', null, get_string('mingrade', 'badges'));
             $parameter[] =& $mform->createElement('text', $prefix . '-grade_' . $param['course'], '', array('size' => '5'));
@@ -135,7 +136,24 @@ class award_criteria_courseset extends award_criteria_course {
      * @return string
      */
     public function get_details() {
-        return "";
+        global $DB, $OUTPUT;
+        $output = array();
+        foreach ($this->params as $p) {
+            $coursename = $DB->get_field('course', 'fullname', array('id' => $p['course']));
+            if (!$coursename) {
+                $str = $OUTPUT->error_text(get_string('error:nosuchcourse', 'badges'));
+            } else {
+                $str = html_writer::tag('b', '"' . $coursename . '"');
+                if (isset($p['bydate'])) {
+                    $str .= get_string('criteria_descr_bydate', 'badges', userdate($p['bydate'], get_string('strftimedate', 'core_langconfig')));
+                }
+                if (isset($p['grade'])) {
+                    $str .= get_string('criteria_descr_grade', 'badges', $p['grade']);
+                }
+            }
+            $output[] = $str;
+        }
+        return html_writer::alist($output, array(), 'ul');
     }
 
     /**

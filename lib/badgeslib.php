@@ -135,6 +135,21 @@ class badge {
         $this->criteria = self::get_criteria();
     }
 
+
+    /**
+     * Use to get context instance of a badge.
+     * @return context instance.
+     */
+    public function get_context() {
+        if ($this->context == BADGE_TYPE_SITE) {
+            return context_system::instance();
+        } else if ($this->context == BADGE_TYPE_COURSE) {
+            return context_course::instance($this->courseid);
+        } else {
+            debugging('Something is wrong...');
+        }
+    }
+
     /**
      * Return array of aggregation methods
      * @return array
@@ -213,13 +228,24 @@ class badge {
 
         $fordb->name = get_string('copyof', 'badges') . $this->name;
         $fordb->status = BADGE_STATUS_INACTIVE;
+        $fordb->image = 0;
         unset($fordb->id);
 
         $criteria = $fordb->criteria;
         unset($fordb->criteria);
 
         if ($new = $DB->insert_record('badge', $fordb, true)) {
-            //copy criteria here
+            $newbadge = new badge($new);
+
+            // Copy badge image.
+            $fs = get_file_storage();
+            if ($file = $fs->get_file($this->get_context()->id, 'badges', 'badgeimage', $this->id, '/', 'f1.png')) {
+                if ($imagefile = $file->copy_content_to_temp()) {
+                    badges_process_badge_image($newbadge, $imagefile);
+                }
+            }
+
+            // Copy badge criteria.
 
             return $new;
         } else {
@@ -560,29 +586,29 @@ function notify_badge_award(badge $badge, $issuedid) {
     $plaintext = format_text_email($badge->message, FORMAT_HTML);
 
     $eventdata = new stdClass();
-    $eventdata->component        = 'moodle';
-    $eventdata->name             = 'instantmessage';
-    $eventdata->userfrom         = $userfrom;
-    $eventdata->userto           = $userto; // @TODO
-    $eventdata->subject          = $badge->messagesubject;
-    $eventdata->fullmessage      = $plaintext;
+    $eventdata->component         = 'moodle';
+    $eventdata->name              = 'instantmessage';
+    $eventdata->userfrom          = $userfrom;
+    $eventdata->userto            = $userto; // @TODO
+    $eventdata->subject           = $badge->messagesubject;
+    $eventdata->fullmessage       = $plaintext;
     $eventdata->fullmessageformat = FORMAT_PLAIN;
-    $eventdata->fullmessagehtml  = $badge->message;
-    $eventdata->smallmessage     = '';
-    $eventdata->notification = 1;
+    $eventdata->fullmessagehtml   = $badge->message;
+    $eventdata->smallmessage      = '';
+    $eventdata->notification      = 1;
 
     message_send($eventdata);
 
     // Notify badge creator about the award.
     if ($badge->notification) {
-        $eventdata->userfrom         = $userfrom;
-        $eventdata->userto           = $creator; // @TODO
-        $eventdata->subject          = $badge->messagesubject;
-        $eventdata->fullmessage      = $plaintext;
+        $eventdata->userfrom          = $userfrom;
+        $eventdata->userto            = $creator; // @TODO
+        $eventdata->subject           = $badge->messagesubject;
+        $eventdata->fullmessage       = $plaintext;
         $eventdata->fullmessageformat = FORMAT_PLAIN;
-        $eventdata->fullmessagehtml  = $badge->message;
-        $eventdata->smallmessage     = '';
-        $eventdata->notification = 1;
+        $eventdata->fullmessagehtml   = $badge->message;
+        $eventdata->smallmessage      = '';
+        $eventdata->notification      = 1;
 
         message_send($eventdata);
     }
@@ -606,7 +632,7 @@ function get_badges($type, $courseid = 0, $visible = true, $sort = '', $dir = ''
     global $DB;
     $records = array();
     $params = array();
-    $where = "b. status != :deleted AND b.context = :context ";
+    $where = "b.status != :deleted AND b.context = :context ";
     $params['deleted'] = BADGE_STATUS_ARCHIVED;
 
     $userfields = array('b.id');
@@ -616,7 +642,7 @@ function get_badges($type, $courseid = 0, $visible = true, $sort = '', $dir = ''
         $userfields[] = 'bi.uniquehash';
         $usersql = " LEFT JOIN {badge_issued} bi ON b.id = bi.badgeid AND bi.userid = :userid ";
         $params['userid'] = $user;
-        $where = " (b.status = 1 OR b.status = 3) ";
+        $where .= " AND (b.status = 1 OR b.status = 3) ";
     }
     $fields = implode(', ', $userfields);
 
@@ -712,7 +738,7 @@ function get_issued_badge_info($hash) {
             $context = context_course::instance($record->courseid);
         }
 
-        $url = new moodle_url('/badges/badge.php', array('b' => $hash));
+        $url = new moodle_url('/badges/badge.php', array('hash' => $hash));
 
         // Recipient's email is hashed: <algorithm>$<hash(email + salt)>.
         $a['recipient'] = 'sha256$' . hash('sha256', $record->email . $CFG->badges_defaultbadgesalt);
@@ -838,24 +864,24 @@ function badges_award_handle_TYPE_criteria_review($eventdata) {
 /**
  * Process badge image from form data
  *
- * @param stdClass $group group information
- * @param stdClass $data
- * @param stdClass $editform
+ * @param badge $badge Badge object
+ * @param string $iconfile Original file
  */
-function badges_process_badge_image($badge, $context, $data, $editform) {
-    global $CFG, $DB;
+function badges_process_badge_image(badge $badge, $iconfile) {
+    global $CFG, $DB, $USER;
     require_once($CFG->libdir. '/gdlib.php');
 
-    $fs = get_file_storage();
-
     if (!empty($CFG->gdversion)) {
-        if ($iconfile = $editform->save_temp_file('image')) {
-            if ($fileid = (int)process_new_icon($context, 'badges', 'badgeimage', $badge->id, $iconfile)) {
-                $badge->image = $fileid;
-                $badge->save();
-            }
-            @unlink($iconfile);
+        if ($fileid = (int)process_new_icon($badge->get_context(), 'badges', 'badgeimage', $badge->id, $iconfile)) {
+            $badge->image = $fileid;
+            $badge->save();
         }
+        @unlink($iconfile);
+
+        // Clean up file draft area after badge image has been saved.
+        $context = context_user::instance($USER->id, MUST_EXIST);
+        $fs = get_file_storage();
+        $fs->delete_area_files($context->id, 'user', 'draft');
     }
 }
 
@@ -875,9 +901,51 @@ function print_badge_image($badge, $context, $size = 'small') {
         $fsize = 'f1';
     }
 
-    $imageurl = moodle_url::make_pluginfile_url($context->id, 'badges', 'badgeimage', $badge->id, '/', $fsize);
+    $imageurl = moodle_url::make_pluginfile_url($context->id, 'badges', 'badgeimage', $badge->id, '/', $fsize, false);
     $attributes = array('src' => $imageurl, 'alt' => s($badge->name));
     $image .= html_writer::empty_tag('img', $attributes);
 
     return $image;
+}
+
+/**
+ * Bake issued badge.
+ *
+ * @param string $hash Unique hash of an issued badge.
+ * @param int $badgeid ID of the original badge.
+ */
+function bake($hash, $badgeid) {
+    global $CFG, $USER;
+    require_once(dirname(dirname(__FILE__)) . '/badges/utils/bakerlib.php');
+
+    $badge = new badge($badgeid);
+    $badge_context = $badge->get_context();
+    $user_context = context_user::instance($USER->id);
+
+    $fs = get_file_storage();
+    if (!$fs->file_exists($user_context->id, 'badges', 'userbadge', $badge->id, '/', $hash . '.png')) {
+        $file = $fs->get_file($badge_context->id, 'badges', 'badgeimage', $badge->id, '/', 'f1.png');
+        $contents = $file->get_content();
+
+        $filehandler = new PNG_MetaDataHandler($contents);
+        $assertion = new moodle_url('/badges/badge.php', array('b' => $hash));
+        if ($filehandler->check_chunks("tEXt", "openbadges")) {
+            // Add assertion URL tExt chunk.
+            $newcontents = $filehandler->add_chunks("tEXt", "openbadges", $assertion->out(false));
+            $fileinfo = array(
+                    'contextid' => $user_context->id,
+                    'component' => 'badges',
+                    'filearea' => 'userbadge',
+                    'itemid' => $badge->id,
+                    'filepath' => '/',
+                    'filename' => $hash . '.png',
+            );
+
+            // Create a file with added contents.
+            $fs->create_file_from_string($fileinfo, $newcontents);
+        }
+    }
+
+    $fileurl = moodle_url::make_pluginfile_url($user_context->id, 'badges', 'userbadge', $badge->id, '/', $hash, true);
+    header('Location: ' . $fileurl);
 }

@@ -40,19 +40,17 @@ require_login();
 
 $return = new moodle_url('/badges/criteria.php', array('id' => $badgeid));
 $badge = new badge($badgeid);
+$context = $badge->get_context();
+$navurl = new moodle_url('/badges/index.php', array('type' => $badge->context));
 
 // Make sure that no actions available for locked or active badges.
 if ($badge->is_active() || $badge->is_locked()) {
     redirect($return);
 }
 
-if ($badge->context == 1) {
-    $context = context_system::instance();
-    $navurl = new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_SITE));
-} else {
+if ($badge->context == BADGE_TYPE_COURSE) {
     require_login($badge->courseid);
-    $context = context_course::instance($badge->courseid);
-    $navurl = new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_COURSE, 'id' => $badge->courseid));
+    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->context, 'id' => $badge->courseid));
 }
 
 $PAGE->set_context($context);

@@ -147,26 +147,9 @@ class edit_details_form extends moodleform {
             $default_values['expiry'] = 2;
             $default_values['expireperiod'] = $badge->expireperiod;
         }
+        $default_values['currentimage'] = print_badge_image($badge, $badge->get_context(), 'large');
+
         parent::set_data($default_values);
-    }
-
-    /**
-     * Form tweaks that depend on current data.
-     */
-    public function definition_after_data() {
-        global $CFG, $PAGE;
-        $mform =& $this->_form;
-        $action = $this->_customdata['action'];
-
-        if ($action != 'new') {
-            $badgeid = $mform->getElementValue('id');
-            $badge = new badge($badgeid);
-
-            if (!empty($CFG->gdversion)) {
-                $imageelement = $mform->getElement('currentimage');
-                $imageelement->setValue(print_badge_image($badge, $PAGE->context, 'large'));
-            }
-        }
     }
 
     /**

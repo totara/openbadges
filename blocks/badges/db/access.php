@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * My latest badges block capabilities.
+ * DESCRIPTION
  *
  * @package    core
  * @subpackage badges
@@ -32,15 +32,5 @@ $capabilities = array(
                 'archetypes'   => array(
                     'user' => CAP_ALLOW,
                 ),
-                'clonepermissionsfrom' => 'moodle/site:manageblocks'
-        ),
-        'block/badges:myaddinstance' => array(
-                'riskbitmask'  => RISK_PERSONAL,
-                'captype'      => 'read',
-                'contextlevel' => CONTEXT_SYSTEM,
-                'archetypes'   => array(
-                        'user' => CAP_ALLOW,
-                ),
-                'clonepermissionsfrom' => 'moodle/my:manageblocks'
         ),
 );

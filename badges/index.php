@@ -56,6 +56,7 @@ if ($page < 0) {
 
 require_login($SITE);
 
+
 $urlparams = array('sort' => $sortby, 'dir' => $sorthow, 'perpage' => $perpage, 'page' => $page);
 
 if ($course = $DB->get_record('course', array('id' => $courseid))) {
@@ -83,6 +84,10 @@ if ($type == BADGE_TYPE_SITE) {
     navigation_node::override_active_url(
         new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_COURSE, 'id' => $course->id))
     );
+}
+
+if (!has_capability('moodle/badges:awardbadge', $PAGE->context)) {
+    redirect($CFG->wwwroot);
 }
 
 $PAGE->set_title($title);

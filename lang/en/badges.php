@@ -381,6 +381,8 @@ $string['localbadges'] = 'Local Badges';
 $string['localbadges_help'] = 'Badges earned within this web site.';
 $string['externalbadges'] = 'External Backpack';
 $string['externalbadges_help'] = 'Connection setting and badges displayed from an external backpack provider';
+$string['hiddenbadge'] = 'Unfortunately, badge owner has not made this information available.';
+$string['issuedbadge'] = 'Issued badge information';
 $string['visible'] = 'Visible';
 $string['hidden'] = 'Hidden';
 $string['expired'] = 'Expired';
@@ -402,11 +404,22 @@ $string['criteria_3'] = 'Social pariticipation';
 $string['criteria_4'] = 'Course completion';
 $string['criteria_5'] = 'Courseset completion';
 $string['criteria_6'] = 'Profile completion';
+$string['criteriasummary'] = 'Criteria summary';
 $string['completionnotenabled'] = 'Course completion is not enabled for this course, so it cannot be included in badge criteria. <br/> You can enable course completion in the course settings.';
 $string['coursecompletion'] = 'Learners must complete this course. ';
+$string['lockedbadge'] = 'Currently, this badge is either active or locked, so it cannot be modified. If you would like to change this badge\'s details or criteria, please set its status to inactive.';
 $string['mingrade'] = 'Minimum grade required';
 $string['noparamstoadd'] = 'There are no additional parameters available to add to this badge requirement.';
 $string['nothingtoadd'] = 'There are no available criteria to add.';
+
+// Badge criteria description.
+$string['criteria_descr_0'] = '<p>To earn this badge, learners have to complete <b>{$a}</b> of the following requirements:</p>';
+$string['criteria_descr_1'] = '<p><b>{$a}</b> of the following activities have to be completed:</p>';
+$string['criteria_descr_4'] = 'Learners have to complete this course ';
+$string['criteria_descr_2'] = '<p>This badge has to be awarded by the users with <b>{$a}</b> of the following roles:</p>';
+$string['criteria_descr_5'] = '<p><b>{$a}</b> of the following courses have to be completed:</p>';
+$string['criteria_descr_grade'] = ' with minimum grade of <i>{$a}</i> ';
+$string['criteria_descr_bydate'] = ' by <i>{$a}</i> ';
 
 // Badge details.
 $string['badgedetails'] = 'Badge details';
@@ -422,9 +435,9 @@ $string['activitiescriteria'] = 'Activity completion criteria';
 $string['addcriteria'] = 'Add new criteria';
 $string['additionalparameters'] = 'Additional parameters';
 $string['after'] = 'after the date of issue.';
-$string['aggregationmethod']='Aggregation method';
-$string['all']='All';
-$string['any']='Any';
+$string['aggregationmethod'] = 'Aggregation method';
+$string['all'] = 'All';
+$string['any'] = 'Any';
 $string['awards'] = 'Awards';
 $string['award'] = 'Award badge';
 $string['attachment'] = 'Attachment';
@@ -543,7 +556,13 @@ If this checkbox is checked and the badge is active, users will be able to see t
 // Error messages.
 $string['error:clone'] = 'Cannot clone the badge.';
 $string['error:save'] = 'Cannot save the badge.';
+$string['error:missingcourse'] = 'It looks like this course does not exist any more. If you want users to be able to earn this badge, please revise this parameter';
+$string['error:missingmodule'] = 'It looks like this activity does not exist any more. If you want users to be able to earn this badge, please revise this parameter';
+$string['error:missingrole'] = 'It looks like this role does not exist any more. If you want users to be able to earn this badge, please revise this parameter';
 $string['error:noactivities'] = 'No activities with completion criteria enabled.';
+$string['error:nosuchcourse'] = '!!!Course error. Please revise your criteria!!!';
+$string['error:nosuchmod'] = '!!!Activity error. Please revise your criteria!!!';
+$string['error:nosuchrole'] = '!!!Role error. Please revise your criteria!!!';
 $string['error:nosuchbadge'] = 'Badge with id {$a} does not exist.';
 $string['error:invalidcriteriatype'] = 'Invalid criteria type.';
 $string['error:invalidbadgeurl'] = 'Invalid badge issuer URL format. If it is possible, try using {$a}';

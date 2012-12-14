@@ -148,9 +148,10 @@ class award_criteria_manual extends award_criteria {
         $parameter = array();
         $role = self::get_role_name($param['role']);
         if (!$role) {
-            $parameter[] =& $mform->createElement('static', $prefix . '-role_' . $param['role'], null, $OUTPUT->error_text('Something is wrong with this role')); // @TODO
+            $parameter[] =& $mform->createElement('static', $prefix . '-role_' . $param['role'], null,
+                    $OUTPUT->error_text(get_string('error:missingrole', 'badges')));
             $parameter[] =& $mform->createElement('static', $prefix . '-action_' . $param['role'], null, $delete);
-            $mform->addGroup($parameter, $prefix . 'param' . $param['role'], get_string('error'), array(' '), false);
+            $mform->addGroup($parameter, $prefix . 'param' . $param['role'], $OUTPUT->error_text(get_string('error')), array(' '), false);
         } else {
             $parameter[] =& $mform->createElement('static', $prefix . '-role_' . $param['role'], null, $role);
             $parameter[] =& $mform->createElement('static', $prefix . '-action_' . $param['role'], null, $delete);
@@ -173,7 +174,16 @@ class award_criteria_manual extends award_criteria {
      * @return string
      */
     public function get_details() {
-        return "";
+        $output = array();
+        foreach ($this->params as $p) {
+            $str = self::get_role_name($p['role']);
+            if (!$str) {
+                $output[] = $OUTPUT->error_text(get_string('error:nosuchrole', 'badges'));
+            } else {
+                $output[] = $str;
+            }
+        }
+        return html_writer::alist($output, array(), 'ul');
     }
 
     /**

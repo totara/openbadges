@@ -86,7 +86,7 @@ if ($form->is_cancelled()) {
     $newid = $DB->insert_record('badge', $fordb, true);
 
     $newbadge = new badge($newid);
-    badges_process_badge_image($newbadge, $PAGE->context, $data, $form);
+    badges_process_badge_image($newbadge, $form->save_temp_file('image'));
     redirect(new moodle_url('/badges/overview.php', array('id' => $newid)));
 }
 
