@@ -128,9 +128,10 @@ class award_criteria_activity extends award_criteria {
         $parameter = array();
         $mod = self::get_mod_instance($param['module']);
         if (!$mod) {
-            $parameter[] =& $mform->createElement('static', $prefix . '-complby_' . $param['module'], null, $OUTPUT->error_text('Something is wrong with this module')); // @TODO
+            $parameter[] =& $mform->createElement('static', $prefix . '-complby_' . $param['module'], null,
+                    $OUTPUT->error_text(get_string('error:missingmodule', 'badges')));
             $parameter[] =& $mform->createElement('static', $prefix . '-action_' . $param['module'], null, $delete);
-            $mform->addGroup($parameter, $prefix . 'param' . $param['module'], get_string('error'), array(' '), false);
+            $mform->addGroup($parameter, $prefix . 'param' . $param['module'], $OUTPUT->error_text(get_string('error')), array(' '), false);
         } else {
             $parameter[] =& $mform->createElement('static', $prefix . '-complby_' . $param['module'], null, get_string('bydate', 'badges'));
             $parameter[] =& $mform->createElement('date_selector', $prefix . '-bydate_' . $param['module'], "", array('optional' => true));
@@ -163,7 +164,21 @@ class award_criteria_activity extends award_criteria {
      * @return string
      */
     public function get_details() {
-        return "";
+        global $DB, $OUTPUT;
+        $output = array();
+        foreach ($this->params as $p) {
+            $mod = self::get_mod_instance($p['module']);
+            if (!$mod) {
+                $str = $OUTPUT->error_text(get_string('error:nosuchmod', 'badges'));
+            } else {
+                $str = html_writer::tag('b', '"' . ucfirst($mod->modname) . ' - ' . $mod->name . '"');
+                if (isset($p['bydate'])) {
+                    $str .= get_string('criteria_descr_bydate', 'badges', userdate($p['bydate'], get_string('strftimedate', 'core_langconfig')));
+                }
+            }
+            $output[] = $str;
+        }
+        return html_writer::alist($output, array(), 'ul');
     }
 
     /**

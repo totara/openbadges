@@ -34,14 +34,12 @@ $action = optional_param('action', 'details', PARAM_TEXT);
 require_login();
 
 $badge = new badge($badgeid);
+$context = $badge->get_context();
+$navurl = new moodle_url('/badges/index.php', array('type' => $badge->context));
 
-if ($badge->context == 1) {
-    $context = context_system::instance();
-    $navurl = new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_SITE));
-} else {
+if ($badge->context == BADGE_TYPE_COURSE) {
     require_login($badge->courseid);
-    $context = context_course::instance($badge->courseid);
-    $navurl = new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_COURSE, 'id' => $badge->courseid));
+    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->context, 'id' => $badge->courseid));
 }
 
 $currenturl = qualified_me();
@@ -78,7 +76,8 @@ if ($form->is_cancelled()) {
         $badge->expireperiod = ($data->expiry == 2) ? $data->expireperiod : null;
 
         if ($badge->save()) {
-            badges_process_badge_image($badge, $PAGE->context, $data, $form);
+            badges_process_badge_image($badge, $form->save_temp_file('image')); // @TODO: image is not refreshed after submit.
+            $form->set_data($badge);
             $statusmsg = get_string('changessaved');
         } else {
             $errormsg = get_string('error:save', 'badges');
@@ -109,6 +108,9 @@ if ($errormsg !== '') {
 
 $output->print_badge_tabs($badgeid, $context, $action);
 
+if ($badge->is_locked() || $badge->is_active()) {
+    echo $OUTPUT->notification(get_string('lockedbadge', 'badges'));
+}
 $form->display();
 
 echo $OUTPUT->footer();

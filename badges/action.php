@@ -38,14 +38,12 @@ $confirm   = optional_param('confirm', 0, PARAM_BOOL);
 require_login();
 
 $badge = new badge($badgeid);
+$context = $badge->get_context();
+$navurl = new moodle_url('/badges/index.php', array('type' => $badge->context));
 
-if ($badge->context == 1) {
-    $context = context_system::instance();
-    $navurl = new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_SITE));
-} else {
+if ($badge->context == BADGE_TYPE_COURSE) {
     require_login($badge->courseid);
-    $context = context_course::instance($badge->courseid);
-    $navurl = new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_COURSE, 'id' => $badge->courseid));
+    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->context, 'id' => $badge->courseid));
 }
 
 $PAGE->set_context($context);
@@ -117,11 +115,11 @@ if ($clear) {
     die;
 }
 
-if ($copy) { // @TODO: create and copy image when duplicating a badge.
+if ($copy) {
     require_capability('moodle/badges:createbadge', $context);
 
     $cloneid = $badge->make_clone();
-    redirect(new moodle_url('/badges/overview.php', array('id' => $cloneid)));
+    redirect(new moodle_url('/badges/edit.php', array('id' => $cloneid, 'action' => 'details')));
 }
 
 if ($activate) {

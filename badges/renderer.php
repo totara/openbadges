@@ -103,7 +103,7 @@ class core_badges_renderer extends plugin_renderer_base {
         $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
         $display .= html_writer::tag('legend', get_string('bcriteria', 'badges'), array('class' => 'bold'));
         if ($badge->has_criteria()) {
-            $display .= '';
+            $display .= self::print_badge_criteria($badge);
         } else {
             $display .= get_string('nocriteria', 'badges');
         }
@@ -120,7 +120,7 @@ class core_badges_renderer extends plugin_renderer_base {
             }
             $display .= html_writer::end_tag('fieldset');
         }
-// @TODO: table styles.
+// @TODO: styles.
         return $display;
     }
 
@@ -217,6 +217,48 @@ class core_badges_renderer extends plugin_renderer_base {
     }
 
     // Outputs table badges with actions available.
+    protected function render_issued_badge(issued_badge $badge) {
+        global $USER;
+        $issued = $badge->issued;
+        var_dump($issued);
+        if ($badge->visible || ($USER->id == $badge->recipient)) {
+            $htmlheading = $this->output->heading($issued['badge']['name'], 2);
+
+            $table = new html_table();
+
+            $imagetable = new html_table();
+            $imagetable->attributes = array('class' => 'clearfix badgeissuedimage');
+            $imagetable->data[] = array(html_writer::empty_tag('img', array('src' => $issued['badge']['image'])));
+            if ($USER->id == $badge->recipient) {
+                $imagetable->data[] = array($this->output->single_button(
+                            new moodle_url('/badges/badge.php', array('hash' => $badge->hash, 'bake' => true)),
+                            get_string('download'),
+                            'POST'));
+                $imagetable->data[] = array($this->output->single_button("badges.php", 'Add to backpack'));
+            }
+            $datatable = new html_table();
+            $datatable->attributes = array('class' => 'badgeissuedinfo');
+            $table->colclasses = array('bfield', 'bvalue');
+            $datatable->data[] = array("Issuer details", "2");
+            $datatable->data[] = array("1", "2");
+            $datatable->data[] = array("1", "2");
+            $datatable->data[] = array("Badge details", "2");
+            $datatable->data[] = array("1", "2");
+            $datatable->data[] = array("1", "2");
+            $datatable->data[] = array("Issuance Details", "2");
+            $datatable->data[] = array("1", "2");
+            $datatable->data[] = array("1", "2");
+            $table->attributes = array('class' => 'generalbox boxaligncenter boxwidthwide');
+            $table->data[] = array(html_writer::table($imagetable), html_writer::table($datatable));
+            $htmlbadge = html_writer::table($table);
+
+            return $htmlheading . $htmlbadge;
+        } else {
+            return get_string('hiddenbadge', 'badges');
+        }
+    }
+
+    // Outputs table badges with actions available.
     protected function render_badge_collection(badge_collection $badges) {
         $paging = new paging_bar($badges->totalcount, $badges->page, $badges->perpage, $this->page->url, 'page');
         $htmlpagingbar = $this->render($paging);
@@ -240,7 +282,7 @@ class core_badges_renderer extends plugin_renderer_base {
             $badgeimage = print_badge_image($badge, $this->page->context, 'large'); // @TODO: Figure out what is wrong with styles
             $name = $badge->name;
             $description = $badge->description;
-            $criteria = ""; // @TODO: output criteria for a badge.
+            $criteria = self::print_badge_criteria($badge);
             if ($badge->dateissued) {
                 $icon = new pix_icon('i/tick_green_big',
                             get_string('dateearned', 'badges', userdate($badge->dateissued)));
@@ -364,12 +406,17 @@ class core_badges_renderer extends plugin_renderer_base {
     // Prints badge criteria.
     public function print_badge_criteria(badge $badge) {
         $output = "";
+        $agg = $badge->get_aggregation_methods();
         if (empty($badge->criteria)) {
-            $output .= get_string('nocriteria', 'badges');
+            return get_string('nocriteria', 'badges');
         }
-        foreach ($badge->criteria as $c) {
-            $output .= $c->get_details();
+        $output .= get_string('criteria_descr_' . BADGE_CRITERIA_TYPE_OVERALL , 'badges', strtoupper($agg[$badge->get_aggregation_method()]));
+        $items = array();
+        unset($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]);
+        foreach ($badge->criteria as $type => $c) {
+            $items[] .= get_string('criteria_descr_' . $type , 'badges', strtoupper($agg[$badge->get_aggregation_method($type)])) . $c->get_details();
         }
+        $output .= html_writer::alist($items, array(), 'ul');
         return $output;
     }
 
@@ -461,7 +508,7 @@ class core_badges_renderer extends plugin_renderer_base {
 
     ////////////////////////////////////////////////////////////////////////////
     // Helper methods
-    // Majority are reused from stamps collection plugin
+    // Reused from stamps collection plugin
     ////////////////////////////////////////////////////////////////////////////
 
     /**
@@ -570,6 +617,46 @@ class core_badges_renderer extends plugin_renderer_base {
                 array('class' => 'boxaligncenter boxwidthwide'));
 
         return $output;
+    }
+}
+
+
+/**
+ * An issued badges for badge.php page
+ */
+class issued_badge implements renderable {
+
+    /** @var issued badge */
+    public $issued;
+
+    /** @var badge recipient */
+    public $recipient = 0;
+
+    /** @var badge visibility to others */
+    public $visible = 0;
+
+    /** @var badge class */
+    public $badgeid = 0;
+
+    /** @var issued badge unique hash */
+    public $hash = "";
+
+    /**
+     * Initializes the badge to display
+     *
+     * @param string $hash Issued badge hash
+    */
+    public function __construct($hash) {
+        global $DB;
+        $this->issued = get_issued_badge_info($hash);
+        $this->hash = $hash;
+
+        $rec = $DB->get_record_select('badge_issued', $DB->sql_compare_text('uniquehash') . ' = ? ', array($hash), 'userid, visible, badgeid');
+        if ($rec) {
+            $this->recipient = $rec->userid;
+            $this->visible = $rec->visible;
+            $this->badgeid = $rec->badgeid;
+        }
     }
 }
 

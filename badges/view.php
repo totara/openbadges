@@ -36,7 +36,7 @@ $updatepref = optional_param('updatepref', false, PARAM_BOOL);
 $perpage    = optional_param('perpage', 20, PARAM_INT);
 $search     = optional_param('search', '', PARAM_CLEAN);
 
-require_login($SITE);
+require_login();
 
 if (!in_array($sortby, array('name', 'dateissued'))) {
     $sortby = 'name';

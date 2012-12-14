@@ -33,14 +33,12 @@ $badgeid = required_param('id', PARAM_INT);
 require_login();
 
 $badge = new badge($badgeid);
+$context = $badge->get_context();
+$navurl = new moodle_url('/badges/index.php', array('type' => $badge->context));
 
-if ($badge->context == 1) {
-    $context = context_system::instance();
-    $navurl = new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_SITE));
-} else {
+if ($badge->context == BADGE_TYPE_COURSE) {
     require_login($badge->courseid);
-    $context = context_course::instance($badge->courseid);
-    $navurl = new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_COURSE, 'id' => $badge->courseid));
+    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->context, 'id' => $badge->courseid));
 }
 
 $currenturl = qualified_me();
@@ -85,7 +83,11 @@ if ($errormsg !== '') {
 $output->print_badge_tabs($badgeid, $context, 'criteria');
 
 if ($badge->is_locked() || $badge->is_active()) {
-    echo $output->print_badge_criteria($badge);
+    echo $OUTPUT->notification(get_string('lockedbadge', 'badges'));
+    echo html_writer::tag('div',
+            $OUTPUT->heading(get_string('criteriasummary', 'badges'), 3) .
+            $output->print_badge_criteria($badge),
+            array('class' => 'generalbox'));
 } else {
     echo $output->print_criteria_actions($badge);
     $form->display();

@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Display details of an issued badge with criteria and evidence
+ * DESCRIPTION
  *
  * @package    core
  * @subpackage badges
@@ -24,29 +24,13 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
-require_once(dirname(dirname(__FILE__)) . '/config.php');
-require_once($CFG->libdir . '/badgeslib.php');
-
-$id = required_param('hash', PARAM_ALPHANUM);
-$bake = optional_param('bake', 0, PARAM_BOOL);
-
-$PAGE->set_context(context_system::instance());
-$output = $PAGE->get_renderer('core', 'badges');
-
-$badge = new issued_badge($id);
-
-if ($bake && ($badge->recipient == $USER->id)) {
-    ob_start();
-    bake($id, $badge->badgeid);
-    ob_flush();
-}
-
-$PAGE->set_url('/badges/badge.php', array('hash' => $id));
-$PAGE->set_pagelayout('base');
-$PAGE->set_title(get_string('issuedbadge', 'badges'));
-
-echo $OUTPUT->header();
-
-echo $output->render($badge);
-
-echo $OUTPUT->footer();
+$capabilities = array(
+        'block/badges:addinstance' => array(
+                'riskbitmask'  => RISK_PERSONAL,
+                'captype'      => 'read',
+                'contextlevel' => CONTEXT_SYSTEM,
+                'archetypes'   => array(
+                    'user' => CAP_ALLOW,
+                ),
+        ),
+);
