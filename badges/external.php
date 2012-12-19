@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Processing bulk badge action from index.php
+ * Display details of an issued badge with criteria and evidence
  *
  * @package    core
  * @subpackage badges
@@ -27,28 +27,19 @@
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
-require_login();
+$json = required_param('badge', PARAM_RAW);
 
-if (isguestuser() || !confirm_sesskey()) {
-    redirect($CFG->wwwroot);
-}
+$PAGE->set_context(context_system::instance());
+$output = $PAGE->get_renderer('core', 'badges');
 
-$returnto = optional_param('returnto', $CFG->wwwroot, PARAM_LOCALURL);
-$action   = optional_param('action', '', PARAM_TEXT);
-$bids     = optional_param_array('badges', array(), PARAM_INT);
+$badge = new external_badge(unserialize($json));
 
-if ($action == '') {
-    redirect($returnto);
-}
+$PAGE->set_url('/badges/external.php');
+$PAGE->set_pagelayout('base');
+$PAGE->set_title(get_string('issuedbadge', 'badges'));
 
-if (!empty($bids)) {
-    list($sql, $params) = $DB->get_in_or_equal($bids);
-    if ($action == 'hide') {
-        $DB->set_field_select('badge', 'visible', 0, "id $sql", $params);
-    } else if ($action == 'show') {
-        $DB->set_field_select('badge', 'visible', 1, "id $sql", $params);
-    } else if ($action == 'delete') {
-        $DB->set_field_select('badge', 'status', BADGE_STATUS_ARCHIVED, "id $sql", $params);
-    }
-}
-redirect($returnto);
+echo $OUTPUT->header();
+
+echo $output->render($badge);
+
+echo $OUTPUT->footer();

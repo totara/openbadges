@@ -24,3 +24,127 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
+require_once(dirname(dirname(__FILE__)) . '/config.php');
+require_once($CFG->libdir . '/badgeslib.php');
+require_once($CFG->dirroot . '/badges/backpack_form.php');
+require_once($CFG->dirroot . '/badges/utils/backpacklib.php');
+
+require_login();
+$context = context_user::instance($USER->id);
+require_capability('moodle/badges:manageownbadges', $context);
+
+$clear = optional_param('clear', false, PARAM_BOOL);
+
+if (!$CFG->badges_allowexternalbackpack) {
+    redirect($CFG->wwwroot);
+}
+
+$PAGE->set_url(new moodle_url('/badges/mybackpack.php'));
+$PAGE->set_context($context);
+
+$title = get_string('mybackpack', 'badges');
+$PAGE->set_title($title);
+$PAGE->set_heading($title);
+$PAGE->set_pagelayout('mydashboard');
+
+navigation_node::override_active_url(new moodle_url('/badges/mybadges.php'));
+$PAGE->navbar->add(get_string('mybackpack', 'badges'));
+
+if ($clear) {
+     $DB->delete_records('badge_backpack', array('userid' => $USER->id));
+     redirect(new moodle_url('/badges/mybadges.php'));
+}
+
+$backpack = $DB->get_record('badge_backpack', array('userid' => $USER->id));
+
+if ($backpack) {
+    $bp = new OpenBadgesBackpackHandler($backpack);
+    $request = $bp->get_groups();
+    $params = array(
+            'data' => $backpack,
+            'backpackuid' => $request->userId,
+            'groups' => $request->groups
+    );
+    $groupform = new edit_backpack_group_form(new moodle_url('/badges/mybackpack.php'), $params);
+
+    if ($groupform->is_cancelled()) {
+        redirect(new moodle_url('/badges/mybadges.php'));
+    } else if ($groupdata = $groupform->get_data()) {
+        $obj = new stdClass();
+        $obj->userid = $groupdata->userid;
+        $obj->email = $groupdata->email;
+        $obj->backpackurl = $groupdata->backpackurl;
+        $obj->backpackuid = $groupdata->backpackuid;
+        $obj->backpackgid = $groupdata->backpackgid;
+        $obj->autosync = 0;
+        $obj->password = '';
+        if ($rec = $DB->get_record('badge_backpack', array('userid' => $groupdata->userid))) {
+            $obj->id = $rec->id;
+            $DB->update_record('badge_backpack', $obj);
+        } else {
+            $DB->insert_record('badge_backpack', $obj);
+        }
+        redirect(new moodle_url('/badges/mybadges.php'));
+    }
+
+    echo $OUTPUT->header();
+    $groupform->display();
+    echo $OUTPUT->footer();
+    die();
+} else {
+    $form = new edit_backpack_form();
+
+    if ($form->is_cancelled()) {
+        redirect(new moodle_url('/badges/mybadges.php'));
+    } else if (($data = $form->get_data()) || !empty($SESSION->badgesparams)) {
+        if (empty($SESSION->badgesparams)) {
+            $bp = new OpenBadgesBackpackHandler($data);
+            $request = $bp->get_groups();
+
+            // If there is an error, start over.
+            if (is_array($request) && $request['status'] == 'missing') {
+                unset($SESSION->badgesparams);
+                redirect(new moodle_url('/badges/mybackpack.php'), $request['message'], 5);
+            }
+
+            $params = array(
+                    'data' => $data,
+                    'backpackuid' => $request->userId,
+                    'groups' => $request->groups
+            );
+            $SESSION->badgesparams = $params;
+        }
+        $groupform = new edit_backpack_group_form(new moodle_url('/badges/mybackpack.php', array('addgroups' => true)), $SESSION->badgesparams);
+
+        if ($groupform->is_cancelled()) {
+            unset($SESSION->badgesparams);
+            redirect(new moodle_url('/badges/mybadges.php'));
+        } else if ($groupdata = $groupform->get_data()) {
+            $obj = new stdClass();
+            $obj->userid = $groupdata->userid;
+            $obj->email = $groupdata->email;
+            $obj->backpackurl = $groupdata->backpackurl;
+            $obj->backpackuid = $groupdata->backpackuid;
+            $obj->backpackgid = $groupdata->backpackgid;
+            $obj->autosync = 0;
+            $obj->password = '';
+            if ($rec = $DB->get_record('badge_backpack', array('userid' => $groupdata->userid))) {
+                $obj->id = $rec->id;
+                $DB->update_record('badge_backpack', $obj);
+            } else {
+                $DB->insert_record('badge_backpack', $obj);
+            }
+            unset($SESSION->badgesparams);
+            redirect(new moodle_url('/badges/mybadges.php'));
+        }
+
+        echo $OUTPUT->header();
+        $groupform->display();
+        echo $OUTPUT->footer();
+        die();
+    }
+
+    echo $OUTPUT->header();
+    $form->display();
+    echo $OUTPUT->footer();
+}

@@ -37,7 +37,8 @@ $badge = new issued_badge($id);
 
 if ($bake && ($badge->recipient == $USER->id)) {
     ob_start();
-    bake($id, $badge->badgeid);
+    $file = bake($id, $badge->badgeid);
+    header('Location: ' . $file);
     ob_flush();
 }
 

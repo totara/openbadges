@@ -56,7 +56,6 @@ if ($page < 0) {
 
 require_login($SITE);
 
-
 $urlparams = array('sort' => $sortby, 'dir' => $sorthow, 'perpage' => $perpage, 'page' => $page);
 
 if ($course = $DB->get_record('course', array('id' => $courseid))) {

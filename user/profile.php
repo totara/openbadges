@@ -375,6 +375,10 @@ if (!isset($hiddenfields['suspended'])) {
     }
 }
 
+// Print user badges.
+require_once($CFG->libdir . '/badgeslib.php');
+profile_display_badges($user->id);
+
 echo "</table></div></div>";
 
 

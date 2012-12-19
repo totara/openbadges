@@ -29,7 +29,6 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/formslib.php');
 require_once($CFG->libdir . '/badgeslib.php');
 require_once($CFG->libdir . '/filelib.php');
-require_once('renderer.php');
 
 /**
  * Form to edit badge details.
@@ -41,7 +40,7 @@ class edit_details_form extends moodleform {
      * Defines the form
      */
     public function definition() {
-        global $CFG, $PAGE;
+        global $CFG;
 
         $mform = $this->_form;
         $badge = (isset($this->_customdata['badge'])) ? $this->_customdata['badge'] : false;
