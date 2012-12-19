@@ -113,8 +113,11 @@ class award_criteria_course extends award_criteria {
      * @return string
      */
     public function get_details() {
-        $str = "";
+        global $DB;
         $param = array_shift($this->params);
+
+        $course = $DB->get_record('course', array('id' => $param['course']));
+        $str = '"' . $course->fullname . '"';
         if (isset($param['bydate'])) {
             $str .= get_string('criteria_descr_bydate', 'badges', userdate($param['bydate'], get_string('strftimedate', 'core_langconfig')));
         }

@@ -3056,7 +3056,7 @@
         <FIELD NAME="backpackuid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="backpackurl" NEXT="backpackgid"/>
         <FIELD NAME="backpackgid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="backpackuid" NEXT="autosync"/>
         <FIELD NAME="autosync" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" PREVIOUS="backpackgid" NEXT="password"/>
-        <FIELD NAME="password" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false" PREVIOUS="autosync"/>
+        <FIELD NAME="password" TYPE="char" LENGTH="50" NOTNULL="false" SEQUENCE="false" PREVIOUS="autosync"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="fk_userid"/>

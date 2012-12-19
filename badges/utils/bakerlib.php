@@ -79,7 +79,12 @@ class PNG_MetaDataHandler
             debugging('Key is too big');
         }
 
-        $data = $key . "\0" . $value;
+        // Baking iTXt is not working at the moment. Need to have a look at this when Mozilla spec is out of beta.
+        if ($type == 'iTXt') {
+            $data = $key . "\0" . 0 . 0 . "json" . "\0" . "''" . "\0" . '{"method": "hosted", "assertionUrl": "' . $value . '"}';
+        } else {
+            $data = $key . "\0" . $value;
+        }
         $crc = pack("N", crc32($type . $data));
         $len = pack("N", strlen($data));
 

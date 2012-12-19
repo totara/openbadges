@@ -360,6 +360,7 @@ $string['coursebadges'] = 'Badges';
 $string['badgesettings'] = 'General settings';
 $string['managebadges'] = 'Manage badges';
 $string['mybadges'] = 'My badges';
+$string['mybackpack'] = 'My backpack settings';
 $string['sitebadges'] = 'Site badges';
 
 // Global settings.
@@ -377,15 +378,27 @@ $string['allowcoursebadges'] = 'Enable course badges';
 $string['allowcoursebadges_desc'] = 'Allow badges to be created and awarded in course context.';
 
 // MyBadges page strings.
-$string['localbadges'] = 'Local Badges';
-$string['localbadges_help'] = 'Badges earned within this web site.';
-$string['externalbadges'] = 'External Backpack';
+$string['backpackbadges'] = 'You have {$a->totalbadges} badge(s) displayed from your backpack at <a href="{$a->backpackurl}">{$a->backpackurl}</a>. <br/>';
+$string['backpackdetails'] = 'Backpack settings';
+$string['badgesearned'] = 'Number of badges earned: {$a}';
+$string['clearsettings'] = 'Clear settings';
+$string['editsettings'] = 'Edit settings';
+$string['evidence'] = 'Evidence';
+$string['expired'] = 'Expired';
+$string['externalbadges'] = 'External Badges';
 $string['externalbadges_help'] = 'Connection setting and badges displayed from an external backpack provider';
+$string['hidden'] = 'Hidden';
 $string['hiddenbadge'] = 'Unfortunately, badge owner has not made this information available.';
 $string['issuedbadge'] = 'Issued badge information';
+$string['localbadges'] = 'Local Badges';
+$string['localbadges_help'] = 'Badges earned within this web site.';
+$string['makepublic'] = 'Make public';
+$string['nobackpack'] = 'There is no backpack service connected to this account. <br/>';
+$string['nobackpackbadges'] = 'There are no badges displayed from your backpack at <a href="{$a->backpackurl}">{$a->backpackurl}</a>. <br/>';
+$string['searchname'] = 'Search by name';
+$string['selectgroup'] = 'Select badge group';
 $string['visible'] = 'Visible';
-$string['hidden'] = 'Hidden';
-$string['expired'] = 'Expired';
+$string['setup'] = 'Set up connection';
 $string['viewbadge'] = 'View issued badge';
 
 // Badge status.
@@ -415,7 +428,7 @@ $string['nothingtoadd'] = 'There are no available criteria to add.';
 // Badge criteria description.
 $string['criteria_descr_0'] = '<p>To earn this badge, learners have to complete <b>{$a}</b> of the following requirements:</p>';
 $string['criteria_descr_1'] = '<p><b>{$a}</b> of the following activities have to be completed:</p>';
-$string['criteria_descr_4'] = 'Learners have to complete this course ';
+$string['criteria_descr_4'] = 'Learners must complete the course ';
 $string['criteria_descr_2'] = '<p>This badge has to be awarded by the users with <b>{$a}</b> of the following roles:</p>';
 $string['criteria_descr_5'] = '<p><b>{$a}</b> of the following courses have to be completed:</p>';
 $string['criteria_descr_grade'] = ' with minimum grade of <i>{$a}</i> ';
@@ -469,6 +482,7 @@ $string['delcritconfirm'] = 'Are you sure that you want to delete this criterion
 $string['delparamconfirm'] = 'Are you sure that you want to delete this parameter?';
 $string['delconfirm'] = 'Are you sure that you want to delete badge \'{$a}\'?';
 $string['description'] = 'Description';
+$string['evidence'] = 'Evidence';
 $string['expirydate'] = 'Expiry date';
 $string['fixed'] = 'Fixed date';
 $string['issuername'] = 'Issuer name';
@@ -499,11 +513,11 @@ $string['visible'] = 'Visible';
 $string['year'] = 'Year(s)';
 
 // Default badge message.
-$string['messagebody'] = 'Based on the following achievement(s):
+$string['creatorsubject'] = '\'{$a}\' has been awarded!';
+$string['creatorbody'] = '{$a->user} has completed all badge requirements and has been awarded the badge.
 
-%criterialist%
-
-you have been awarded a badge %badgename%!
+View issued badge at {$a-link}';
+$string['messagebody'] = 'You have been awarded a badge %badgename%!
 
 More infromation about this badge can be found at %badgelink%.
 
@@ -522,7 +536,7 @@ $string['criteria_3_help'] = "Social help";
 $string['criteria_4_help'] = "Course help";
 $string['criteria_5_help'] = "Courseset Help";
 $string['criteria_6_help'] = "Profile help";
-$string['expirydate_help'] = 'Visible';
+$string['expirydate_help'] = 'TODO'; // @TODO.
 $string['badgeimage_help'] = 'This is an image that will be used when this badge is issued.
 
 To add a new image, browse and select an image (in JPG or PNG format) then click "Save changes". The image will be cropped to a square and resized to match badge image requirements. ';
@@ -551,7 +565,9 @@ $string['variablesubstitution_help'] = 'In a badge message, certain variables ca
 :   This will be replaced by the list of completed criteria for issued badge.';
 $string['visible_help'] = 'This setting indicates whether badge is visible to its potential earners.
 
-If this checkbox is checked and the badge is active, users will be able to see the badge in the list of site or course badges.';
+If this checkbox is checked and the badge is active, users will be able to see the badge in the list of site or course badges.
+
+Important! Hiding a badge from users does not prevent them from earning it if the badge is active.';
 
 // Error messages.
 $string['error:clone'] = 'Cannot clone the badge.';
@@ -564,6 +580,7 @@ $string['error:nosuchcourse'] = '!!!Course error. Please revise your criteria!!!
 $string['error:nosuchmod'] = '!!!Activity error. Please revise your criteria!!!';
 $string['error:nosuchrole'] = '!!!Role error. Please revise your criteria!!!';
 $string['error:nosuchbadge'] = 'Badge with id {$a} does not exist.';
+$string['error:nosuchuser'] = 'User with such email does not have an account with the current backpack provider';
 $string['error:invalidcriteriatype'] = 'Invalid criteria type.';
 $string['error:invalidbadgeurl'] = 'Invalid badge issuer URL format. If it is possible, try using {$a}';
 $string['error:invalidexpireperiod'] = 'Expiry period cannot be negative or equal 0.';

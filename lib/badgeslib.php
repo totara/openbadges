@@ -372,7 +372,11 @@ class badge {
                 $DB->update_record('badge_criteria_met', $obj, true);
             }
 
-            notify_badge_award($this, $result);
+            // Bake a badge image.
+            $pathhash = bake($issued->uniquehash, $this->id, $userid, true);
+
+            // Notify recipients.
+            notify_badge_award($this, $userid, $issued->uniquehash, $pathhash);
         }
     }
 
@@ -572,10 +576,12 @@ class badge {
  * Sends notifications to users about awarded badges.
  *
  * @param badge $badge Badge that was issued
- * @param int $issuedid ID of issued badge
+ * @param int $userid Recipient ID
+ * @param string $issued Unique hash of an issued badge
+ * @param string $filepathhash File path hash of an issued badge for attachments
  */
-function notify_badge_award(badge $badge, $issuedid) {
-    global $CFG;
+function notify_badge_award(badge $badge, $userid, $issued, $filepathhash) {
+    global $CFG, $DB;
 
     $admin = get_admin();
     $userfrom = new stdClass();
@@ -583,35 +589,64 @@ function notify_badge_award(badge $badge, $issuedid) {
     $userfrom->firstname = $CFG->badges_defaultissuername ? $CFG->badges_defaultissuername : $admin->firstname;
     $userfrom->lastname = $CFG->badges_defaultissuername ? '' : $admin->lastname;
 
-    $plaintext = format_text_email($badge->message, FORMAT_HTML);
+    $issuedlink = html_writer::link(new moodle_url('/badges/badge.php', array('hash' => $issued)), $badge->name);
+    $userto = $DB->get_record('user', array('id' => $userid), '*', MUST_EXIST);
 
-    $eventdata = new stdClass();
-    $eventdata->component         = 'moodle';
-    $eventdata->name              = 'instantmessage';
-    $eventdata->userfrom          = $userfrom;
-    $eventdata->userto            = $userto; // @TODO
-    $eventdata->subject           = $badge->messagesubject;
-    $eventdata->fullmessage       = $plaintext;
-    $eventdata->fullmessageformat = FORMAT_PLAIN;
-    $eventdata->fullmessagehtml   = $badge->message;
-    $eventdata->smallmessage      = '';
-    $eventdata->notification      = 1;
+    $params = new stdClass();
+    $params->badgename = $badge->name;
+    $params->username = fullname($userto);
+    $params->badgelink = $issuedlink;
+    $message = badge_message_from_template($badge->message, $params);
+    $plaintext = format_text_email($message, FORMAT_HTML);
 
-    message_send($eventdata);
+    if ($badge->attachments && $filepathhash) {
+        $fs = get_file_storage();
+        $file = $fs->get_file_by_hash($filepathhash);
+        $attachment = $file->copy_content_to_temp();
+        email_to_user($userto, $userfrom, $badge->messagesubject, $plaintext, $message, $attachment, $issued . ".png");
+        @unlink($attachment);
+    } else {
+        email_to_user($userto, $userfrom, $badge->messagesubject, $plaintext, $message);
+    }
 
     // Notify badge creator about the award.
     if ($badge->notification) {
+        $creator = $DB->get_record('user', array('id' => $badge->usermodified), '*', MUST_EXIST);
+        $a = new stdClass();
+        $a->user = fullname($userto);
+        $a->link = $issuedlink;
+        $creatormessage = get_string('creatorbody', 'badges', $a);
+        $creatorsubject = get_string('creatorsubject', 'badges', $badge->name);
+
+        $eventdata = new stdClass();
+        $eventdata->component         = 'moodle';
+        $eventdata->name              = 'instantmessage';
         $eventdata->userfrom          = $userfrom;
-        $eventdata->userto            = $creator; // @TODO
-        $eventdata->subject           = $badge->messagesubject;
-        $eventdata->fullmessage       = $plaintext;
+        $eventdata->userto            = $creator;
+        $eventdata->subject           = $creatorsubject;
+        $eventdata->fullmessage       = $creatormessage;
         $eventdata->fullmessageformat = FORMAT_PLAIN;
-        $eventdata->fullmessagehtml   = $badge->message;
+        $eventdata->fullmessagehtml   = $creatormessage;
         $eventdata->smallmessage      = '';
         $eventdata->notification      = 1;
 
         message_send($eventdata);
     }
+}
+
+/**
+ * Replaces variables in a message template and returns text ready to be emailed to a user.
+ *
+ * @param string $message Message body.
+ * @return string Message with replaced values
+ */
+function badge_message_from_template($message, $params) {
+    $msg = $message;
+    foreach ($params as $key => $value) {
+        $msg = str_replace("%$key%", $value, $msg);
+    }
+
+    return $msg;
 }
 
 /**
@@ -626,6 +661,7 @@ function notify_badge_award(badge $badge, $issuedid) {
  * @param int $perpage The number of records to return per page
  * @param string $search A simple string to search for
  * @param int $user User specific search
+ * @return array $badge Array of records matching criteria
  */
 function get_badges($type, $courseid = 0, $visible = true, $sort = '', $dir = '',
                             $page = 0, $perpage = 20, $search = '', $user = 0) {
@@ -680,17 +716,22 @@ function get_badges($type, $courseid = 0, $visible = true, $sort = '', $dir = ''
  * Get badges for a specific user.
  *
  * @param int $userid User ID
- * @param int $limitnum return the first $limitnum records (optional). If omitted all records are returned
+ * @param int $courseid Badges earned by a user in a specific course
+ * @param int $page The page or records to return
+ * @param int $perpage The number of records to return per page
+ * @param string $search A simple string to search for
+ * @param bool $onlypublic Return only public badges
  * @return array of badges ordered by decreasing date of issue
  */
-function get_user_badges($userid, $limitnum = 0) {
-    global $DB, $USER;
+function get_user_badges($userid, $courseid = 0, $page = 0, $perpage = 0, $search = '', $onlypublic = false) {
+    global $DB;
     $badges = array();
 
-    $badges = $DB->get_records_sql('
-            SELECT
+    $sql = 'SELECT
                 bi.dateissued,
+                bi.uniquehash,
                 bi.dateexpire,
+                bi.visible as public,
                 u.email,
                 b.*
             FROM
@@ -700,8 +741,18 @@ function get_user_badges($userid, $limitnum = 0) {
             WHERE b.id = bi.badgeid
                 AND u.id = bi.userid
                 AND bi.userid = ?
-            ORDER BY bi.dateissued DESC',
-            array($userid), 0, $limitnum);
+                AND (' . $DB->sql_like('b.name', '?', false) . ') ';
+
+    if ($onlypublic) {
+        $sql .= ' AND (bi.visible = 1) ';
+    }
+
+    if ($courseid != 0) {
+        $sql .= ' AND (b.courseid = ' . $courseid . ') ';
+    }
+    $sql .= ' ORDER BY bi.dateissued DESC';
+    $badges = $DB->get_records_sql($sql,
+            array($userid, "%$search%"), $page * $perpage, $perpage);
 
     return $badges;
 }
@@ -893,8 +944,6 @@ function badges_process_badge_image(badge $badge, $iconfile) {
  * @param string $size
  */
 function print_badge_image($badge, $context, $size = 'small') {
-    $image = '';
-
     if ($size == 'small') {
         $fsize = 'f2';
     } else {
@@ -903,9 +952,8 @@ function print_badge_image($badge, $context, $size = 'small') {
 
     $imageurl = moodle_url::make_pluginfile_url($context->id, 'badges', 'badgeimage', $badge->id, '/', $fsize, false);
     $attributes = array('src' => $imageurl, 'alt' => s($badge->name));
-    $image .= html_writer::empty_tag('img', $attributes);
 
-    return $image;
+    return html_writer::empty_tag('img', $attributes);
 }
 
 /**
@@ -913,14 +961,18 @@ function print_badge_image($badge, $context, $size = 'small') {
  *
  * @param string $hash Unique hash of an issued badge.
  * @param int $badgeid ID of the original badge.
+ * @param int $userid ID of badge recipient (optional).
+ * @param boolean $pathhash Return file pathhash instead of image url (optional).
+ * @return string|url Returns either new file path hash or new file URL
  */
-function bake($hash, $badgeid) {
+function bake($hash, $badgeid, $userid = 0, $pathhash = false) {
     global $CFG, $USER;
     require_once(dirname(dirname(__FILE__)) . '/badges/utils/bakerlib.php');
 
     $badge = new badge($badgeid);
     $badge_context = $badge->get_context();
-    $user_context = context_user::instance($USER->id);
+    $userid = ($userid) ? $userid : $USER->id;
+    $user_context = context_user::instance($userid);
 
     $fs = get_file_storage();
     if (!$fs->file_exists($user_context->id, 'badges', 'userbadge', $badge->id, '/', $hash . '.png')) {
@@ -942,10 +994,89 @@ function bake($hash, $badgeid) {
             );
 
             // Create a file with added contents.
-            $fs->create_file_from_string($fileinfo, $newcontents);
+            $newfile = $fs->create_file_from_string($fileinfo, $newcontents);
+            if ($pathhash) {
+                return $newfile->get_pathnamehash();
+            }
         }
     }
 
     $fileurl = moodle_url::make_pluginfile_url($user_context->id, 'badges', 'userbadge', $badge->id, '/', $hash, true);
-    header('Location: ' . $fileurl);
+    return $fileurl;
+}
+
+/**
+ * Bake issued badge.
+ *
+ * @param int $badgeid ID backpack user.
+ * @return null|object Returns null is there is no backpack or object with backpack settings.
+ */
+function get_backpack_settings($userid) {
+    global $DB; global $SESSION;
+    require_once(dirname(dirname(__FILE__)) . '/badges/utils/backpacklib.php');
+
+    $record = $DB->get_record('badge_backpack', array('userid' => $userid), '*', IGNORE_MISSING);
+    if ($record) {
+        $backpack = new OpenBadgesBackpackHandler($record);
+        $out = new stdClass();
+        $out->backpackurl = $backpack->get_url();
+        $badges = $backpack->get_badges();
+        $out->badges = isset($badges->badges) ? $badges->badges : array();
+        $out->totalbadges = count($out->badges);
+        return $out;
+    }
+
+    return null;
+}
+
+/**
+ * Download badges in zip archive.
+ *
+ * @param int $userid ID of badge owner.
+ * @param array $badges List of issued badges to download.
+ */
+function download_badges($userid, $badges) {
+    global $CFG, $DB;
+    $context = context_user::instance($userid);
+    $records = $DB->get_records_list('badge_issued', 'uniquehash', $badges);
+
+    // Get list of files to download.
+    $fs = get_file_storage();
+    $filelist = array();
+    foreach ($records as $badge) {
+        $filelist[$badge->uniquehash . '.png'] = $fs->get_file($context->id, 'badges', 'userbadge', $badge->badgeid, '/', $badge->uniquehash . '.png');
+    }
+
+    // Zip files and sent them to a user.
+    $tempzip = tempnam($CFG->tempdir.'/', 'mybadges');
+    $zipper = new zip_packer();
+    if ($zipper->archive_to_pathname($filelist, $tempzip)) {
+        send_temp_file($tempzip, 'badges.zip');
+    } else {
+        debugging("Problems with archiving the files.");
+    }
+}
+
+/**
+ * Print badges on user profile page.
+ *
+ * @param int $userid User ID.
+ * @param int $courseid Course if we need to filter badges (optional).
+ */
+function profile_display_badges($userid, $courseid = 0) {
+    global $CFG, $PAGE;
+    require_once($CFG->dirroot . '/badges/renderer.php');
+    $records = get_user_badges($userid, $courseid, null, null, null, true);
+    $renderer = new core_badges_renderer($PAGE, '');
+
+    if ($records) {
+        print_row(get_string('localbadges', 'badges') . ":", $renderer->print_badges_list($records, $userid, true));
+    }
+
+    if ($courseid == 0 && $CFG->badges_allowexternalbackpack) {
+        $backpack = get_backpack_settings($userid);
+        if (isset($backpack->totalbadges) && $backpack->totalbadges !== 0) {
+            print_row(get_string('externalbadges', 'badges') . ":", $renderer->print_badges_list($backpack->badges, $userid, true, true));
+        }
+    }
 }

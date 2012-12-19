@@ -27,21 +27,43 @@
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
+$page        = optional_param('page', 0, PARAM_INT);
+$perpage     = optional_param('perpage', 30, PARAM_INT);
+$search      = optional_param('search', '', PARAM_CLEAN);
+$clearsearch = optional_param('clearsearch', '', PARAM_TEXT);
+$action      = optional_param('action', '', PARAM_TEXT);
+$options     = optional_param_array('badges', array(), PARAM_TEXT);
+
 require_login();
 if (isguestuser()) {
     die();
 }
 
+if ($page < 0) {
+    $page = 0;
+}
+
+if ($clearsearch) {
+    $search = '';
+}
+
+if ($action && !empty($options)) {
+    list($sql, $params) = $DB->get_in_or_equal($options);
+    if ($action == 'hide') {
+        $DB->set_field_select('badge_issued', 'visible', 0, "uniquehash $sql", $params);
+    } else if ($action == 'show') {
+        $DB->set_field_select('badge_issued', 'visible', 1, "uniquehash $sql", $params);
+    } else if ($action == 'download') {
+        ob_start();
+        download_badges($USER->id, $options); // @TODO
+        ob_flush();
+    }
+}
+
 $context = context_user::instance($USER->id);
 require_capability('moodle/badges:manageownbadges', $context);
 
-$action = optional_param('action', null, PARAM_ALPHA);
-
 $url = new moodle_url('/badges/mybadges.php');
-
-if ($action) {
-    $url->param('action', $action);
-}
 
 $PAGE->set_url($url);
 $PAGE->set_context($context);
@@ -61,6 +83,21 @@ $output = $PAGE->get_renderer('core', 'badges');
 $badges = badges_get_user_badges($USER->id);
 
 echo $OUTPUT->header();
-// Show how many badges are already earned.
+$totalcount = count($badges);
+$records = get_user_badges($USER->id, null, $page, $perpage, $search);
+
+if ($totalcount) {
+    $userbadges             = new badge_user_collection($records, $USER->id);
+    $userbadges->sort       = 'dateissued';
+    $userbadges->dir        = 'DESC';
+    $userbadges->page       = $page;
+    $userbadges->perpage    = $perpage;
+    $userbadges->totalcount = $totalcount;
+    $userbadges->search     = $search;
+
+    echo $output->render($userbadges);
+} else {
+    echo $output->notification(get_string('nobadges', 'badges'));
+}
 
 echo $OUTPUT->footer();

@@ -1372,13 +1372,17 @@ a.criteria-action {
     float: right;
 }
 
+table.issuedbadgebox {
+    width: 750px;
+}
+
 table.badgeissuedimage {
-    width: 30%;
+    width: 150px;
     text-align: center;
 }
 
 table.badgeissuedinfo {
-    width: 70%;
+    width: 600px;
 }
 
 table.badgeissuedinfo .bvalue {
@@ -1387,6 +1391,39 @@ table.badgeissuedinfo .bvalue {
 }
 
 table.badgeissuedinfo .bfield {
+    width: 125px;
     text-align: left;
-    vertical-align: middle;
+    font-style: italic;
+}
+
+ul.badges {
+    margin: 0;
+    list-style: none;
+}
+
+.badges li {
+    display: inline-block;
+    padding-bottom: 2em;
+    text-align: center;
+    vertical-align: top;
+    width: 150px;
+}
+
+.badges li .badge-name {
+    display: block;
+    padding: 5px;
+}
+
+.badges li .badge-image {
+    width: 80px;
+    height: 80px;
+}
+
+.badges li .badge-select {
+    position: absolute;
+}
+
+.backpackform {
+    width: 100px !important;
+    float: left;
 }

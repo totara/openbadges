@@ -34,23 +34,13 @@ if (isguestuser() || !confirm_sesskey()) {
 }
 
 $returnto = optional_param('returnto', $CFG->wwwroot, PARAM_LOCALURL);
-$action = optional_param('action', '', PARAM_TEXT);
+$action   = optional_param('action', '', PARAM_TEXT);
+$bids     = optional_param_array('badges', array(), PARAM_INT);
 
 if ($action == '') {
     redirect($returnto);
 }
 
-$bids = array();
-
-// Get Badges IDs from the POST parameters.
-foreach ($_POST as $par => $value) {
-    if (preg_match('/^badgeid\_(\d+)$/', $par)) {
-        $bid = optional_param($par, null, PARAM_INT);
-        if ($bid) {
-            $bids[]=$bid;
-        }
-    }
-}
 if (!empty($bids)) {
     list($sql, $params) = $DB->get_in_or_equal($bids);
     if ($action == 'hide') {

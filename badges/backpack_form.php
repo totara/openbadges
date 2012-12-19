@@ -32,7 +32,7 @@ require_once($CFG->libdir . '/badgeslib.php');
 /**
  * Form to edit backpack initial details.
  *
- */
+*/
 class edit_backpack_form extends moodleform {
 
     /**
@@ -57,7 +57,7 @@ class edit_backpack_form extends moodleform {
         $mform->addElement('hidden', 'userid', $USER->id);
         $mform->setType('userid', PARAM_INT);
 
-        $mform->addElement('hidden', 'backpackurl', 'http://backpack.openbadges.org');
+        $mform->addElement('hidden', 'backpackurl', 'http://beta.openbadges.org');
         $mform->setType('backpackurl', PARAM_URL);
 
         $this->add_action_buttons(true, get_string('connect', 'badges'));

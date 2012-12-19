@@ -91,7 +91,7 @@ class block_badges extends block_base {
         $this->content = new stdClass();
         $this->content->text = '';
 
-        if ($badges = get_user_badges($USER->id, $this->config->numberofbadges)) {
+        if ($badges = get_user_badges($USER->id, null, 0, $this->config->numberofbadges)) {
             $output = $PAGE->get_renderer('core', 'badges');
             $this->content->text = $output->print_badges_list($badges, $this->config->badgesize);
         } else {
