@@ -78,6 +78,42 @@ class core_badges_renderer extends plugin_renderer_base {
         return html_writer::alist($items, array('class' => 'badges'));
     }
 
+    // Recipients selection form
+    public function recipients_selection_form(user_selector_base $existinguc, user_selector_base $potentialuc) {
+        $output = '';
+        $formattributes = array();
+        $formattributes['id'] = 'recipientform';
+        $formattributes['action'] = '';
+        $formattributes['method'] = 'post';
+        $output .= html_writer::start_tag('form', $formattributes);
+        $output .= html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
+
+        $existingcell = new html_table_cell();
+        $existingcell->text = $existinguc->display(true);
+        $existingcell->attributes['class'] = 'existing';
+        $actioncell = new html_table_cell();
+        $actioncell->text  = html_writer::start_tag('div', array());
+        $actioncell->text .= html_writer::empty_tag('input', array(
+                    'type' => 'submit',
+                    'name' => 'award',
+                    'value' => $this->output->larrow() . ' ' . get_string('award', 'badges'),
+                    'class' => 'actionbutton')
+                );
+        $actioncell->text .= html_writer::end_tag('div', array());
+        $actioncell->attributes['class'] = 'actions';
+        $potentialcell = new html_table_cell();
+        $potentialcell->text = $potentialuc->display(true);
+        $potentialcell->attributes['class'] = 'potential';
+
+        $table = new html_table();
+        $table->attributes['class'] = 'recipienttable boxaligncenter';
+        $table->data = array(new html_table_row(array($existingcell, $actioncell, $potentialcell)));
+        $output .= html_writer::table($table);
+
+        $output .= html_writer::end_tag('form');
+        return $output;
+    }
+
     // Prints a badge overview infomation.
     public function print_badge_overview($badge, $context) {
         $display = "";
@@ -150,7 +186,7 @@ class core_badges_renderer extends plugin_renderer_base {
             }
             $display .= html_writer::end_tag('fieldset');
         }
-// @TODO: styles.
+
         return $display;
     }
 
@@ -282,8 +318,8 @@ class core_badges_renderer extends plugin_renderer_base {
             $datatable->data[] = array(get_string('bcriteria', 'badges'), self::print_badge_criteria($badge));
             $datatable->data[] = array($this->output->heading(get_string('issuancedetails', 'badges'), 3), '');
             $datatable->data[] = array(get_string('dateawarded', 'badges'), $issued['issued_on']);
-            if (isset($issued['dateexpire'])) {
-                $datatable->data[] = array(get_string('expirydate', 'badges'), $issued['dateexpire']);
+            if (isset($issued['expires'])) {
+                $datatable->data[] = array(get_string('expirydate', 'badges'), $issued['expires']);
             }
             // $datatable->data[] = array(get_string('evidence', 'badges'), 'TODO'); // @TODO: print completed criteria.
             $table->attributes = array('class' => 'generalbox boxaligncenter issuedbadgebox');
@@ -469,7 +505,7 @@ class core_badges_renderer extends plugin_renderer_base {
             $criteria = self::print_badge_criteria($b);
 
             if (has_capability('moodle/badges:viewawarded', $this->page->context)) {
-                $awards = html_writer::link(new moodle_url('/badges/awards.php', array('id' => $b->id)), $b->awards);
+                $awards = html_writer::link(new moodle_url('/badges/recipients.php', array('id' => $b->id)), $b->awards);
             } else {
                 $awards = $b->awards;
             }
@@ -530,7 +566,7 @@ class core_badges_renderer extends plugin_renderer_base {
         if (has_capability('moodle/badges:viewawarded', $context)) {
             $awarded = $DB->count_records('badge_issued', array('badgeid' => $badgeid));
             $row[] = new tabobject('awards',
-                        new moodle_url('/badges/awards.php', array('id' => $badgeid)),
+                        new moodle_url('/badges/recipients.php', array('id' => $badgeid)),
                         get_string('bawards', 'badges', $awarded)
                     );
         }

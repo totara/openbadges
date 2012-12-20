@@ -82,18 +82,13 @@ class block_badges extends block_base {
             $this->config->numberofbadges = 10;
         }
 
-        // Size of badges.
-        if (empty($this->config->badgesize)) {
-            $this->config->badgesize = 'medium';
-        }
-
         // Create empty content.
         $this->content = new stdClass();
         $this->content->text = '';
 
         if ($badges = get_user_badges($USER->id, null, 0, $this->config->numberofbadges)) {
             $output = $PAGE->get_renderer('core', 'badges');
-            $this->content->text = $output->print_badges_list($badges, $this->config->badgesize);
+            $this->content->text = $output->print_badges_list($badges, $USER->id, true);
         } else {
             $this->content->text .= get_string('nothingtodisplay', 'block_badges');
         }

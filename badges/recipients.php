@@ -27,14 +27,14 @@
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
-$badgeid = required_param('id', PARAM_INT);
+$badgeid    = required_param('id', PARAM_INT);
 $sortby     = optional_param('sort', 'dateissued', PARAM_ALPHA);
 $sorthow    = optional_param('dir', 'DESC', PARAM_ALPHA);
 $page       = optional_param('page', 0, PARAM_INT);
 $updatepref = optional_param('updatepref', false, PARAM_BOOL);
 $perpage    = optional_param('perpage', 20, PARAM_INT);
 
-require_login($SITE);
+require_login();
 
 if (!in_array($sortby, array('firstname', 'lastname', 'dateissued'))) {
     $sortby = 'dateissued';
@@ -49,21 +49,21 @@ if ($page < 0) {
 }
 
 $badge = new badge($badgeid);
-if ($badge->context == 1) {
-    $context = context_system::instance();
-    navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => 1)));
-} else {
+$context = $badge->get_context();
+$navurl = new moodle_url('/badges/index.php', array('type' => $badge->context));
+
+if ($badge->context == BADGE_TYPE_COURSE) {
     require_login($badge->courseid);
-    $context = context_course::instance($badge->courseid);
-    navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => 2, 'id' => $badge->courseid)));
+    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->context, 'id' => $badge->courseid));
 }
 
 $PAGE->set_context($context);
-$PAGE->set_url('/badges/awards.php', array('id' => $badgeid, 'sort' => $sortby, 'dir' => $sorthow));
+$PAGE->set_url('/badges/recipients.php', array('id' => $badgeid, 'sort' => $sortby, 'dir' => $sorthow));
 $PAGE->set_pagelayout('standard');
 $PAGE->set_heading($badge->name);
 $PAGE->set_title($badge->name);
 $PAGE->navbar->add($badge->name);
+navigation_node::override_active_url($navurl);
 
 $output = $PAGE->get_renderer('core', 'badges');
 

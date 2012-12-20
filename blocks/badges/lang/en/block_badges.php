@@ -24,7 +24,7 @@
  */
 
 $string['pluginname'] = 'My badges';
-$string['numbadgestodisplay'] = 'Number of badges to display';
+$string['numbadgestodisplay'] = 'Number of recent badges to display';
 $string['nothingtodisplay'] = 'You have no badges to display';
 $string['badgesizetodisplay'] = 'Size of badges to display';
 
@@ -32,3 +32,6 @@ $string['badgesizetodisplay'] = 'Size of badges to display';
 $string['small'] = 'Small';
 $string['medium'] = 'Medium';
 $string['large'] = 'Large';
+
+$string['badges:addinstance'] = 'Add a new My badges block';
+$string['badges:myaddinstance'] = 'Add a new My badges block to the My Moodle page';
