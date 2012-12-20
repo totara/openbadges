@@ -3035,16 +3035,18 @@
     <TABLE NAME="badge_manual_award" COMMENT="Track manual award criteria for badges" PREVIOUS="badge_criteria_met" NEXT="badge_backpack">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" NEXT="paramid"/>
-        <FIELD NAME="paramid" TYPE="int" LENGTH="10" NOTNULL="false" PREVIOUS="id" NEXT="recipientid"/>
-        <FIELD NAME="recipientid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="paramid" NEXT="issuerid"/>
-        <FIELD NAME="issuerid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="recipientid" NEXT="datemet"/>
-        <FIELD NAME="datemet" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="issuerid"/>
+        <FIELD NAME="badgeid" TYPE="int" LENGTH="10" NOTNULL="true" PREVIOUS="id" NEXT="recipientid"/>
+        <FIELD NAME="recipientid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="badgeid" NEXT="issuerid"/>
+        <FIELD NAME="issuerid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="recipientid" NEXT="issuerrole"/>
+        <FIELD NAME="issuerrole" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="issuerid" NEXT="datemet"/>
+        <FIELD NAME="datemet" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="issuerrole"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="fk_paramid"/>
-        <KEY NAME="fk_paramid" TYPE="foreign" FIELDS="paramid" REFTABLE="badge_criteria_param" REFFIELDS="id" PREVIOUS="primary" NEXT="fk_recipientid"/>
-        <KEY NAME="fk_recipientid" TYPE="foreign" FIELDS="recipientid" REFTABLE="user" REFFIELDS="id" PREVIOUS="fk_paramid" NEXT="fk_issuerid"/>
-        <KEY NAME="fk_issuerid" TYPE="foreign" FIELDS="issuerid" REFTABLE="user" REFFIELDS="id" PREVIOUS="fk_recipientid"/>
+        <KEY NAME="fk_badgeid" TYPE="foreign" FIELDS="id" REFTABLE="badge" REFFIELDS="id" PREVIOUS="primary" NEXT="fk_recipientid"/>
+        <KEY NAME="fk_recipientid" TYPE="foreign" FIELDS="recipientid" REFTABLE="user" REFFIELDS="id" PREVIOUS="fk_badgeid" NEXT="fk_issuerid"/>
+        <KEY NAME="fk_issuerid" TYPE="foreign" FIELDS="issuerid" REFTABLE="user" REFFIELDS="id" PREVIOUS="fk_recipientid" NEXT="fk_issuerrole"/>
+        <KEY NAME="fk_issuerrole" TYPE="foreign" FIELDS="issuerrole" REFTABLE="role" REFFIELDS="id" PREVIOUS="fk_issuerid"/>
       </KEYS>
     </TABLE>
     <TABLE NAME="badge_backpack" COMMENT="Defines settings for connecting external backpack" PREVIOUS="badge_manual_award">

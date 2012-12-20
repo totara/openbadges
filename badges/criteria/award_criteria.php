@@ -175,7 +175,9 @@ abstract class award_criteria {
         $obj['critid'] = $this->id;
         $obj['userid'] = $userid;
         $obj['datemet'] = time();
-        $DB->insert_record('badge_criteria_met', $obj);
+        if (!$DB->record_exists('badge_criteria_met', array('critid' => $this->id, 'userid' => $userid))) {
+            $DB->insert_record('badge_criteria_met', $obj);
+        }
     }
 
     /**
@@ -215,8 +217,7 @@ abstract class award_criteria {
     }
 
     /**
-     * Save this criterion
-     *
+     * Saves intial criteria records with required parameters set up.
      */
     public function save(array $params) {
         global $DB;
@@ -240,5 +241,28 @@ abstract class award_criteria {
             }
         }
         $t->allow_commit();
+    }
+
+    /**
+     * Saves intial criteria records with required parameters set up.
+     */
+    public function make_clone($newbadgeid) {
+        global $DB;
+
+        $fordb = new stdClass();
+        $fordb->criteriatype = $this->criteriatype;
+        $fordb->method = $this->method;
+        $fordb->badgeid = $newbadgeid;
+        if (($newcrit = $DB->insert_record('badge_criteria', $fordb, true)) && isset($this->params)) {
+            foreach ($this->params as $param) {
+                foreach ($param as $key => $value) {
+                    $paramdb = new stdClass();
+                    $paramdb->critid = $newcrit;
+                    $paramdb->name = $key . '_' . $value;
+                    $paramdb->value = $value;
+                    $DB->insert_record('badge_criteria_param', $paramdb);
+                }
+            }
+        }
     }
 }

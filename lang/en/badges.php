@@ -482,7 +482,9 @@ $string['delcritconfirm'] = 'Are you sure that you want to delete this criterion
 $string['delparamconfirm'] = 'Are you sure that you want to delete this parameter?';
 $string['delconfirm'] = 'Are you sure that you want to delete badge \'{$a}\'?';
 $string['description'] = 'Description';
+$string['donotaward'] = 'Currently, this badge is not active, so it cannot be awarded to users. If you would like to award this badge, please set its status to active.';
 $string['evidence'] = 'Evidence';
+$string['existingrecipients'] = 'Existing badge recipients';
 $string['expirydate'] = 'Expiry date';
 $string['fixed'] = 'Fixed date';
 $string['issuername'] = 'Issuer name';
@@ -498,9 +500,13 @@ $string['nobadges'] = 'There are no badges available.';
 $string['nocriteria'] = 'Criteria for this badge have not been set up yet.';
 $string['numawards'] = 'This badge has been earned by {$a} user(s).';
 $string['noexpiry'] = 'This badge does not have an expiry date.';
+$string['notacceptedrole'] = 'Your current role assignment is not among the roles that can manually issue this badge. <br/>
+If you would like to see users who have already earned this badge, you can visit {$a} page. ';
 $string['overallcriteriaaggregation'] = 'Overall badge criteria aggregation';
 $string['perpage'] = 'Records per page';
+$string['potentialrecipients'] = 'Potential badge recipients';
 $string['proceed'] = 'Proceed';
+$string['recipients'] = 'Badge recipients';
 $string['relative'] = 'Relative date';
 $string['reviewbadge'] = 'Review badge';
 $string['reviewconfirm'] = '<p>When you activate a badge, it means that now it can be earned by users.</p>
@@ -517,11 +523,11 @@ $string['creatorsubject'] = '\'{$a}\' has been awarded!';
 $string['creatorbody'] = '{$a->user} has completed all badge requirements and has been awarded the badge.
 
 View issued badge at {$a-link}';
-$string['messagebody'] = 'You have been awarded a badge %badgename%!
+$string['messagebody'] = '<p>You have been awarded a badge "%badgename%"!</p>
 
-More infromation about this badge can be found at %badgelink%.
+<p>More infromation about this badge can be found at %badgelink%.</p>
 
-If there is no badge attached to this email, you can manage and download it from {$a} page.';
+<p>If there is no badge attached to this email, you can manage and download it from {$a} page.</p>';
 
 $string['messagesubject'] = 'Congratulations! You just earned a badge!';
 
@@ -570,6 +576,7 @@ If this checkbox is checked and the badge is active, users will be able to see t
 Important! Hiding a badge from users does not prevent them from earning it if the badge is active.';
 
 // Error messages.
+$string['error:cannotawardbadge'] = 'Cannot award badge to a user.';
 $string['error:clone'] = 'Cannot clone the badge.';
 $string['error:save'] = 'Cannot save the badge.';
 $string['error:missingcourse'] = 'It looks like this course does not exist any more. If you want users to be able to earn this badge, please revise this parameter';
@@ -585,3 +592,4 @@ $string['error:invalidcriteriatype'] = 'Invalid criteria type.';
 $string['error:invalidbadgeurl'] = 'Invalid badge issuer URL format. If it is possible, try using {$a}';
 $string['error:invalidexpireperiod'] = 'Expiry period cannot be negative or equal 0.';
 $string['error:invalidexpiredate'] = 'Expiry date has to be in the future.';
+$string['error:nopermissiontoview'] = 'You have no permissions to view badge recipients';

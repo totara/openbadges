@@ -32,12 +32,9 @@ $sortby     = optional_param('sort', 'dateissued', PARAM_ALPHA);
 $sorthow    = optional_param('dir', 'DESC', PARAM_ALPHA);
 $page       = optional_param('page', 0, PARAM_INT);
 $updatepref = optional_param('updatepref', false, PARAM_BOOL);
+$perpage    = optional_param('perpage', 20, PARAM_INT);
 
 require_login();
-
-if (empty($CFG->enablebadges)) {
-    print_error('badgesdisabled', 'badges');
-}
 
 if (!in_array($sortby, array('firstname', 'lastname', 'dateissued'))) {
     $sortby = 'dateissued';
@@ -53,11 +50,11 @@ if ($page < 0) {
 
 $badge = new badge($badgeid);
 $context = $badge->get_context();
-$navurl = new moodle_url('/badges/index.php', array('type' => $badge->type));
+$navurl = new moodle_url('/badges/index.php', array('type' => $badge->context));
 
-if ($badge->type == BADGE_TYPE_COURSE) {
+if ($badge->context == BADGE_TYPE_COURSE) {
     require_login($badge->courseid);
-    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->type, 'id' => $badge->courseid));
+    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->context, 'id' => $badge->courseid));
 }
 
 $PAGE->set_context($context);
@@ -70,17 +67,18 @@ navigation_node::override_active_url($navurl);
 
 $output = $PAGE->get_renderer('core', 'badges');
 
-echo $output->header();
-echo $OUTPUT->heading(print_badge_image($badge, $context, 'small') . ' ' . $badge->name);
-
-echo $output->print_badge_status_box($badge);
-$output->print_badge_tabs($badgeid, $context, 'awards');
-
-// Add button for badge manual award.
-if ($badge->has_manual_award_criteria() && has_capability('moodle/badges:awardbadge', $context) && $badge->is_active()) {
-    $url = new moodle_url('/badges/award.php', array('id' => $badge->id));
-    echo $OUTPUT->box($OUTPUT->single_button($url, get_string('award', 'badges')), 'clearfix mdl-align');
+if ($updatepref) {
+    require_sesskey();
+    if ($perpage > 0) {
+        set_user_preference('recipients_perpage', $perpage);
+    }
+    redirect($PAGE->url);
 }
+
+echo $output->header();
+echo $output->heading($badge->name . ': ' . get_string('awards', 'badges'));
+
+$output->print_badge_tabs($badgeid, $context, 'awards');
 
 $sql = "SELECT b.userid, b.dateissued, b.uniquehash, u.firstname, u.lastname
     FROM {badge_issued} b INNER JOIN {user} u
@@ -88,15 +86,16 @@ $sql = "SELECT b.userid, b.dateissued, b.uniquehash, u.firstname, u.lastname
     WHERE b.badgeid = :badgeid
     ORDER BY $sortby $sorthow";
 
+$perpage = get_user_preferences('recipients_perpage', 20);
 $totalcount = $DB->count_records('badge_issued', array('badgeid' => $badge->id));
 
 if ($badge->has_awards()) {
-    $users = $DB->get_records_sql($sql, array('badgeid' => $badge->id), $page * BADGE_PERPAGE, BADGE_PERPAGE);
+    $users = $DB->get_records_sql($sql, array('badgeid' => $badge->id), $page * $perpage, $perpage);
     $recipients             = new badge_recipients($users);
     $recipients->sort       = $sortby;
     $recipients->dir        = $sorthow;
     $recipients->page       = $page;
-    $recipients->perpage    = BADGE_PERPAGE;
+    $recipients->perpage    = $perpage;
     $recipients->totalcount = $totalcount;
 
     echo $output->render($recipients);

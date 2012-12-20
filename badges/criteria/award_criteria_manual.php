@@ -193,8 +193,28 @@ class award_criteria_manual extends award_criteria {
      * @return bool Whether criteria is complete
      */
     public function review($userid) {
-        return false;
+        global $DB;
 
+        $overall = null;
+        foreach ($this->params as $param) {
+            $crit = $DB->get_record('badge_manual_award', array('issuerrole' => $param['role'], 'recipientid' => $userid));
+            if ($this->method == BADGE_CRITERIA_AGGREGATION_ALL) {
+                if (!$crit) {
+                    return false;
+                } else {
+                    $overall = true;
+                    continue;
+                }
+            } else if ($this->method == BADGE_CRITERIA_AGGREGATION_ANY) {
+                if (!$crit) {
+                    $overall = false;
+                    continue;
+                } else {
+                    return true;
+                }
+            }
+        }
+        return $overall;
     }
 
     /**

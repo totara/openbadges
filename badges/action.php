@@ -158,4 +158,3 @@ if ($deactivate) {
     $badge->set_status($badge->status - 1);
     redirect($returnurl);
 }
-

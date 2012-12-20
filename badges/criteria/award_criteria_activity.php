@@ -234,8 +234,8 @@ class award_criteria_activity extends award_criteria {
         $course = $DB->get_record('course', array('id' => $this->courseid));
         $info = new completion_info($course);
 
+        $overall = null;
         foreach ($this->params as $param) {
-            $overall = null;
             $cm = new stdClass();
             $cm->id = $param['module'];
 

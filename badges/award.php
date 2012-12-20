@@ -26,29 +26,25 @@
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
-require_once($CFG->dirroot . '/badges/lib/awardlib.php');
+require_once($CFG->dirroot . '/badges/utils/awardlib.php');
 
 $badgeid = required_param('id', PARAM_INT);
-$role = optional_param('role', 0, PARAM_INT);
 
 require_login();
 
-if (empty($CFG->enablebadges)) {
-    print_error('badgesdisabled', 'badges');
-}
-
 $badge = new badge($badgeid);
 $context = $badge->get_context();
-$isadmin = is_siteadmin($USER);
 
-$navurl = new moodle_url('/badges/index.php', array('type' => $badge->type));
+$navurl = new moodle_url('/badges/index.php', array('type' => $badge->context));
 
-if ($badge->type == BADGE_TYPE_COURSE) {
+if ($badge->context == BADGE_TYPE_COURSE) {
     require_login($badge->courseid);
-    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->type, 'id' => $badge->courseid));
+    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->context, 'id' => $badge->courseid));
 }
 
-require_capability('moodle/badges:awardbadge', $context);
+if (!has_capability('moodle/badges:viewawarded', $context)) {
+    echo $OUTPUT->error_text(get_string('error:nopermissiontoview', 'badges'));
+}
 
 $url = new moodle_url('/badges/award.php', array('id' => $badgeid, 'role' => $role));
 $PAGE->set_url($url);
@@ -113,8 +109,14 @@ $existingselector = new badge_existing_users_selector('existingrecipients', $opt
 $recipientselector = new badge_potential_users_selector('potentialrecipients', $options);
 $recipientselector->set_existing_recipients($existingselector->find_users(''));
 
-if (optional_param('award', false, PARAM_BOOL) && data_submitted() && has_capability('moodle/badges:awardbadge', $context)) {
+if (data_submitted() && has_capability('moodle/badges:awardbadge', $context)) {
     require_sesskey();
+    $award = (bool)optional_param('award', false, PARAM_RAW);
+
+    if (!$award) {
+        print_error('invalidaction');
+    }
+
     $users = $recipientselector->get_selected_users();
     foreach ($users as $user) {
         if (process_manual_award($user->id, $USER->id, $issuerrole->roleid, $badgeid)) {
@@ -135,10 +137,5 @@ if (optional_param('award', false, PARAM_BOOL) && data_submitted() && has_capabi
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading($strrecipients);
-
-if ($isadmin) {
-    echo $OUTPUT->box($roleselect);
-}
-
 echo $output->recipients_selection_form($existingselector, $recipientselector);
 echo $OUTPUT->footer();

@@ -246,6 +246,9 @@ class badge {
             }
 
             // Copy badge criteria.
+            foreach ($this->criteria as $crit) {
+                $crit->make_clone($new);
+            }
 
             return $new;
         } else {
@@ -529,10 +532,10 @@ class badge {
     public function calculate_expiry($timestamp) {
         $expiry = null;
 
-        if (isset($this->expirydate)) {
-            $expiry = $this->expirydate;
-        } else if (isset($this->expiryperiod)) {
-            $expiry = $timestamp + $this->expiryperiod;
+        if (isset($this->expiredate)) {
+            $expiry = $this->expiredate;
+        } else if (isset($this->expireperiod)) {
+            $expiry = $timestamp + $this->expireperiod;
         }
 
         return $expiry;
@@ -588,6 +591,7 @@ function notify_badge_award(badge $badge, $userid, $issued, $filepathhash) {
     $userfrom->email = $CFG->badges_defaultissuercontact ? $CFG->badges_defaultissuercontact : $admin->email;
     $userfrom->firstname = $CFG->badges_defaultissuername ? $CFG->badges_defaultissuername : $admin->firstname;
     $userfrom->lastname = $CFG->badges_defaultissuername ? '' : $admin->lastname;
+    $userfrom->maildisplay = true;
 
     $issuedlink = html_writer::link(new moodle_url('/badges/badge.php', array('hash' => $issued)), $badge->name);
     $userto = $DB->get_record('user', array('id' => $userid), '*', MUST_EXIST);
@@ -599,7 +603,7 @@ function notify_badge_award(badge $badge, $userid, $issued, $filepathhash) {
     $message = badge_message_from_template($badge->message, $params);
     $plaintext = format_text_email($message, FORMAT_HTML);
 
-    if ($badge->attachments && $filepathhash) {
+    if ($badge->attachment && $filepathhash) {
         $fs = get_file_storage();
         $file = $fs->get_file_by_hash($filepathhash);
         $attachment = $file->copy_content_to_temp();
@@ -908,6 +912,33 @@ function badges_award_handle_TYPE_criteria_review($eventdata) {
     //         $badge->issue($userid);
     //     }
     // }
+
+    return true;
+}
+
+/**
+ * Triggered when badge is manually awarded.
+ *
+ * @param   object      $data
+ * @return  boolean
+ */
+function badges_award_handle_manual_criteria_review($data) {
+    $criteria = $data->crit;
+    $userid = $data->userid;
+    $badge = new badge($criteria->badgeid);
+
+    if (!$badge->is_active()) {
+        return true;
+    }
+
+    if ($criteria->review($userid)) {
+        $criteria->mark_complete($userid);
+
+        if ($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->review($userid)) {
+            $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->mark_complete($userid);
+            $badge->issue($userid);
+        }
+    }
 
     return true;
 }
