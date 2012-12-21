@@ -225,13 +225,7 @@ class award_criteria_manual extends award_criteria {
         global $DB;
 
         // Remove any records of manual award.
-        $sql = "SELECT bm.id
-                FROM {badge_criteria_param} bp
-                    INNER JOIN {badge_manual_award} bm
-                        ON bm.paramid = bp.id
-                WHERE bp.critid = :critid ";
-        $list = $DB->get_fieldset_sql($sql, array('critid' => $this->id));
-        $DB->delete_records_list('badge_manual_award', 'id', $list);
+        $DB->delete_records('badge_manual_award', array('badgeid' => $this->badgeid));
 
         parent::delete();
     }

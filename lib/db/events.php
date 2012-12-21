@@ -50,7 +50,12 @@ $handlers = array(
         'schedule'         => 'cron',
         'internal'         => 0,
     ),
-
+    'course_completed' => array (
+        'handlerfile'      => '/lib/badgelib.php',
+        'handlerfunction'  => 'badges_award_handle_course_criteria_review',
+        'schedule'         => 'cron',
+        'internal'         => 0,
+    ),
 
 /* no more here please, core should not consume any events!!!!!!! */
 );
