@@ -917,6 +917,16 @@ function badges_award_handle_TYPE_criteria_review($eventdata) {
 }
 
 /**
+ * Triggered when course is completed.
+ *
+ * @param   object $eventdata
+ * @return  boolean
+ */
+function badges_award_handle_course_criteria_review($eventdata) {
+
+}
+
+/**
  * Triggered when badge is manually awarded.
  *
  * @param   object      $data
