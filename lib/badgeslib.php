@@ -917,13 +917,31 @@ function badges_award_handle_TYPE_criteria_review($eventdata) {
 }
 
 /**
- * Triggered when course is completed.
+ * Triggered when 'course_completed' event happens.
  *
  * @param   object $eventdata
  * @return  boolean
  */
 function badges_award_handle_course_criteria_review($eventdata) {
+    global $DB;
+    $userid = $eventdata->userid;
+    if ($DB->record_exists('badge_criteria', $conditions))
 
+    $badge = new badge($criteria->badgeid);
+    if (!$badge->is_active()) {
+        return true;
+    }
+
+    if ($criteria->review($userid)) {
+        $criteria->mark_complete($userid);
+
+        if ($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->review($userid)) {
+            $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->mark_complete($userid);
+            $badge->issue($userid);
+        }
+    }
+
+    return true;
 }
 
 /**
