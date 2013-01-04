@@ -55,7 +55,6 @@ class edit_details_form extends moodleform {
         $mform->addElement('textarea', 'description', get_string('description', 'badges'), 'wrap="virtual" rows="10" cols="70"');
 
         $mform->addElement('advcheckbox', 'visible', get_string('visible', 'badges'), '', null, array(0, 1));
-        $mform->setDefault('visible', false);
         $mform->addHelpButton('visible', 'visible', 'badges');
 
         $imageoptions = array('maxbytes' => 262144, 'accepted_types' => array('web_image'));

@@ -180,7 +180,7 @@ class badge {
                     BADGE_CRITERIA_TYPE_OVERALL,
                     BADGE_CRITERIA_TYPE_MANUAL,
                     BADGE_CRITERIA_TYPE_COURSESET,
-                    //BADGE_CRITERIA_TYPE_PROFILE,
+                    BADGE_CRITERIA_TYPE_PROFILE,
                     //BADGE_CRITERIA_TYPE_SOCIAL
             );
         }
@@ -333,6 +333,15 @@ class badge {
                     WHERE b.badgeid = ?', array('badgeid' => $this->id));
 
         return $awards;
+    }
+
+    /**
+     * Indicates whether badge has already been issued to a user.
+     *
+     */
+    public function issued($userid) {
+        global $DB;
+        return $DB->record_exists('badge_issued', array('badgeid' => $this->id, 'userid' => $userid));
     }
 
     /**
@@ -925,19 +934,94 @@ function badges_award_handle_TYPE_criteria_review($eventdata) {
 function badges_award_handle_course_criteria_review($eventdata) {
     global $DB;
     $userid = $eventdata->userid;
-    if ($DB->record_exists('badge_criteria', $conditions))
+    $courseid = $eventdata->course;
 
-    $badge = new badge($criteria->badgeid);
-    if (!$badge->is_active()) {
-        return true;
+    // Need to take into account that course can be a part of course_completion and courseset_completion criteria.
+    if ($rs = $DB->get_records('badge_criteria_param', array('name' => 'course_' . $courseid, 'value' => $courseid))) {
+        foreach ($rs as $r) {
+            $crit = $DB->get_record('badge_criteria', array('id' => $r->critid), 'badgeid, criteriatype', MUST_EXIST);
+            $badge = new badge($crit->badgeid);
+            if (!$badge->is_active()) {
+                return true;
+            }
+
+            if ($badge->criteria[$crit->criteriatype]->review($userid)) {
+                $badge->criteria[$crit->criteriatype]->mark_complete($userid);
+
+                if ($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->review($userid)) {
+                    $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->mark_complete($userid);
+                    $badge->issue($userid);
+                }
+            }
+        }
     }
 
-    if ($criteria->review($userid)) {
-        $criteria->mark_complete($userid);
+    return true;
+}
 
-        if ($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->review($userid)) {
-            $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->mark_complete($userid);
-            $badge->issue($userid);
+/**
+ * Triggered when 'activity_completed' event happens.
+ *
+ * @param   object $eventdata
+ * @return  boolean
+ */
+function badges_award_handle_activity_criteria_review($eventdata) {
+    global $DB;
+    $userid = $eventdata->userid;
+    $mod = $eventdata->coursemoduleid;
+
+    if ($eventdata->completionstate == COMPLETION_COMPLETE
+        || $eventdata->completionstate == COMPLETION_COMPLETE_PASS
+        || $eventdata->completionstate == COMPLETION_COMPLETE_FAIL) {
+        // Need to take into account that there can be more than one badge with the same activity in its criteria.
+        if ($rs = $DB->get_records('badge_criteria_param', array('name' => 'module_' . $mod, 'value' => $mod))) {
+            foreach ($rs as $r) {
+                $bid = $DB->get_field('badge_criteria', 'badgeid', array('id' => $r->critid), MUST_EXIST);
+                $badge = new badge($bid);
+                if (!$badge->is_active()) {
+                    return true;
+                }
+
+                if ($badge->criteria[BADGE_CRITERIA_TYPE_ACTIVITY]->review($userid)) {
+                    $badge->criteria[BADGE_CRITERIA_TYPE_ACTIVITY]->mark_complete($userid);
+
+                    if ($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->review($userid)) {
+                        $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->mark_complete($userid);
+                        $badge->issue($userid);
+                    }
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Triggered when 'user_updated' event happens.
+ *
+ * @param   object $eventdata Holds all information about a user.
+ * @return  boolean
+ */
+function badges_award_handle_profile_criteria_review($eventdata) {
+    global $DB;
+    $userid = $eventdata->id;
+
+    if ($rs = $DB->get_records('badge_criteria', array('criteriatype' => BADGE_CRITERIA_TYPE_PROFILE))) {
+        foreach ($rs as $r) {
+            $badge = new badge($r->badgeid);
+            if (!$badge->is_active() || $badge->issued($userid)) {
+                return true;
+            }
+
+            if ($badge->criteria[BADGE_CRITERIA_TYPE_PROFILE]->review($userid)) {
+                $badge->criteria[BADGE_CRITERIA_TYPE_PROFILE]->mark_complete($userid);
+
+                if ($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->review($userid)) {
+                    $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->mark_complete($userid);
+                    $badge->issue($userid);
+                }
+            }
         }
     }
 
@@ -1039,7 +1123,7 @@ function bake($hash, $badgeid, $userid = 0, $pathhash = false) {
         $contents = $file->get_content();
 
         $filehandler = new PNG_MetaDataHandler($contents);
-        $assertion = new moodle_url('/badges/badge.php', array('b' => $hash));
+        $assertion = new moodle_url('/badges/assertion.php', array('b' => $hash));
         if ($filehandler->check_chunks("tEXt", "openbadges")) {
             // Add assertion URL tExt chunk.
             $newcontents = $filehandler->add_chunks("tEXt", "openbadges", $assertion->out(false));

@@ -37,7 +37,6 @@ class award_criteria_activity extends award_criteria {
     /* @var int Criteria [BADGE_CRITERIA_TYPE_ACTIVITY] */
     public $criteriatype = BADGE_CRITERIA_TYPE_ACTIVITY;
 
-    public $params = array();
     private $courseid;
 
     public $required_param = 'module';
@@ -45,9 +44,6 @@ class award_criteria_activity extends award_criteria {
 
     public function __construct($record) {
         parent::__construct($record);
-        if (isset($record['id'])) {
-            $this->params = self::get_params($record['id']);
-        }
         $this->courseid = self::get_course();
     }
 
@@ -147,15 +143,6 @@ class award_criteria_activity extends award_criteria {
                 $mform->setDefault($prefix . '-grade_' . $param['module'], $param['grade']);
             }
         }
-    }
-
-    /**
-     * Return criteria name
-     *
-     * @return string
-     */
-    public function get_title() {
-        return get_string('criteria_' . $this->criteriatype, 'badges');
     }
 
     /**

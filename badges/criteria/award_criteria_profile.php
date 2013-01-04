@@ -25,3 +25,160 @@
  */
 
 defined('MOODLE_INTERNAL') || die();
+require_once($CFG->dirroot . "/user/lib.php");
+
+/**
+ * Profile completion badge award criteria
+ *
+ */
+class award_criteria_profile extends award_criteria {
+
+    /* @var int Criteria [BADGE_CRITERIA_TYPE_PROFILE] */
+    public $criteriatype = BADGE_CRITERIA_TYPE_PROFILE;
+
+    public $required_param = 'field';
+    public $optional_params = array();
+
+    /**
+     * Add appropriate form elements to the criteria form
+     *
+     * @param moodleform $mform  Moodle forms object
+     * @param stdClass $data details of various modules
+     */
+    public function config_form_criteria(&$mform, $data = null) {
+        global $DB, $OUTPUT;
+        $prefix = 'criteria-' . $this->id;
+
+        $aggregation_methods = $data->get_aggregation_methods();
+
+        $editurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'edit' => true, 'type' => $this->criteriatype, 'crit' => $this->id));
+        $deleteurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'delete' => true, 'type' => $this->criteriatype));
+        $editaction = $OUTPUT->action_icon($editurl, new pix_icon('t/edit', get_string('edit')), null, array('class' => 'criteria-action'));
+        $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
+
+        // Criteria aggregation.
+        $mform->addElement('header', $prefix, '');
+        $mform->addElement('html', html_writer::tag('div', $deleteaction . $editaction, array('class' => 'criteria-header')));
+        $mform->addElement('html', $OUTPUT->heading_with_help($this->get_title(), 'criteria_' . BADGE_CRITERIA_TYPE_PROFILE, 'badges'));
+        if (!empty($this->params) && count($this->params) > 1) {
+            $mform->addElement('select', $prefix . '-aggregation', get_string('aggregationmethod', 'badges'), $aggregation_methods);
+            $mform->setDefault($prefix . '-aggregation', $data->get_aggregation_method(BADGE_CRITERIA_TYPE_PROFILE));
+        } else {
+            $mform->addElement('hidden', $prefix . '-aggregation', $data->get_aggregation_method(BADGE_CRITERIA_TYPE_PROFILE));
+            $mform->setType($prefix . '-aggregation', PARAM_INT);
+        }
+
+        // Add existing fields to the form.
+        if (!empty($this->params)) {
+            foreach ($this->params as $param) {
+                $this->config_form_criteria_param($mform, $param);
+            }
+        }
+    }
+
+    /**
+     * Add appropriate new criteria options to the form
+     *
+     */
+    public function get_options() {
+        global $PAGE;
+        $options = "";
+        $none = true;
+
+        $fields = user_get_default_fields();
+        // If it is an existing criterion, show only available params.
+        if ($this->id !== 0) {
+            $exisiting = array_keys($this->params);
+        }
+
+        if (!empty($fields)) {
+            foreach ($fields as $field) {
+                if (!in_array($field, $exisiting) && get_user_field_name($field)) {
+                    $options .= html_writer::checkbox('options[]', $field, false, get_user_field_name($field)) . '<br/>';
+                    $none = false;
+                }
+            }
+        }
+        return array($none, $options, get_string('noparamstoadd', 'badges'));
+    }
+
+    /**
+     * Add appropriate parameter elements to the criteria form
+     *
+     */
+    public function config_form_criteria_param(&$mform, $param) {
+        global $OUTPUT;
+        $prefix = 'criteria-' . $this->id;
+
+        $params = array(
+                'badgeid' => $this->badgeid,
+                'crit' => $this->id,
+                'param' => 'field_' . $param['field'],
+                'type' => $this->criteriatype
+        );
+        $url = new moodle_url('/badges/criteria_action.php', $params);
+        $delete = $OUTPUT->action_icon($url, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
+
+        $parameter = array();
+        $field = get_user_field_name($param['field']);
+        if (!$field) {
+            $parameter[] =& $mform->createElement('static', $prefix . '-field_' . $param['field'], null,
+                    $OUTPUT->error_text(get_string('error:missingfield', 'badges')));
+            $parameter[] =& $mform->createElement('static', $prefix . '-action_' . $param['field'], null, $delete);
+            $mform->addGroup($parameter, $prefix . 'param' . $param['field'], $OUTPUT->error_text(get_string('error')), array(' '), false);
+        } else {
+            $parameter[] =& $mform->createElement('static', $prefix . '-field_' . $param['field'], null, $field);
+            $parameter[] =& $mform->createElement('static', $prefix . '-action_' . $param['field'], null, $delete);
+            $mform->addGroup($parameter, $prefix . '-param' . $param['field'], '', array(' '), false);
+        }
+    }
+
+    /**
+     * Get criteria details for displaying to users
+     *
+     * @return string
+     */
+    public function get_details() {
+        $output = array();
+        foreach ($this->params as $p) {
+            $str = get_user_field_name($p['field']);
+            if (!$str) {
+                $output[] = $OUTPUT->error_text(get_string('error:nosuchrole', 'badges'));
+            } else {
+                $output[] = $str;
+            }
+        }
+        return html_writer::alist($output, array(), 'ul');
+    }
+
+    /**
+     * Review this criteria and decide if it has been completed
+     *
+     * @param int $userid User whose criteria completion needs to be reviewed.
+     * @return bool Whether criteria is complete
+     */
+    public function review($userid) {
+        global $DB;
+
+        $overall = null;
+        foreach ($this->params as $param) {
+            $crit = $DB->get_field('user', $param['field'], array('id' => $userid));
+            if ($this->method == BADGE_CRITERIA_AGGREGATION_ALL) {
+                if (!$crit) {
+                    return false;
+                } else {
+                    $overall = true;
+                    continue;
+                }
+            } else if ($this->method == BADGE_CRITERIA_AGGREGATION_ANY) {
+                if (!$crit) {
+                    $overall = false;
+                    continue;
+                } else {
+                    return true;
+                }
+            }
+        }
+        return $overall;
+    }
+}

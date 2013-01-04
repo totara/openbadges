@@ -431,10 +431,12 @@ $string['criteria_descr_1'] = '<p><b>{$a}</b> of the following activities have t
 $string['criteria_descr_4'] = 'Learners must complete the course ';
 $string['criteria_descr_2'] = '<p>This badge has to be awarded by the users with <b>{$a}</b> of the following roles:</p>';
 $string['criteria_descr_5'] = '<p><b>{$a}</b> of the following courses have to be completed:</p>';
+$string['criteria_descr_6'] = '<p><b>{$a}</b> of the following user profile fields have to be completed:</p>';
 $string['criteria_descr_grade'] = ' with minimum grade of <i>{$a}</i> ';
 $string['criteria_descr_bydate'] = ' by <i>{$a}</i> ';
 
 // Badge details.
+$string['addtobackpack'] = 'Add to backpack';
 $string['badgedetails'] = 'Badge details';
 $string['issuerdetails'] = 'Issuer details';
 $string['issuancedetails'] = 'Issuance details';

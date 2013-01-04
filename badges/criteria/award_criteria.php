@@ -89,10 +89,9 @@ $BADGE_CRITERIA_TYPES = array(
 abstract class award_criteria {
 
     public $id;
-
     public $method;
-
     public $badgeid;
+    public $params = array();
 
     /**
      * The base constructor
@@ -103,6 +102,9 @@ abstract class award_criteria {
         $this->id = isset($params['id']) ? $params['id'] : 0;
         $this->method = isset($params['method']) ? $params['method'] : BADGE_CRITERIA_AGGREGATION_ALL;
         $this->badgeid = $params['badgeid'];
+        if (isset($params['id'])) {
+            $this->params = $this->get_params($params['id']);
+        }
     }
 
     /**
@@ -129,7 +131,9 @@ abstract class award_criteria {
      *
      * @return string
      */
-    abstract public function get_title();
+    public function get_title() {
+        return get_string('criteria_' . $this->criteriatype, 'badges');
+    }
 
     /**
      * Get criteria details for displaying to users

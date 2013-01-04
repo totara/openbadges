@@ -35,18 +35,8 @@ class award_criteria_manual extends award_criteria {
     /* @var int Criteria [BADGE_CRITERIA_TYPE_MANUAL] */
     public $criteriatype = BADGE_CRITERIA_TYPE_MANUAL;
 
-    /* @var array Parameters for criteria */
-    public $params = array();
-
     public $required_param = 'role';
     public $optional_params = array();
-
-    public function __construct($record) {
-        parent::__construct($record);
-        if (isset($record['id'])) {
-            $this->params = self::get_params($record['id']);
-        }
-    }
 
     /**
      * Add appropriate form elements to the criteria form
@@ -157,15 +147,6 @@ class award_criteria_manual extends award_criteria {
             $parameter[] =& $mform->createElement('static', $prefix . '-action_' . $param['role'], null, $delete);
             $mform->addGroup($parameter, $prefix . '-param' . $param['role'], '', array(' '), false);
         }
-    }
-
-    /**
-     * Return criteria name
-     *
-     * @return string
-     */
-    public function get_title() {
-        return get_string('criteria_' . $this->criteriatype, 'badges');
     }
 
     /**
