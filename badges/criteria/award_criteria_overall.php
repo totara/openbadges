@@ -71,15 +71,6 @@ class award_criteria_overall extends award_criteria {
     }
 
     /**
-     * Return criteria name
-     *
-     * @return string
-     */
-    public function get_title() {
-        return get_string('criteria_' . $this->criteriatype, 'badges');
-    }
-
-    /**
      * Get criteria details for displaying to users
      *
      * @return string

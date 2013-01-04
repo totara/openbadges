@@ -284,7 +284,7 @@ class core_badges_renderer extends plugin_renderer_base {
 
     // Outputs issued badge with actions available.
     protected function render_issued_badge(issued_badge $ibadge) {
-        global $USER;
+        global $USER, $CFG;
         $issued = $ibadge->issued;
         $badge = new badge($ibadge->badgeid);
 
@@ -301,7 +301,15 @@ class core_badges_renderer extends plugin_renderer_base {
                             new moodle_url('/badges/badge.php', array('hash' => $ibadge->hash, 'bake' => true)),
                             get_string('download'),
                             'POST'));
-                $imagetable->data[] = array($this->output->single_button("badges.php", 'Add to backpack'));
+                if ($CFG->badges_allowexternalbackpack) {
+                    $assertion = new moodle_url('/badges/assertion.php', array('b' => $ibadge->hash));
+                    $attributes = array(
+                            'type' => 'button',
+                            'value' => get_string('addtobackpack', 'badges'),
+                            'onclick' => 'OpenBadges.issue(["' . $assertion->out(false) . '"], function(errors, successes) { })');
+                    $tobackpack = html_writer::tag('input', '', $attributes);
+                    $imagetable->data[] = array($tobackpack);
+                }
             }
             $datatable = new html_table();
             $datatable->attributes = array('class' => 'badgeissuedinfo');

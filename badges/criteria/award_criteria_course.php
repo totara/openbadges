@@ -37,18 +37,8 @@ class award_criteria_course extends award_criteria {
     /* @var int Criteria [BADGE_CRITERIA_TYPE_COURSE] */
     public $criteriatype = BADGE_CRITERIA_TYPE_COURSE;
 
-    /* @var array Parameters of course criteria */
-    public $params = array();
-
     public $required_param = 'course';
     public $optional_params = array('grade', 'bydate');
-
-    public function __construct($record) {
-        parent::__construct($record);
-        if (isset($record['id'])) {
-            $this->params = self::get_params($record['id']);
-        }
-    }
 
     /**
      * Add appropriate form elements to the criteria form
@@ -99,15 +89,6 @@ class award_criteria_course extends award_criteria {
     }
 
     /**
-     * Return criteria name
-     *
-     * @return string
-     */
-    public function get_title() {
-        return get_string('criteria_' . $this->criteriatype, 'badges');
-    }
-
-    /**
      * Get criteria details for displaying to users
      *
      * @return string
@@ -155,7 +136,7 @@ class award_criteria_course extends award_criteria {
     public function review($userid) {
         global $DB;
         foreach ($this->params as $param) {
-            $course = $DB->get_record('course', array('id' => $param['courseid']));
+            $course = $DB->get_record('course', array('id' => $param['course']));
             $info = new completion_info($course);
             $check_grade = true;
             $check_date = true;

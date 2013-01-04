@@ -122,15 +122,6 @@ class award_criteria_courseset extends award_criteria_course {
     }
 
     /**
-     * Return criteria name
-     *
-     * @return string
-     */
-    public function get_title() {
-        return get_string('criteria_' . $this->criteriatype, 'badges');
-    }
-
-    /**
      * Get criteria details for displaying to users
      *
      * @return string
