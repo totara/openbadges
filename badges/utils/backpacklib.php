@@ -26,8 +26,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// Adopted from https://github.com/jbkc85/openbadges-class-php
-// @author Jason Cameron <jbkc85@gmail.com>
+// Adopted from https://github.com/jbkc85/openbadges-class-php.
+// Author Jason Cameron <jbkc85@gmail.com>.
 
 class OpenBadgesBackpackHandler {
     private $backpack;
@@ -84,7 +84,7 @@ class OpenBadgesBackpackHandler {
 
     public function get_groups() {
         $json = $this->curl_request('user', $this->email);
-        if($json->status != 'okay') {
+        if ($json->status != 'okay') {
             return $this->check_status($json->status);
         }
         $this->backpackuid = $json->userId;
@@ -93,7 +93,7 @@ class OpenBadgesBackpackHandler {
 
     public function get_badges() {
         $json = $this->curl_request('user', $this->email);
-        if($json->status != 'okay') {
+        if ($json->status != 'okay') {
             return $this->check_status($json->status);
         }
         return $this->curl_request('badges');

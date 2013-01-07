@@ -46,7 +46,7 @@ $PAGE->set_url('/badges/badge.php', array('hash' => $id));
 $PAGE->set_pagelayout('base');
 $PAGE->set_title(get_string('issuedbadge', 'badges'));
 
-// @TODO: need a better way of pushing badges to Mozilla backpack.
+// TODO: need a better way of pushing badges to Mozilla backpack.
 if ($CFG->badges_allowexternalbackpack) {
     $PAGE->requires->js(new moodle_url('http://beta.openbadges.org/issuer.js'), true);
 }

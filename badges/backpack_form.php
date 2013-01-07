@@ -32,7 +32,7 @@ require_once($CFG->libdir . '/badgeslib.php');
 /**
  * Form to edit backpack initial details.
  *
-*/
+ */
 class edit_backpack_form extends moodleform {
 
     /**

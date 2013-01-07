@@ -54,8 +54,9 @@ if ($page < 0) {
     $page = 0;
 }
 
-require_login($SITE);
+require_login();
 
+$msg = '';
 $urlparams = array('sort' => $sortby, 'dir' => $sorthow, 'perpage' => $perpage, 'page' => $page);
 
 if ($course = $DB->get_record('course', array('id' => $courseid))) {
@@ -132,12 +133,17 @@ if ($hide && has_capability('moodle/badges:configuredetails', $PAGE->context)) {
 
 if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context)) { // @TODO: message about activation
     $badge = new badge($activate);
-    if ($badge->is_locked()) {
-        $badge->set_status(BADGE_STATUS_ACTIVE_LOCKED);
+
+    if (!$badge->has_criteria()) {
+        $msg = get_string('error:cannotact', 'badges') . get_string('nocriteria', 'badges');
     } else {
-        $badge->set_status(BADGE_STATUS_ACTIVE);
+        if ($badge->is_locked()) {
+            $badge->set_status(BADGE_STATUS_ACTIVE_LOCKED);
+        } else {
+            $badge->set_status(BADGE_STATUS_ACTIVE);
+        }
+        redirect($returnurl);
     }
-    redirect($returnurl);
 } else if ($deactivate && has_capability('moodle/badges:configuredetails', $PAGE->context)) {
     $badge = new badge($deactivate);
     if ($badge->is_locked()) {
@@ -158,6 +164,11 @@ $records = get_badges($type, $courseid, false, $sortby, $sorthow, $page, $perpag
 
 if ($totalcount) {
     echo $output->heading(get_string('badgestoearn', 'badges', $totalcount), 2);
+
+    if ($msg !== '') {
+        echo $OUTPUT->notification($msg, 'notifyproblem');
+    }
+
     $badges             = new badge_management($records);
     $badges->sort       = $sortby;
     $badges->dir        = $sorthow;

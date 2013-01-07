@@ -55,7 +55,7 @@ if ($action && !empty($options)) {
         $DB->set_field_select('badge_issued', 'visible', 1, "uniquehash $sql", $params);
     } else if ($action == 'download') {
         ob_start();
-        download_badges($USER->id, $options); // @TODO
+        download_badges($USER->id, $options);
         ob_flush();
     }
 }

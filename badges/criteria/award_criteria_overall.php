@@ -35,10 +35,6 @@ class award_criteria_overall extends award_criteria {
     /* @var int Criteria [BADGE_CRITERIA_TYPE_OVERALL] */
     public $criteriatype = BADGE_CRITERIA_TYPE_OVERALL;
 
-    public function __construct($record) {
-        parent::__construct($record);
-    }
-
     /**
      * Add appropriate form elements to the criteria form
      *
@@ -51,7 +47,7 @@ class award_criteria_overall extends award_criteria {
         if (count($data->criteria) > 2) {
             $aggregation_methods = $data->get_aggregation_methods();
 
-            // Overall criteria aggregation
+            // Overall criteria aggregation.
             $mform->addElement('header', $prefix, '');
             $mform->addElement('html', $OUTPUT->heading_with_help($this->get_title(), 'criteria_' . BADGE_CRITERIA_TYPE_OVERALL, 'badges'));
             $mform->addElement('select', $prefix . '-aggregation', get_string('aggregationmethod', 'badges'), $aggregation_methods);
@@ -89,7 +85,8 @@ class award_criteria_overall extends award_criteria {
     public function review($userid) {
         global $DB;
 
-        $sql = "SELECT * FROM {badge_criteria} bc
+        $sql = "SELECT bc.*, bcm.critid, bcm.userid, bcm.datemet
+                FROM {badge_criteria} bc
                 LEFT JOIN {badge_criteria_met} bcm
                     ON bc.id = bcm.critid AND bcm.userid = :userid
                 WHERE bc.badgeid = :badgeid

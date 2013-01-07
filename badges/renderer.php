@@ -52,12 +52,12 @@ class core_badges_renderer extends plugin_renderer_base {
             if (($userid == $USER->id) && !$profile) {
                 $checkbox = html_writer::checkbox('badges[]', $b->uniquehash, false, '', array('class' => 'badge-select'));
                 if ($b->public) {
-                    $status = $this->output->pix_icon('t/hide', get_string('visible','badges')) . " ";
+                    $status = $this->output->pix_icon('t/hide', get_string('visible', 'badges')) . " ";
                 } else {
-                    $status = $this->output->pix_icon('t/show', get_string('hidden','badges')) . " ";
+                    $status = $this->output->pix_icon('t/show', get_string('hidden', 'badges')) . " ";
                 }
             }
-            
+
             if (!$profile) {
                 $url = new moodle_url('badge.php', array('hash' => $b->uniquehash));
             } else {
@@ -288,9 +288,9 @@ class core_badges_renderer extends plugin_renderer_base {
         $issued = $ibadge->issued;
         $badge = new badge($ibadge->badgeid);
 
-        if ($ibadge->visible ||
-            ($USER->id == $ibadge->recipient) ||
-            has_capability('moodle/badges:viewawarded', context_system::instance())) {
+        if ($ibadge->visible
+            || ($USER->id == $ibadge->recipient)
+            || has_capability('moodle/badges:viewawarded', context_system::instance())) {
             $table = new html_table();
 
             $imagetable = new html_table();
@@ -359,13 +359,13 @@ class core_badges_renderer extends plugin_renderer_base {
         $datatable->data[] = array(get_string('issuerurl', 'badges'),
                 html_writer::tag('a', $issuer->origin, array('href' => $issuer->origin)));
         if (isset($issuer->contact)) {
-        $datatable->data[] = array(get_string('contact', 'badges'),
+            $datatable->data[] = array(get_string('contact', 'badges'),
                 html_writer::tag('a', $issuer->contact, array('href' => 'mailto:' . $issuer->contact)));
         }
         $datatable->data[] = array($this->output->heading(get_string('badgedetails', 'badges'), 3), '');
         $datatable->data[] = array(get_string('name'), $assertion->badge->name);
         $datatable->data[] = array(get_string('description', 'badges'), $assertion->badge->description);
-        $datatable->data[] = array(get_string('bcriteria', 'badges'), 
+        $datatable->data[] = array(get_string('bcriteria', 'badges'),
                 html_writer::tag('a', $assertion->badge->criteria, array('href' => $assertion->badge->criteria)));
         $datatable->data[] = array($this->output->heading(get_string('issuancedetails', 'badges'), 3), '');
         if (isset($assertion->issued_on)) {
@@ -375,8 +375,8 @@ class core_badges_renderer extends plugin_renderer_base {
             $datatable->data[] = array(get_string('expirydate', 'badges'), $assertion->badge->expire);
         }
         if (isset($assertion->evidence)) {
-            $datatable->data[] = array(get_string('evidence', 'badges'), 
-                    html_writer::tag('a', $assertion->evidence, array('href' => $assertion->evidence)));
+            $datatable->data[] = array(get_string('evidence', 'badges'),
+                html_writer::tag('a', $assertion->evidence, array('href' => $assertion->evidence)));
         }
         $table->attributes = array('class' => 'generalbox boxaligncenter issuedbadgebox');
         $table->data[] = array(html_writer::table($imagetable), html_writer::table($datatable));
@@ -590,12 +590,19 @@ class core_badges_renderer extends plugin_renderer_base {
         $agg = $badge->get_aggregation_methods();
         if (empty($badge->criteria)) {
             return get_string('nocriteria', 'badges');
+        } else if (count($badge->criteria) == 2) {
+            $output .= get_string('criteria_descr', 'badges');
+        } else {
+            $output .= get_string('criteria_descr_' . BADGE_CRITERIA_TYPE_OVERALL, 'badges', strtoupper($agg[$badge->get_aggregation_method()]));
         }
-        $output .= get_string('criteria_descr_' . BADGE_CRITERIA_TYPE_OVERALL , 'badges', strtoupper($agg[$badge->get_aggregation_method()]));
         $items = array();
         unset($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]);
         foreach ($badge->criteria as $type => $c) {
-            $items[] .= get_string('criteria_descr_' . $type , 'badges', strtoupper($agg[$badge->get_aggregation_method($type)])) . $c->get_details();
+            if (count($c->params) == 1) {
+                $items[] .= get_string('criteria_descr_single_' . $type , 'badges', strtoupper($agg[$badge->get_aggregation_method($type)])) . $c->get_details();
+            } else {
+                $items[] .= get_string('criteria_descr_' . $type , 'badges', strtoupper($agg[$badge->get_aggregation_method($type)])) . $c->get_details();
+            }
         }
         $output .= html_writer::alist($items, array(), 'ul');
         return $output;
@@ -877,7 +884,7 @@ class issued_badge implements renderable {
      * Initializes the badge to display
      *
      * @param string $hash Issued badge hash
-    */
+     */
     public function __construct($hash) {
         global $DB;
         $this->issued = get_issued_badge_info($hash);

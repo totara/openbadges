@@ -183,7 +183,7 @@ class award_criteria_courseset extends award_criteria_course {
     public function review($userid) {
         global $DB;
         foreach ($this->params as $param) {
-            $course = $DB->get_record('course', array('id' => $param['courseid']));
+            $course = $DB->get_record('course', array('id' => $param['course']));
             $info = new completion_info($course);
             $check_grade = true;
             $check_date = true;

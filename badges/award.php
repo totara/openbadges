@@ -69,7 +69,7 @@ $output = $PAGE->get_renderer('core', 'badges');
 
 // Roles that can award this badge.
 $accepted_roles = array_keys($badge->criteria[BADGE_CRITERIA_TYPE_MANUAL]->params);
-// Current user role.
+// Current user's role.
 $issuerrole = array_shift(get_user_roles($context, $USER->id));
 if (!isset($issuerrole->roleid) || !in_array($issuerrole->roleid, $accepted_roles)) {
     echo $OUTPUT->header();

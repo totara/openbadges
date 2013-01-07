@@ -32,11 +32,11 @@ class PNG_MetaDataHandler
     private $_size;
     private $_chunks;
 
-    function __construct($contents) {
+    public function __construct($contents) {
         $this->_contents = $contents;
         $png_signature = pack("C8", 137, 80, 78, 71, 13, 10, 26, 10);
 
-        // Read 8 bytes of PNG header and verify
+        // Read 8 bytes of PNG header and verify.
         $header = substr($this->_contents, 0, 8);
 
         if ($header != $png_signature) {
@@ -47,18 +47,18 @@ class PNG_MetaDataHandler
 
         $this->_chunks = array();
 
-        //Skip 8 bytes of header
+        // Skip 8 bytes of header.
         $position = 8;
         do {
             $chunk = @unpack('Nsize/a4type', substr($this->_contents, $position, 8));
             $this->_chunks[$chunk['type']][] = substr($this->_contents, $position + 8, $chunk['size']);
 
-            //Skip 12 bytes chunk overhead
+            // Skip 12 bytes chunk overhead.
             $position += $chunk['size'] + 12;
         } while ($position < $this->_size);
     }
 
-    // Checks if key already exists in the chunk of said type
+    // Checks if key already exists in the chunk of said type.
     public function check_chunks($type, $check) {
         if (array_key_exists($type, $this->_chunks)) {
             foreach (array_keys($this->_chunks[$type]) as $typekey) {
@@ -88,8 +88,8 @@ class PNG_MetaDataHandler
         $crc = pack("N", crc32($type . $data));
         $len = pack("N", strlen($data));
 
-        //Chunk format: length + type + data + CRC
-        //CRC is a CRC-32 computed over the chunk type and chunk data
+        // Chunk format: length + type + data + CRC.
+        // CRC is a CRC-32 computed over the chunk type and chunk data.
         $newchunk = $len .  $type  . $data . $crc;
 
         $result = substr($this->_contents, 0, $this->_size - 12)

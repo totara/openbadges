@@ -172,9 +172,9 @@ class badge_potential_users_selector extends badge_award_selector_base {
     }
 
     /**
-    * Sets the existing recipients
-    * @param array $users
-    */
+     * Sets the existing recipients
+     * @param array $users
+     */
     public function set_existing_recipients(array $users) {
         $this->existingrecipients = $users;
     }
@@ -192,7 +192,7 @@ class badge_existing_users_selector extends badge_award_selector_base {
      * @return array
      */
     public function find_users($search) {
-        global $DB, $USER;
+        global $DB;
         list($wherecondition, $params) = $this->search_sql($search, 'u');
         $params['badgeid'] = $this->badgeid;
         $params['issuerrole'] = $this->issuerrole;

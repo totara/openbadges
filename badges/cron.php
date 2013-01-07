@@ -30,10 +30,40 @@ require_once($CFG->libdir . '/badgeslib.php');
 /**
  * Awards badges
  *
- * First find all criteria for existing badges, review if these criteria are met, 
- * then aggregate all badge criteria completions and award badges if any.
+ * First find all badges that can be earned, then reviews each badge.
+ * (Not sure how efficient this is timewise).
  */
-function award_cron() {
-    // Call all the functions we need to get badges awards.
+function badge_review_cron() {
+    global $DB;
+    $total = 0;
 
+    $sql = 'SELECT id
+                FROM {badge}
+                WHERE (status = :active OR status = :activelocked)
+                    AND (context = 1 OR courseid IN
+                        (SELECT id FROM {course} WHERE visible = 1 AND startdate < :current))';
+    $params = array(
+            'active' => BADGE_STATUS_ACTIVE,
+            'activelocked' => BADGE_STATUS_ACTIVE_LOCKED,
+            'current' => time());
+    $badges = $DB->get_records_sql($sql, $params);
+
+    foreach ($badges as $b) {
+        $badge = new badge($b->id);
+
+        if ($badge->has_criteria()) {
+            if (debugging()) {
+                mtrace('Processing badge "' . $badge->name . '"...');
+            }
+
+            $issued = $badge->review_all_criteria();
+
+            if (debugging()) {
+                mtrace('...badge was issued to ' . $issued . ' users.');
+            }
+            $total =+ $issued;
+        }
+    }
+
+    mtrace('Badges were issued ' . $total . ' time(s).');
 }
