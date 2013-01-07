@@ -224,11 +224,6 @@ class edit_message_form extends moodleform {
         }
 
         $this->add_action_buttons();
-
-        // Freeze all elements if badge is active.
-        if ($badge->is_active() || $badge->is_locked()) {
-            $mform->hardFreeze();
-        }
     }
 
     public function validation($data, $files) {

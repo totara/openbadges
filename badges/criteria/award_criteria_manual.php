@@ -101,15 +101,15 @@ class award_criteria_manual extends award_criteria {
         $options = "";
         $none = true;
         $roles = get_roles_with_capability('moodle/badges:awardbadge', CAP_ALLOW, $PAGE->context);
-        $exisiting = array();
+        $existing = array();
         // If it is an existing criterion, show only available params.
         if ($this->id !== 0) {
-            $exisiting = array_keys($this->params);
+            $existing = array_keys($this->params);
         }
 
         if (!empty($roles)) {
             foreach ($roles as $role) {
-                if (!in_array($role->id, $exisiting)) {
+                if (!in_array($role->id, $existing)) {
                     $options .= html_writer::checkbox('options[]', $role->id, false, self::get_role_name($role->id)) . '<br/>';
                     $none = false;
                 }

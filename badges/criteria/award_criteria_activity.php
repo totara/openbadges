@@ -26,7 +26,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/completionlib.php');
-require_once($CFG->dirroot . '/grade/querylib.php');
 
 /**
  * Badge award criteria -- award on activity completion
@@ -137,10 +136,6 @@ class award_criteria_activity extends award_criteria {
             // Set existing values.
             if (isset($param['bydate'])) {
                 $mform->setDefault($prefix . '-bydate_' . $param['module'], $param['bydate']);
-            }
-
-            if (isset($param['grade'])) {
-                $mform->setDefault($prefix . '-grade_' . $param['module'], $param['grade']);
             }
         }
     }

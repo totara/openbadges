@@ -77,28 +77,68 @@ class award_criteria_profile extends award_criteria {
     }
 
     /**
+     * Add custom profile fields to the form.
+     *
+     */
+    private function get_custom_fields(array $existing, &$none) {
+        global $CFG, $DB;
+        $html = "";
+
+        //only retrieve required custom fields (with category information)
+        //results are sort by categories, then by fields
+        $sql = "SELECT uf.id as fieldid, uf.name as name, ic.id as categoryid, ic.name as categoryname, uf.datatype
+                FROM {user_info_field} uf
+                JOIN {user_info_category} ic
+                ON uf.categoryid = ic.id AND uf.visible <> 0
+                ORDER BY ic.sortorder ASC, uf.sortorder ASC";
+
+        if ( $fields = $DB->get_records_sql($sql)) {
+            foreach ($fields as $field) {
+                if (!isset($currentcat) || $currentcat != $field->categoryid) {
+                    $currentcat = $field->categoryid;
+                    $html .= html_writer::nonempty_tag('h3', format_string($field->categoryname));
+                }
+                if (!in_array($field, $existing)) {
+                    $html .= html_writer::checkbox('options[]', $field->fieldid, false, $field->name) . '<br/>';
+                    $none = false;
+                }
+            }
+        }
+
+        return $html;
+    }
+
+    /**
      * Add appropriate new criteria options to the form
      *
      */
     public function get_options() {
-        global $PAGE;
         $options = "";
         $none = true;
+        $existing = array();
 
-        $fields = user_get_default_fields();
+        // Note: cannot use user_get_default_fields() here because it is not possible to decide which fields user can modify.
+        $fields = array('firstname', 'lastname', 'email', 'address', 'phone1', 'phone2',
+                        'icq', 'skype', 'yahoo', 'aim', 'msn', 'department', 'institution',
+                        'interests', 'description', 'city', 'url', 'country');
         // If it is an existing criterion, show only available params.
         if ($this->id !== 0) {
-            $exisiting = array_keys($this->params);
+            $existing = array_keys($this->params);
         }
 
         if (!empty($fields)) {
+            $options .= html_writer::nonempty_tag('h3', get_string('default', 'badges'));
             foreach ($fields as $field) {
-                if (!in_array($field, $exisiting) && get_user_field_name($field)) {
+                if (!in_array($field, $existing)) {
                     $options .= html_writer::checkbox('options[]', $field, false, get_user_field_name($field)) . '<br/>';
                     $none = false;
                 }
             }
         }
+
+        // Load available to users custom profile fields.
+        $options .= $this->get_custom_fields($existing, $none);
+
         return array($none, $options, get_string('noparamstoadd', 'badges'));
     }
 
@@ -107,7 +147,7 @@ class award_criteria_profile extends award_criteria {
      *
      */
     public function config_form_criteria_param(&$mform, $param) {
-        global $OUTPUT;
+        global $OUTPUT, $DB;
         $prefix = 'criteria-' . $this->id;
 
         $params = array(
@@ -120,7 +160,11 @@ class award_criteria_profile extends award_criteria {
         $delete = $OUTPUT->action_icon($url, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
 
         $parameter = array();
-        $field = get_user_field_name($param['field']);
+        if (is_numeric($param['field'])) {
+            $field = $DB->get_field('user_info_field', 'name', array('id' => $param['field']));
+        } else {
+            $field = get_user_field_name($param['field']);
+        }
         if (!$field) {
             $parameter[] =& $mform->createElement('static', $prefix . '-field_' . $param['field'], null,
                     $OUTPUT->error_text(get_string('error:missingfield', 'badges')));
@@ -139,11 +183,16 @@ class award_criteria_profile extends award_criteria {
      * @return string
      */
     public function get_details() {
+        global $DB, $OUTPUT;
         $output = array();
         foreach ($this->params as $p) {
-            $str = get_user_field_name($p['field']);
+            if (is_numeric($p['field'])) {
+                $str = $DB->get_field('user_info_field', 'name', array('id' => $p['field']));
+            } else {
+                $str = get_user_field_name($p['field']);
+            }
             if (!$str) {
-                $output[] = $OUTPUT->error_text(get_string('error:nosuchrole', 'badges'));
+                $output[] = $OUTPUT->error_text(get_string('error:nosuchfield', 'badges'));
             } else {
                 $output[] = $str;
             }
@@ -162,7 +211,12 @@ class award_criteria_profile extends award_criteria {
 
         $overall = null;
         foreach ($this->params as $param) {
-            $crit = $DB->get_field('user', $param['field'], array('id' => $userid));
+            if (is_numeric($param['field'])) {
+                $crit = $DB->get_field('user_info_data', 'data', array('userid' => $userid, 'fieldid' => $param['field']));
+            } else {
+                $crit = $DB->get_field('user', $param['field'], array('id' => $userid));
+            }
+
             if ($this->method == BADGE_CRITERIA_AGGREGATION_ALL) {
                 if (!$crit) {
                     return false;

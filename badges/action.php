@@ -126,12 +126,10 @@ if ($activate) {
     require_capability('moodle/badges:configurecriteria', $context);
 
     $PAGE->url->param('activate', 1);
+    $status = ($badge->status == BADGE_STATUS_INACTIVE) ? BADGE_STATUS_ACTIVE : BADGE_STATUS_ACTIVE_LOCKED;
     if ($confirm == 1 && confirm_sesskey()) {
-        $badge->set_status($badge->status + 1);
+        $badge->set_status($status);
         $badge->review_all_criteria();
-        redirect($returnurl);
-    } else if ($confirm == 2 && confirm_sesskey()) {
-        $badge->set_status($badge->status + 1);
         redirect($returnurl);
     }
 
@@ -142,12 +140,16 @@ if ($activate) {
     echo $OUTPUT->header();
     echo $OUTPUT->heading($strheading);
 
-    $params = array('id' => $badge->id, 'activate' => 1, 'sesskey' => sesskey());
-    $urlyes = new moodle_url('/badges/action.php', array_merge($params, array('confirm' => 1)));
-    $urlno = new moodle_url('/badges/action.php', array_merge($params, array('confirm' => 2)));
+    $params = array('id' => $badge->id, 'activate' => 1, 'sesskey' => sesskey(), 'confirm' => 1);
+    $url = new moodle_url('/badges/action.php', $params);
 
-    $message = get_string('reviewconfirm', 'badges', $badge->name);
-    echo $OUTPUT->confirm($message, new single_button($urlyes, get_string('yes')), new single_button($urlno, get_string('no')));
+    if (!$badge->has_criteria()) {
+        echo $OUTPUT->notification(get_string('error:cannotact', 'badges') . get_string('nocriteria', 'badges'));
+        echo $OUTPUT->continue_button($returnurl);
+    } else {
+        $message = get_string('reviewconfirm', 'badges', $badge->name);
+        echo $OUTPUT->confirm($message, $url, $returnurl);
+    }
     echo $OUTPUT->footer();
     die;
 }
@@ -155,6 +157,7 @@ if ($activate) {
 if ($deactivate) {
     require_capability('moodle/badges:configurecriteria', $context);
 
-    $badge->set_status($badge->status - 1);
+    $status = ($badge->status == BADGE_STATUS_ACTIVE) ? BADGE_STATUS_INACTIVE : BADGE_STATUS_INACTIVE_LOCKED;
+    $badge->set_status($status);
     redirect($returnurl);
 }

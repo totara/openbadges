@@ -161,5 +161,3 @@ if ($delete && has_capability('moodle/badges:configurecriteria', $context)) {
 
     die();
 }
-
-//redirect($return);

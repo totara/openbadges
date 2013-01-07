@@ -420,18 +420,25 @@ $string['criteria_6'] = 'Profile completion';
 $string['criteriasummary'] = 'Criteria summary';
 $string['completionnotenabled'] = 'Course completion is not enabled for this course, so it cannot be included in badge criteria. <br/> You can enable course completion in the course settings.';
 $string['coursecompletion'] = 'Learners must complete this course. ';
-$string['lockedbadge'] = 'Currently, this badge is either active or locked, so it cannot be modified. If you would like to change this badge\'s details or criteria, please set its status to inactive.';
+$string['default'] = 'Default user profile fields';
+$string['lockedbadge'] = 'Currently, this badge is either active or locked, so most of it\'s properties cannot be modified. If you would like to change this badge\'s details or criteria, please set its status to inactive.';
 $string['mingrade'] = 'Minimum grade required';
 $string['noparamstoadd'] = 'There are no additional parameters available to add to this badge requirement.';
 $string['nothingtoadd'] = 'There are no available criteria to add.';
 
 // Badge criteria description.
+$string['criteria_descr'] = '<p>To earn this badge, learners have to complete the following requirement: ';
 $string['criteria_descr_0'] = '<p>To earn this badge, learners have to complete <b>{$a}</b> of the following requirements:</p>';
 $string['criteria_descr_1'] = '<p><b>{$a}</b> of the following activities have to be completed:</p>';
+$string['criteria_descr_single_1'] = '<p>The following activity has to be completed:</p>';
 $string['criteria_descr_4'] = 'Learners must complete the course ';
+$string['criteria_descr_single_4'] = 'Learners must complete the course ';
 $string['criteria_descr_2'] = '<p>This badge has to be awarded by the users with <b>{$a}</b> of the following roles:</p>';
+$string['criteria_descr_single_2'] = '<p>This badge has to be awarded by a user with the following role:</p>';
 $string['criteria_descr_5'] = '<p><b>{$a}</b> of the following courses have to be completed:</p>';
+$string['criteria_descr_single_5'] = '<p>The following course has to be completed:</p>';
 $string['criteria_descr_6'] = '<p><b>{$a}</b> of the following user profile fields have to be completed:</p>';
+$string['criteria_descr_single_6'] = '<p>The following user profile field has to be completed:</p>';
 $string['criteria_descr_grade'] = ' with minimum grade of <i>{$a}</i> ';
 $string['criteria_descr_bydate'] = ' by <i>{$a}</i> ';
 
@@ -510,10 +517,9 @@ $string['potentialrecipients'] = 'Potential badge recipients';
 $string['proceed'] = 'Proceed';
 $string['recipients'] = 'Badge recipients';
 $string['relative'] = 'Relative date';
-$string['reviewbadge'] = 'Review badge';
-$string['reviewconfirm'] = '<p>When you activate a badge, it means that now it can be earned by users.</p>
-<p>Would you like to check if any of the users have already completed all the requirements for \'{$a}\' badge? </p>
-<p><b>Warning!</b></p><p>Depending on how many criteria are assigned to this badge and a number of users on your site, selecting to run this check may make your site slower while all badge requirements are calculated. </p>';
+$string['reviewbadge'] = 'Review badge criteria';
+$string['reviewconfirm'] = '<p>This action will perform a check if any of the users have already completed all the requirements for \'{$a}\' badge? </p>
+<p>Would you like to proceed?</p>';
 $string['subject'] = 'Message subject';
 $string['selecting'] = 'With selected badges...';
 $string['status'] = 'Badge status';
@@ -524,7 +530,7 @@ $string['year'] = 'Year(s)';
 $string['creatorsubject'] = '\'{$a}\' has been awarded!';
 $string['creatorbody'] = '{$a->user} has completed all badge requirements and has been awarded the badge.
 
-View issued badge at {$a-link}';
+View issued badge at {$a->link}';
 $string['messagebody'] = '<p>You have been awarded a badge "%badgename%"!</p>
 
 <p>More infromation about this badge can be found at %badgelink%.</p>
@@ -537,8 +543,8 @@ $string['messagesubject'] = 'Congratulations! You just earned a badge!';
 $string['actions_help'] = '';
 $string['attachment_help'] = 'If this \'Attachment\' is checked, an issued badge will be attached to the recepient\'s email for download';
 $string['contact_help'] = 'An email address associated with the badge issuer.';
-$string['criteria_0_help'] = "Overall help";
-$string['criteria_1_help'] = "Help";
+$string['criteria_0_help'] = 'Overall help';
+$string['criteria_1_help'] = 'Help';
 $string['criteria_2_help'] = "Role help";
 $string['criteria_3_help'] = "Social help";
 $string['criteria_4_help'] = "Course help";
@@ -556,7 +562,21 @@ This setting should be in form &lt;protocol>://&lt;host>:&lt;port>.';
 $string['issuername_help'] = 'Name of the issuing agent or authority.';
 $string['notification'] = 'Notify badge creator';
 $string['notification_help'] = 'If the \'Notify badge creator\' box is checked, the badge creator will also be sent a notification about the badge issue.';
-$string['status_help'] = 'Badge status explanation'; //@TODO
+$string['status_help'] = 'Badge status determines its behaviour in the system:
+
+* **ACTIVE** – Active badge means that this badge can we earned by users, but it has not been issued yet. While this badge remains active, its criteria cannot be changed.
+
+* **INACTIVE** – Inactive badge means that this badge is not available to users and cannot be earned. Criteria of an inactive badge can be changed.
+
+* **ACTIVE AND LOCKED** – Badges with such status can be earned by users, but they have been issued in the past. Therefore, their criteria are locked and cannot be changed any more.
+
+* **INACTIVE AND LOCKED** – Inactive badges cannot be earned by users and their criteria cannot be updated.
+
+Badges are set to locked automatically once they have been issued to at least one user. Unlike active or inactive, this property cannot be manually changed. If you need to modify details or criteria of a locked badge, you can duplicate this badge and make all the required changes.
+
+*Why do we lock badges?*
+
+We want to make sure that all users complete the same requirements to earn a badge. Currently, it is not possible to revoke badges. If we allowed badges requirements to be modified all the time, we would most likely end up with users having the same badge for meeting completely different requirements.';
 $string['variablesubstitution'] = 'Variable substitution in messages.';
 $string['variablesubstitution_help'] = 'In a badge message, certain variables can be inserted into the subject and/or body of a message so that they will be replaced with real values when the message is sent. The variables should be inserted into the the text exactly as they are shown below. The following variables can be used:
 
@@ -578,16 +598,19 @@ If this checkbox is checked and the badge is active, users will be able to see t
 Important! Hiding a badge from users does not prevent them from earning it if the badge is active.';
 
 // Error messages.
+$string['error:cannotact'] = 'Cannot activate the badge. ';
 $string['error:cannotawardbadge'] = 'Cannot award badge to a user.';
 $string['error:clone'] = 'Cannot clone the badge.';
 $string['error:save'] = 'Cannot save the badge.';
 $string['error:missingcourse'] = 'It looks like this course does not exist any more. If you want users to be able to earn this badge, please revise this parameter';
+$string['error:missingfield'] = 'It looks like this profile field does not exist any more. If you want users to be able to earn this badge, please revise this parameter';
 $string['error:missingmodule'] = 'It looks like this activity does not exist any more. If you want users to be able to earn this badge, please revise this parameter';
 $string['error:missingrole'] = 'It looks like this role does not exist any more. If you want users to be able to earn this badge, please revise this parameter';
 $string['error:noactivities'] = 'No activities with completion criteria enabled.';
-$string['error:nosuchcourse'] = '!!!Course error. Please revise your criteria!!!';
-$string['error:nosuchmod'] = '!!!Activity error. Please revise your criteria!!!';
-$string['error:nosuchrole'] = '!!!Role error. Please revise your criteria!!!';
+$string['error:nosuchcourse'] = 'Warning: This course is no longer available.';
+$string['error:nosuchfield'] = 'Warning: This user profile field is no longer available.';
+$string['error:nosuchmod'] = 'Warning: This activity is no longer available.';
+$string['error:nosuchrole'] = 'Warning: This role is no longer available.';
 $string['error:nosuchbadge'] = 'Badge with id {$a} does not exist.';
 $string['error:nosuchuser'] = 'User with such email does not have an account with the current backpack provider';
 $string['error:invalidcriteriatype'] = 'Invalid criteria type.';

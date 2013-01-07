@@ -54,8 +54,8 @@ navigation_node::override_active_url($navurl);
 $PAGE->navbar->add($badge->name);
 
 $output = $PAGE->get_renderer('core', 'badges');
-$statusmsg = '';
-$errormsg  = '';
+$msg = optional_param('msg', '', PARAM_TEXT);
+$emsg = optional_param('emsg', '', PARAM_TEXT);
 
 $form = new edit_criteria_form($currenturl, array('badge' => $badge));
 
@@ -63,21 +63,21 @@ if ($form->is_cancelled()) {
     redirect(new moodle_url('/badges/overview.php', array('id' => $badgeid)));
 } else if ($form->is_submitted() && $form->is_validated() && ($data = $form->get_data())) {
     if ($badge->save_criteria($data)) {
-        $statusmsg = get_string('changessaved');
+        $msg = get_string('changessaved');
+        redirect(new moodle_url('/badges/criteria.php', array('id' => $badgeid, 'msg' => $msg)));
     } else {
-        $errormsg = get_string('error:save', 'badges');
+        $emsg = get_string('error:save', 'badges');
+        redirect(new moodle_url('/badges/criteria.php', array('id' => $badgeid, 'emsg' => $emsg)));
     }
-    // redirect(new moodle_url('/badges/edit.php', array('id' => $badgeid, 'action' => $action)));
 }
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading($badge->name . ': ' . get_string('bcriteria', 'badges'));
 
-if ($errormsg !== '') {
-    echo $OUTPUT->notification($errormsg);
-
-} else if ($statusmsg !== '') {
-    echo $OUTPUT->notification($statusmsg, 'notifysuccess');
+if ($emsg !== '') {
+    echo $OUTPUT->notification($emsg);
+} else if ($msg !== '') {
+    echo $OUTPUT->notification($msg, 'notifysuccess');
 }
 
 $output->print_badge_tabs($badgeid, $context, 'criteria');
