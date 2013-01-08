@@ -53,9 +53,7 @@ class edit_details_form extends moodleform {
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
         $mform->addElement('textarea', 'description', get_string('description', 'badges'), 'wrap="virtual" rows="10" cols="70"');
-
-        $mform->addElement('advcheckbox', 'visible', get_string('visible', 'badges'), '', null, array(0, 1));
-        $mform->addHelpButton('visible', 'visible', 'badges');
+        $mform->setType('description', PARAM_TEXT);
 
         $imageoptions = array('maxbytes' => 262144, 'accepted_types' => array('web_image'));
         $mform->addElement('filepicker', 'image', get_string('newimage', 'badges'), null, $imageoptions);
@@ -85,7 +83,7 @@ class edit_details_form extends moodleform {
         $mform->addElement('text', 'issuercontact', get_string('contact', 'badges'), array('size' => '70'));
         $mform->setDefault('issuercontact', $CFG->badges_defaultissuercontact);
         $mform->setType('issuercontact', PARAM_EMAIL);
-        $mform->addRule('issuercontact', null, 'email');
+        $mform->addRule('issuercontact', get_string('invalidemail'), 'email', null, 'client', true);
         $mform->addHelpButton('issuercontact', 'contact', 'badges');
 
         $mform->addElement('header', 'issuancedetails', get_string('issuancedetails', 'badges'));

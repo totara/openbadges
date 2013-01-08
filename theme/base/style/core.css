@@ -1284,8 +1284,8 @@ body.jsenabled .formlisting {
 /**
  * Badges styles
  */
-#page-badges-view .collection{ width: 80%; margin: 1em auto; }
-#page-badges-index .collection { width: 100%; margin: 1em auto; }
+#page-badges-view .collection{ width: 90%; margin: 1em auto; }
+#page-badges-index .collection { width: 90%; margin: 1em auto; }
 
 table.collection th { font-size: inherit !important; border-width: 1px; border-style: solid; border-color: #CCCCCC; vertical-align: middle; padding-left: 5px; padding-right: 5px; vertical-align: top; text-align: center !important; }
 table.collection td { border-width: 1px; border-style: solid; border-color: #CCCCCC; vertical-align: middle; padding-left: 5px; padding-right: 5px; vertical-align: top; }
@@ -1293,9 +1293,8 @@ table.collection .r1 { background-color: #FFFFFF; }
 table.collection .r0 { background-color: #F6F6F6; }
 
 #page-badges-view table.collection .badgeimage,
-#page-badges-index table.collection .status { width: 10%; text-align: center; vertical-align: middle; }
+#page-badges-index table.collection .status { width: 15%; text-align: center; vertical-align: middle; }
 #page-badges-index table.collection .badgeimage,
-#page-badges-index table.collection .select,
 #page-badges-view table.collection .awards,
 #page-badges-index table.collection .awards { width: 7%; text-align: center; vertical-align: middle; }
 #page-badges-view table.collection .description { width: 30%; text-align: left; }

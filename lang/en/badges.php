@@ -357,6 +357,7 @@ $string['year'] = 'Year(s)';
 //Admin settings
 $string['adminonly'] = 'This page is restricted to Site Administrators only';
 $string['coursebadges'] = 'Badges';
+$string['badgesview'] = 'Course badges';
 $string['badgesettings'] = 'General settings';
 $string['managebadges'] = 'Manage badges';
 $string['mybadges'] = 'My badges';
@@ -512,7 +513,6 @@ $string['noexpiry'] = 'This badge does not have an expiry date.';
 $string['notacceptedrole'] = 'Your current role assignment is not among the roles that can manually issue this badge. <br/>
 If you would like to see users who have already earned this badge, you can visit {$a} page. ';
 $string['overallcriteriaaggregation'] = 'Overall badge criteria aggregation';
-$string['perpage'] = 'Records per page';
 $string['potentialrecipients'] = 'Potential badge recipients';
 $string['proceed'] = 'Proceed';
 $string['recipients'] = 'Badge recipients';

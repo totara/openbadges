@@ -30,6 +30,11 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/badges/criteria/award_criteria.php');
 
 /*
+ * Number of records per page.
+*/
+define('BADGE_PERPAGE', 50);
+
+/*
  * Badge award criteria aggregation method.
  */
 define('BADGE_CRITERIA_AGGREGATION_ALL', 1);
@@ -90,7 +95,6 @@ class badge {
     /** Values from the table 'badge' */
     public $name;
     public $description;
-    public $visible;
     public $timecreated;
     public $timemodified;
     public $usermodified;
@@ -712,7 +716,6 @@ function badge_message_from_template($message, $params) {
  *
  * @param int Type of badges to return
  * @param int Course ID for course badges
- * @param bool $visible Return only available badges
  * @param string $sort An SQL field to sort by
  * @param string $dir The sort direction ASC|DESC
  * @param int $page The page or records to return
@@ -721,8 +724,7 @@ function badge_message_from_template($message, $params) {
  * @param int $user User specific search
  * @return array $badge Array of records matching criteria
  */
-function get_badges($type, $courseid = 0, $visible = true, $sort = '', $dir = '',
-                            $page = 0, $perpage = 20, $search = '', $user = 0) {
+function get_badges($type, $courseid = 0, $sort = '', $dir = '', $page = 0, $perpage = BADGE_PERPAGE, $user = 0) {
     global $DB;
     $records = array();
     $params = array();
@@ -743,10 +745,6 @@ function get_badges($type, $courseid = 0, $visible = true, $sort = '', $dir = ''
     if ($courseid != 0 ) {
         $where .= "AND b.courseid = :courseid ";
         $params['courseid'] = $courseid;
-    }
-
-    if ($visible) {
-        $where .= "AND b.visible = 1 ";
     }
 
     $sorting = (($sort != '' && $dir != '') ? 'ORDER BY ' . $sort . ' ' . $dir : '');
@@ -875,25 +873,20 @@ function get_issued_badge_info($hash) {
 }
 
 /**
- * Extends the course navigation with the Badges page
+ * Extends the course administration navigation with the Badges page
  *
  * @param navigation_node $coursenode
  * @param object $course
  */
 function badges_add_course_navigation(navigation_node $coursenode, $course) {
-    global $CFG, $USER, $SITE;
-
-    $allowcoursebadges = $CFG->badges_allowcoursebadges;
+    global $CFG, $SITE;
 
     $coursecontext = context_course::instance($course->id);
     $isfrontpage = (!$coursecontext || $course->id == $SITE->id);
 
-    if (($allowcoursebadges == 1) && !$isfrontpage) {
-        if (has_capability('moodle/badges:viewbadges', $coursecontext) && can_access_course($course, $USER)) {
-            $url = new moodle_url($CFG->wwwroot . '/badges/view.php',
-                    array('type' => BADGE_TYPE_COURSE, 'id' => $course->id));
-
-            $coursenode->add(get_string('coursebadges', 'badges'), $url,
+    if ($CFG->badges_allowcoursebadges && !$isfrontpage) {
+        if (has_capability('moodle/badges:configuredetails', $coursecontext)) {
+            $coursenode->add(get_string('coursebadges', 'badges'), null,
                     navigation_node::TYPE_CONTAINER, null, 'coursebadges',
                     new pix_icon('i/badge', get_string('coursebadges', 'badges')));
 

@@ -67,7 +67,6 @@ if ($form->is_cancelled()) {
     if ($action == 'details') {
         $badge->name = $data->name;
         $badge->description = $data->description;
-        $badge->visible = $data->visible;
         $badge->usermodified = $USER->id;
         $badge->issuername = $data->issuername;
         $badge->issuerurl = $data->issuerurl;
