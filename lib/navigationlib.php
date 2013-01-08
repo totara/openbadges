@@ -2462,6 +2462,18 @@ class global_navigation extends navigation_node {
                 $reportfunction($reportnav, $course, $this->page->context);
             }
         }
+
+        // Badges.
+        if (has_capability('moodle/badges:viewbadges', $this->page->context)) {
+            $url = new moodle_url($CFG->wwwroot . '/badges/view.php',
+                    array('type' => 2, 'id' => $course->id));
+
+            $coursenode->add(get_string('coursebadges', 'badges'), null,
+                    navigation_node::TYPE_CONTAINER, null, 'coursebadges');
+            $coursenode->get('coursebadges')->add(get_string('badgesview', 'badges'), $url,
+                    navigation_node::TYPE_SETTING, null, 'badgesview',
+                    new pix_icon('i/badge', get_string('badgesview', 'badges')));
+        }
         return true;
     }
     /**

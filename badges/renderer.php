@@ -130,8 +130,6 @@ class core_badges_renderer extends plugin_renderer_base {
         $detailstable->attributes = array('class' => 'clearfix', 'id' => 'badgedetails');
         $detailstable->data[] = array(get_string('name') . ":", $badge->name);
         $detailstable->data[] = array(get_string('description', 'badges') . ":", $badge->description);
-        $detailstable->data[] = array(get_string('visible', 'badges') . ":",
-                $badge->visible ? get_string('yes') : get_string('no'));
         $detailstable->data[] = array(get_string('badgeimage', 'badges') . ":",
                 print_badge_image($badge, $context, 'large'));
         $display .= html_writer::table($detailstable);
@@ -238,17 +236,6 @@ class core_badges_renderer extends plugin_renderer_base {
                 $url = new moodle_url(qualified_me());
                 $url->param('lock', $badge->id);
                 $actions .= $this->output->action_icon($url, new pix_icon('t/go', get_string('deactivate', 'badges'))) . " ";
-            }
-
-            // Show/hide badge.
-            if (!empty($badge->visible)) {
-                $url = new moodle_url(qualified_me());
-                $url->param('hide', $badge->id);
-                $actions .= $this->output->action_icon($url, new pix_icon('t/hide', get_string('hide'))) . " ";
-            } else {
-                $url = new moodle_url(qualified_me());
-                $url->param('show', $badge->id);
-                $actions .= $this->output->action_icon($url, new pix_icon('t/show', get_string('show'))) . " ";
             }
         }
 
@@ -396,17 +383,20 @@ class core_badges_renderer extends plugin_renderer_base {
         $localhtml = html_writer::start_tag('fieldset', array('class' => 'generalbox'));
         $localhtml .= html_writer::tag('legend', $this->output->heading_with_help(get_string('localbadges', 'badges'), 'localbadges', 'badges'));
         $localhtml .= html_writer::tag('div', get_string('badgesearned', 'badges', $badges->totalcount));
+        if ($badges->badges) {
+            $htmllist = $this->print_badges_list($badges->badges, $USER->id);
+            $htmlactions  = $this->bulk_user_action_form();
+            $attributes = array(
+                    'id'     => 'bulkaction',
+                    'action' => $this->page->url,
+                    'method' => 'post',
+                    'class'  => 'boxaligncenter'
+            );
+            $htmlform = html_writer::tag('form', $htmllist . $htmlactions, $attributes);
+        } else {
+            $htmlform = "";
+        }
 
-        $htmllist = $this->print_badges_list($badges->badges, $USER->id);
-
-        $htmlactions  = $this->bulk_user_action_form();
-        $attributes = array(
-                'id'     => 'bulkaction',
-                'action' => $this->page->url,
-                'method' => 'post',
-                'class'  => 'boxaligncenter'
-        );
-        $htmlform = html_writer::tag('form', $htmllist . $htmlactions, $attributes);
         $localhtml .= $searchform . $htmlpagingbar . $htmlform . $htmlpagingbar;
         $localhtml .= html_writer::end_tag('fieldset');
 
@@ -476,10 +466,9 @@ class core_badges_renderer extends plugin_renderer_base {
             $table->data[] = $row;
         }
 
-        $htmltable       = html_writer::table($table);
-        $htmlpreferences = $this->helper_preferences_form($badges->perpage);
+        $htmltable = html_writer::table($table);
 
-        return $htmlpagingbar . $htmltable . $htmlpagingbar . $htmlpreferences;
+        return $htmlpagingbar . $htmltable . $htmlpagingbar;
     }
 
     // Outputs table of badges with actions available.
@@ -494,7 +483,6 @@ class core_badges_renderer extends plugin_renderer_base {
         $sortbystatus = $this->helper_sortable_heading(get_string('status', 'badges'),
                 'status', $badges->sort, $badges->dir);
         $table->head = array(
-                get_string('select'),
                 get_string('badgeimage', 'badges'),
                 $sortbyname,
                 $sortbystatus,
@@ -502,10 +490,9 @@ class core_badges_renderer extends plugin_renderer_base {
                 get_string('awards', 'badges'),
                 get_string('actions')
             );
-        $table->colclasses = array('select', 'badgeimage', 'name', 'status', 'criteria', 'awards', 'actions');
+        $table->colclasses = array('badgeimage', 'name', 'status', 'criteria', 'awards', 'actions');
 
         foreach ($badges->badges as $b) {
-            $select = html_writer::checkbox('badges[]', $b->id, false, null, array('class' => 'badgecheckbox'));
             $badgeimage = print_badge_image($b, $this->page->context);
 
             $name = html_writer::link(new moodle_url('/badges/overview.php', array('id' => $b->id)), $b->name);
@@ -520,23 +507,12 @@ class core_badges_renderer extends plugin_renderer_base {
 
             $actions = self::print_badge_table_actions($b, $this->page->context);
 
-            $row = array($select, $badgeimage, $name, $status, $criteria, $awards, $actions);
+            $row = array($badgeimage, $name, $status, $criteria, $awards, $actions);
             $table->data[] = $row;
         }
+        $htmltable = html_writer::table($table);
 
-        $htmltable       = html_writer::table($table);
-        $htmlactions     = $this->bulk_action_form();
-        $htmlpreferences = $this->helper_preferences_form($badges->perpage);
-
-        $attributes = array(
-                'id'     => 'bulkaction',
-                'action' => 'bulk_action.php',
-                'method' => 'post',
-                'class'  => 'mform boxaligncenter boxwidthwide'
-                );
-        $htmlform = html_writer::tag('form', $htmlactions . $htmltable, $attributes);
-
-        return $htmlpagingbar . $htmlform . $htmlpagingbar . $htmlpreferences;
+        return $htmlpagingbar . $htmltable . $htmlpagingbar;
     }
 
     // Prints tabs for badge editing.
@@ -688,10 +664,9 @@ class core_badges_renderer extends plugin_renderer_base {
             $table->data[] = $row;
         }
 
-        $htmltable       = html_writer::table($table);
-        $htmlpreferences = $this->helper_preferences_form($recipients->perpage);
+        $htmltable = html_writer::table($table);
 
-        return $htmlpagingbar . $htmltable . $htmlpagingbar . $htmlpreferences;
+        return $htmlpagingbar . $htmltable . $htmlpagingbar;
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -699,38 +674,6 @@ class core_badges_renderer extends plugin_renderer_base {
     // Reused from stamps collection plugin
     ////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * Renders a form to set the view preferences
-     *
-     * @param int $perpage current value of users per page setting
-     * @return string HTML
-     */
-    protected function helper_preferences_form($perpage) {
-        global $CFG;
-        require_once($CFG->libdir . '/formslib.php');
-
-        $mform = new MoodleQuickForm('preferences',
-                                    'post',
-                                    $this->page->url,
-                                    '',
-                                    array('class' => 'preferences boxaligncenter boxwidthwide'));
-
-        $mform->addElement('hidden', 'sesskey', sesskey());
-        $mform->addElement('hidden', 'updatepref', 1);
-
-        $mform->addElement('header', 'qgprefs', get_string('preferences'));
-
-        $mform->addElement('text', 'perpage', get_string('perpage', 'badges'), array('size' => 2));
-        $mform->setDefault('perpage', $perpage);
-
-        $mform->addElement('submit', 'savepreferences', get_string('savepreferences'));
-
-        ob_start();
-        $mform->display();
-        $out = ob_get_clean();
-
-        return $out;
-    }
     /**
      * Renders a text with icons to sort by the given column
      *
@@ -777,33 +720,6 @@ class core_badges_renderer extends plugin_renderer_base {
         } else {
             return 'fl';
         }
-    }
-    /**
-     * Renders a form for bulk actions with badges
-     *
-     * @return string HTML
-     */
-    protected function bulk_action_form() {
-        $actions = array();
-        if (has_capability('moodle/badges:configuredetails', $this->page->context)) {
-            $actions['hide'] = get_string('hide');
-        }
-        if (has_capability('moodle/badges:configuredetails', $this->page->context)) {
-            $actions['show'] = get_string('makevisible', 'badges');
-        }
-        if (has_capability('moodle/badges:deletebadge', $this->page->context)) {
-            $actions['delete'] = get_string('delete');
-        }
-
-        $output = html_writer::tag('fieldset',
-                html_writer::label(get_string('selecting', 'badges'), 'menuaction') .
-                html_writer::select($actions, 'action', null, array('' => 'choosedots')) .
-                html_writer::empty_tag('input', array('type' => 'submit', 'value' => get_string('go'))) .
-                html_writer::empty_tag('input', array('type' => 'hidden', 'value' => sesskey(), 'name' => 'sesskey')) .
-                html_writer::empty_tag('input', array('type' => 'hidden', 'value' => qualified_me(), 'name' => 'returnto')),
-                array('class' => 'boxaligncenter boxwidthwide'));
-
-        return $output;
     }
     /**
      * Renders a form for bulk actions with badges
@@ -962,7 +878,7 @@ class badge_collection implements renderable {
     public $page = 0;
 
     /** @var int number of badges to display per page */
-    public $perpage = 30;
+    public $perpage = BADGE_PERPAGE;
 
     /** @var int the total number of badges to display */
     public $totalcount = null;

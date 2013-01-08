@@ -29,18 +29,13 @@ require_once($CFG->libdir . '/badgeslib.php');
 
 $type = required_param('type', PARAM_INT);
 $courseid = optional_param('id', 0, PARAM_INT);
-$search  = optional_param('search', '', PARAM_CLEAN);
 $page = optional_param('page', 0, PARAM_INT);
-$perpage = optional_param('perpage', 20, PARAM_INT);
 $activate = optional_param('activate', 0, PARAM_INT);
 $deactivate = optional_param('lock', 0, PARAM_INT);
-$hide = optional_param('hide', 0, PARAM_INT);
-$show = optional_param('show', 0, PARAM_INT);
 $sortby = optional_param('sort', 'name', PARAM_ALPHA);
 $sorthow  = optional_param('dir', 'ASC', PARAM_ALPHA);
 $confirm  = optional_param('confirm', false, PARAM_BOOL);
 $delete = optional_param('delete', 0, PARAM_INT);
-$updatepref = optional_param('updatepref', false, PARAM_BOOL);
 
 if (!in_array($sortby, array('name', 'status'))) {
     $sortby = 'name';
@@ -57,7 +52,7 @@ if ($page < 0) {
 require_login();
 
 $msg = '';
-$urlparams = array('sort' => $sortby, 'dir' => $sorthow, 'perpage' => $perpage, 'page' => $page);
+$urlparams = array('sort' => $sortby, 'dir' => $sorthow, 'page' => $page);
 
 if ($course = $DB->get_record('course', array('id' => $courseid))) {
     $urlparams['type'] = $type;
@@ -93,14 +88,6 @@ if (!has_capability('moodle/badges:awardbadge', $PAGE->context)) {
 $PAGE->set_title($title);
 $output = $PAGE->get_renderer('core', 'badges');
 
-if ($updatepref) {
-    require_sesskey();
-    if ($perpage > 0) {
-        set_user_preference('badgesmng_perpage', $perpage);
-    }
-    redirect($returnurl);
-}
-
 if ($delete && has_capability('moodle/badges:deletebadge', $PAGE->context)) {
     $badge = new badge($delete);
     if (!$confirm) {
@@ -117,18 +104,6 @@ if ($delete && has_capability('moodle/badges:deletebadge', $PAGE->context)) {
         $badge->delete();
         redirect($returnurl);
     }
-}
-
-if ($hide && has_capability('moodle/badges:configuredetails', $PAGE->context)) {
-    $badge = new badge($hide);
-    $badge->visible = 0;
-    $badge->save();
-    redirect($returnurl);
-} else if ($show && has_capability('moodle/badges:configuredetails', $PAGE->context)) {
-    $badge = new badge($show);
-    $badge->visible = 1;
-    $badge->save();
-    redirect($returnurl);
 }
 
 if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context)) {
@@ -157,10 +132,8 @@ if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managebadges', 'badges'));
 
-$perpage = (int)get_user_preferences('badgesmng_perpage', 20);
-
-$totalcount = count(get_badges($type, $courseid, false, '', '', '', '', ''));
-$records = get_badges($type, $courseid, false, $sortby, $sorthow, $page, $perpage, $search);
+$totalcount = count(get_badges($type, $courseid));
+$records = get_badges($type, $courseid, $sortby, $sorthow, $page, BADGE_PERPAGE);
 
 if ($totalcount) {
     echo $output->heading(get_string('badgestoearn', 'badges', $totalcount), 2);
@@ -173,7 +146,7 @@ if ($totalcount) {
     $badges->sort       = $sortby;
     $badges->dir        = $sorthow;
     $badges->page       = $page;
-    $badges->perpage    = $perpage;
+    $badges->perpage    = BADGE_PERPAGE;
     $badges->totalcount = $totalcount;
 
     echo $output->render($badges);

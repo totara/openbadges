@@ -32,9 +32,6 @@ $courseid   = optional_param('id', 0, PARAM_INT);
 $sortby     = optional_param('sort', 'name', PARAM_ALPHA);
 $sorthow    = optional_param('dir', 'DESC', PARAM_ALPHA);
 $page       = optional_param('page', 0, PARAM_INT);
-$updatepref = optional_param('updatepref', false, PARAM_BOOL);
-$perpage    = optional_param('perpage', 20, PARAM_INT);
-$search     = optional_param('search', '', PARAM_CLEAN);
 
 require_login();
 
@@ -75,19 +72,10 @@ if ($type == BADGE_TYPE_SITE) {
 $PAGE->set_title($title);
 $output = $PAGE->get_renderer('core', 'badges');
 
-if ($updatepref) {
-    require_sesskey();
-    if ($perpage > 0) {
-        set_user_preference('badges_perpage', $perpage);
-    }
-    redirect($PAGE->url);
-}
-
 echo $output->header();
-$perpage = (int)get_user_preferences('badges_perpage', 20);
 
-$totalcount = count(get_badges($type, $courseid, true, '', '', '', '', '', $USER->id));
-$records = get_badges($type, $courseid, true, $sortby, $sorthow, $page, $perpage, $search, $USER->id);
+$totalcount = count(get_badges($type, $courseid, '', '', '', '', $USER->id));
+$records = get_badges($type, $courseid, $sortby, $sorthow, $page, BADGE_PERPAGE, $USER->id);
 
 if ($totalcount) {
     echo $output->heading(get_string('badgestoearn', 'badges', $totalcount), 2);
@@ -95,7 +83,7 @@ if ($totalcount) {
     $badges->sort       = $sortby;
     $badges->dir        = $sorthow;
     $badges->page       = $page;
-    $badges->perpage    = $perpage;
+    $badges->perpage    = BADGE_PERPAGE;
     $badges->totalcount = $totalcount;
 
     echo $output->render($badges);
