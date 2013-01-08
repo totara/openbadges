@@ -78,7 +78,7 @@ class core_badges_renderer extends plugin_renderer_base {
         return html_writer::alist($items, array('class' => 'badges'));
     }
 
-    // Recipients selection form
+    // Recipients selection form.
     public function recipients_selection_form(user_selector_base $existinguc, user_selector_base $potentialuc) {
         $output = '';
         $formattributes = array();

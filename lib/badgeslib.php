@@ -933,7 +933,7 @@ function badges_award_handle_course_criteria_review($eventdata) {
             $crit = $DB->get_record('badge_criteria', array('id' => $r->critid), 'badgeid, criteriatype', MUST_EXIST);
             $badge = new badge($crit->badgeid);
             if (!$badge->is_active() || $badge->is_issued($userid)) {
-                return true;
+                continue;
             }
 
             if ($badge->criteria[$crit->criteriatype]->review($userid)) {
@@ -970,7 +970,7 @@ function badges_award_handle_activity_criteria_review($eventdata) {
                 $bid = $DB->get_field('badge_criteria', 'badgeid', array('id' => $r->critid), MUST_EXIST);
                 $badge = new badge($bid);
                 if (!$badge->is_active() || $badge->is_issued($userid)) {
-                    return true;
+                    continue;
                 }
 
                 if ($badge->criteria[BADGE_CRITERIA_TYPE_ACTIVITY]->review($userid)) {
@@ -1002,7 +1002,7 @@ function badges_award_handle_profile_criteria_review($eventdata) {
         foreach ($rs as $r) {
             $badge = new badge($r->badgeid);
             if (!$badge->is_active() || $badge->is_issued($userid)) {
-                return true;
+                continue;
             }
 
             if ($badge->criteria[BADGE_CRITERIA_TYPE_PROFILE]->review($userid)) {
@@ -1030,7 +1030,7 @@ function badges_award_handle_manual_criteria_review($data) {
     $userid = $data->userid;
     $badge = new badge($criteria->badgeid);
 
-    if (!$badge->is_active()) {
+    if (!$badge->is_active() || $badge->is_issued($userid)) {
         return true;
     }
 

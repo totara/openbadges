@@ -28,6 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once('award_criteria_course.php');
 require_once($CFG->libdir . '/completionlib.php');
 require_once($CFG->dirroot . '/grade/querylib.php');
+require_once($CFG->libdir . '/gradelib.php');
 
 /**
  * Badge award criteria -- award on courseset completion
@@ -155,18 +156,18 @@ class award_criteria_courseset extends award_criteria_course {
         global $DB;
         $options = "";
         $none = true;
-        $exisiting = array();
+        $existing = array();
 
         $courses = $DB->get_records('course', array('enablecompletion' => COMPLETION_ENABLED, 'visible' => 1));
 
         // If it is an existing criterion, show only available params.
         if ($this->id !== 0) {
-            $exisiting = array_keys($this->params);
+            $existing = array_keys($this->params);
         }
 
         if (!empty($courses)) {
             foreach ($courses as $course) {
-                if (!in_array($course->id, $exisiting)) {
+                if (!in_array($course->id, $existing)) {
                     $options .= html_writer::checkbox('options[]', $course->id, false, ucfirst($course->fullname)) . '<br/>';
                     $none = false;
                 }

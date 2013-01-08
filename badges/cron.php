@@ -46,10 +46,10 @@ function badge_review_cron() {
             'active' => BADGE_STATUS_ACTIVE,
             'activelocked' => BADGE_STATUS_ACTIVE_LOCKED,
             'current' => time());
-    $badges = $DB->get_records_sql($sql, $params);
+    $badges = $DB->get_fieldset_sql($sql, $params);
 
-    foreach ($badges as $b) {
-        $badge = new badge($b->id);
+    foreach ($badges as $bid) {
+        $badge = new badge($bid);
 
         if ($badge->has_criteria()) {
             if (debugging()) {

@@ -507,7 +507,7 @@ $string['newimage'] = 'New image';
 $string['noawards'] = 'This badge has not been earned yet.';
 $string['nobadges'] = 'There are no badges available.';
 $string['nocriteria'] = 'Criteria for this badge have not been set up yet.';
-$string['numawards'] = 'This badge has been earned by {$a} user(s).';
+$string['numawards'] = 'This badge has been issued to {$a} user(s).';
 $string['noexpiry'] = 'This badge does not have an expiry date.';
 $string['notacceptedrole'] = 'Your current role assignment is not among the roles that can manually issue this badge. <br/>
 If you would like to see users who have already earned this badge, you can visit {$a} page. ';
@@ -544,13 +544,13 @@ $string['actions_help'] = '';
 $string['attachment_help'] = 'If this \'Attachment\' is checked, an issued badge will be attached to the recepient\'s email for download';
 $string['contact_help'] = 'An email address associated with the badge issuer.';
 $string['criteria_0_help'] = 'Overall help';
-$string['criteria_1_help'] = 'Help';
-$string['criteria_2_help'] = "Role help";
-$string['criteria_3_help'] = "Social help";
-$string['criteria_4_help'] = "Course help";
-$string['criteria_5_help'] = "Courseset Help";
-$string['criteria_6_help'] = "Profile help";
-$string['expirydate_help'] = 'TODO'; // @TODO.
+$string['criteria_1_help'] = 'Activity completion allows to award a badge to users who have completed a set of selected activities.';
+$string['criteria_2_help'] = 'This criterion allows to award a badge manually by the users with selected roles.';
+$string['criteria_3_help'] = 'Social';
+$string['criteria_4_help'] = 'Course completion allows to award a badge to users who have completed the course. This criterion can have additional parameters such as minimum grade and date of course completion.';
+$string['criteria_5_help'] = 'Courseset completion allows to award a badge to users who have completed a set of selected courses. Each course can have additional parameters such as minimum grade and date of course completion. ';
+$string['criteria_6_help'] = 'Profile completion allows to award a badge when a user completes selected fields in their profile. You can select from default and custom profile fields that are available to users. ';
+$string['expirydate_help'] = 'Optionally, badges can expire on a specific date, or such date can also be calculated based on the date when this badge was issued to a user. ';
 $string['badgeimage_help'] = 'This is an image that will be used when this badge is issued.
 
 To add a new image, browse and select an image (in JPG or PNG format) then click "Save changes". The image will be cropped to a square and resized to match badge image requirements. ';
@@ -587,10 +587,7 @@ $string['variablesubstitution_help'] = 'In a badge message, certain variables ca
 :   This will be replaced by the recipient\'s full name.
 
 %badgelink%
-:   This will be replaced by the public URL with information about the issued badge.
-
-%criterialist%
-:   This will be replaced by the list of completed criteria for issued badge.';
+:   This will be replaced by the public URL with information about the issued badge.';
 $string['visible_help'] = 'This setting indicates whether badge is visible to its potential earners.
 
 If this checkbox is checked and the badge is active, users will be able to see the badge in the list of site or course badges.
