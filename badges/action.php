@@ -129,7 +129,8 @@ if ($activate) {
     $status = ($badge->status == BADGE_STATUS_INACTIVE) ? BADGE_STATUS_ACTIVE : BADGE_STATUS_ACTIVE_LOCKED;
     if ($confirm == 1 && confirm_sesskey()) {
         $badge->set_status($status);
-        $badge->review_all_criteria();
+        $awards = $badge->review_all_criteria();
+        $returnurl->param('awards', $awards);
         redirect($returnurl);
     }
 

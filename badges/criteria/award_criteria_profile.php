@@ -84,8 +84,6 @@ class award_criteria_profile extends award_criteria {
         global $CFG, $DB;
         $html = "";
 
-        //only retrieve required custom fields (with category information)
-        //results are sort by categories, then by fields
         $sql = "SELECT uf.id as fieldid, uf.name as name, ic.id as categoryid, ic.name as categoryname, uf.datatype
                 FROM {user_info_field} uf
                 JOIN {user_info_category} ic

@@ -131,7 +131,7 @@ if ($hide && has_capability('moodle/badges:configuredetails', $PAGE->context)) {
     redirect($returnurl);
 }
 
-if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context)) { // @TODO: message about activation
+if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context)) {
     $badge = new badge($activate);
 
     if (!$badge->has_criteria()) {

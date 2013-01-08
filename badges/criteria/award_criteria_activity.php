@@ -182,7 +182,7 @@ class award_criteria_activity extends award_criteria {
         global $DB;
         $options = "";
         $none = true;
-        $exisiting = array();
+        $existing = array();
 
         $course = $DB->get_record('course', array('id' => $this->courseid));
         $info = new completion_info($course);
@@ -190,12 +190,12 @@ class award_criteria_activity extends award_criteria {
 
         // If it is an existing criterion, show only available params.
         if ($this->id !== 0) {
-            $exisiting = array_keys($this->params);
+            $existing = array_keys($this->params);
         }
 
         if (!empty($mods)) {
             foreach ($mods as $mod) {
-                if (!in_array($mod->id, $exisiting)) {
+                if (!in_array($mod->id, $existing)) {
                     $options .= html_writer::checkbox('options[]', $mod->id, false, ucfirst($mod->modname) . ' - ' . $mod->name) . '<br/>';
                     $none = false;
                 }

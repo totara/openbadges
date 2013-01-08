@@ -178,7 +178,7 @@ class award_criteria_manual extends award_criteria {
 
         $overall = null;
         foreach ($this->params as $param) {
-            $crit = $DB->get_record('badge_manual_award', array('issuerrole' => $param['role'], 'recipientid' => $userid));
+            $crit = $DB->get_record('badge_manual_award', array('issuerrole' => $param['role'], 'recipientid' => $userid, 'badgeid' => $this->badgeid));
             if ($this->method == BADGE_CRITERIA_AGGREGATION_ALL) {
                 if (!$crit) {
                     return false;

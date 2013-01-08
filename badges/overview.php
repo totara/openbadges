@@ -28,6 +28,7 @@ require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
 $badgeid = required_param('id', PARAM_INT);
+$awards = optional_param('awards', 0, PARAM_INT);
 
 require_login();
 
@@ -55,10 +56,13 @@ $PAGE->navbar->add($badge->name);
 echo $OUTPUT->header();
 echo $OUTPUT->heading($badge->name . ': ' . get_string('boverview', 'badges'));
 
+if ($awards) {
+    echo $OUTPUT->notification(get_string('numawards', 'badges', $awards), 'notifysuccess');
+}
+
 $output = $PAGE->get_renderer('core', 'badges');
 $output->print_badge_tabs($badgeid, $context, 'overview');
 echo $output->print_badge_overview($badge, $context);
 echo $output->print_badge_overview_actions($badge, $context);
-$crit = $badge->get_criteria();
 
 echo $OUTPUT->footer();
