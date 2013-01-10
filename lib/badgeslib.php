@@ -688,9 +688,8 @@ function notify_badge_award(badge $badge, $userid, $issued, $filepathhash) {
         $eventdata->subject           = $creatorsubject;
         $eventdata->fullmessage       = $creatormessage;
         $eventdata->fullmessageformat = FORMAT_PLAIN;
-        $eventdata->fullmessagehtml   = $creatormessage;
+        $eventdata->fullmessagehtml   = format_text($creatormessage, FORMAT_HTML);
         $eventdata->smallmessage      = '';
-        $eventdata->notification      = 1;
 
         message_send($eventdata);
     }
@@ -784,8 +783,8 @@ function get_user_badges($userid, $courseid = 0, $page = 0, $perpage = 0, $searc
     $badges = array();
 
     $sql = 'SELECT
-                bi.dateissued,
                 bi.uniquehash,
+                bi.dateissued,
                 bi.dateexpire,
                 bi.visible as public,
                 u.email,
@@ -1170,8 +1169,12 @@ function download_badges($userid, $badges) {
     // Get list of files to download.
     $fs = get_file_storage();
     $filelist = array();
-    foreach ($records as $badge) {
-        $filelist[$badge->uniquehash . '.png'] = $fs->get_file($context->id, 'badges', 'userbadge', $badge->badgeid, '/', $badge->uniquehash . '.png');
+    foreach ($records as $issued) {
+        $badge = new badge($issued->badgeid);
+        // Need to make image name user-readable and unique using filename safe characters.
+        $name =  $badge->name . ' ' . userdate($issued->dateissued, '%d %b %Y') . ' ' . hash('crc32', $badge->id);
+        $name = str_replace(' ', '_', $name);
+        $filelist[$name . '.png'] = $fs->get_file($context->id, 'badges', 'userbadge', $issued->badgeid, '/', $issued->uniquehash . '.png');
     }
 
     // Zip files and sent them to a user.

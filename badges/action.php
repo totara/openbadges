@@ -115,7 +115,7 @@ if ($clear) {
     die;
 }
 
-if ($copy) {
+if ($copy && confirm_sesskey()) {
     require_capability('moodle/badges:createbadge', $context);
 
     $cloneid = $badge->make_clone();
@@ -155,7 +155,7 @@ if ($activate) {
     die;
 }
 
-if ($deactivate) {
+if ($deactivate && confirm_sesskey()) {
     require_capability('moodle/badges:configurecriteria', $context);
 
     $status = ($badge->status == BADGE_STATUS_ACTIVE) ? BADGE_STATUS_INACTIVE : BADGE_STATUS_INACTIVE_LOCKED;

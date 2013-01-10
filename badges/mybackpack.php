@@ -60,6 +60,12 @@ $backpack = $DB->get_record('badge_backpack', array('userid' => $USER->id));
 if ($backpack) {
     $bp = new OpenBadgesBackpackHandler($backpack);
     $request = $bp->get_groups();
+
+    if (empty($request->groups)) {
+        unset($SESSION->badgesparams);
+        redirect(new moodle_url('/badges/mybadges.php'), get_string('error:nogroups', 'badges'), 20);
+    }
+
     $params = array(
             'data' => $backpack,
             'backpackuid' => $request->userId,
@@ -104,7 +110,10 @@ if ($backpack) {
             // If there is an error, start over.
             if (is_array($request) && $request['status'] == 'missing') {
                 unset($SESSION->badgesparams);
-                redirect(new moodle_url('/badges/mybackpack.php'), $request['message'], 5);
+                redirect(new moodle_url('/badges/mybackpack.php'), $request['message'], 10);
+            } else if (empty($request->groups)) {
+                unset($SESSION->badgesparams);
+                redirect(new moodle_url('/badges/mybadges.php'), get_string('error:nogroups', 'badges'), 20);
             }
 
             $params = array(

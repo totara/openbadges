@@ -156,7 +156,15 @@ class core_badges_renderer extends plugin_renderer_base {
             if ($badge->expiredate) {
                 $display .= get_string('expiredate', 'badges', userdate($badge->expiredate));
             } else if ($badge->expireperiod) {
-                $display .= get_string('expireperiod', 'badges', $badge->expireperiod / 60 / 60 / 24);
+                if ($badge->expireperiod < 60) {
+                    $display .= get_string('expireperiods', 'badges', round($badge->expireperiod, 2));
+                } else if ($badge->expireperiod < 60 * 60) {
+                    $display .= get_string('expireperiodm', 'badges', round($badge->expireperiod / 60, 2));
+                } else if ($badge->expireperiod < 60 * 60 * 24) {
+                    $display .= get_string('expireperiodh', 'badges', round($badge->expireperiod / 60 / 60, 2));
+                } else {
+                    $display .= get_string('expireperiod', 'badges', round($badge->expireperiod / 60 / 60 / 24, 2));
+                }
             }
         } else {
             $display .= get_string('noexpiry', 'badges');
@@ -202,14 +210,14 @@ class core_badges_renderer extends plugin_renderer_base {
 
         if (has_capability('moodle/badges:createbadge', $context)) {
             $actions[] = $this->output->single_button(
-                    new moodle_url('/badges/action.php', array('id' => $badge->id, 'copy' => 1)),
+                    new moodle_url('/badges/action.php', array('id' => $badge->id, 'copy' => 1, 'sesskey' => sesskey())),
                     get_string('duplicate'));
         }
 
         if (has_capability('moodle/badges:configurecriteria', $context)) {
             if ($badge->is_active()) {
                 $actions[] = $this->output->single_button(
-                        new moodle_url('/badges/action.php', array('id' => $badge->id, 'lock' => 1)),
+                        new moodle_url('/badges/action.php', array('id' => $badge->id, 'lock' => 1, 'sesskey' => sesskey())),
                         get_string('deactivate', 'badges'));
             } else {
                 $actions[] = $this->output->single_button(
@@ -235,6 +243,7 @@ class core_badges_renderer extends plugin_renderer_base {
             } else {
                 $url = new moodle_url(qualified_me());
                 $url->param('lock', $badge->id);
+                $url->param('sesskey', sesskey());
                 $actions .= $this->output->action_icon($url, new pix_icon('t/go', get_string('deactivate', 'badges'))) . " ";
             }
         }
@@ -255,7 +264,7 @@ class core_badges_renderer extends plugin_renderer_base {
 
         // Duplicate badge.
         if (has_capability('moodle/badges:createbadge', $context)) {
-            $url = new moodle_url('/badges/action.php', array('copy' => '1', 'id' => $badge->id));
+            $url = new moodle_url('/badges/action.php', array('copy' => '1', 'id' => $badge->id, 'sesskey' => sesskey()));
             $actions .= $this->output->action_icon($url, new pix_icon('t/copy', get_string('copy'))) . " ";
         }
 
@@ -474,6 +483,12 @@ class core_badges_renderer extends plugin_renderer_base {
     // Outputs table of badges with actions available.
     protected function render_badge_management(badge_management $badges) {
         $paging = new paging_bar($badges->totalcount, $badges->page, $badges->perpage, $this->page->url, 'page');
+
+        // New badge button.
+        $n['type'] = $this->page->url->get_param('type');
+        $n['id'] = $this->page->url->get_param('id');
+        $htmlnew = $this->output->single_button(new moodle_url('newbadge.php', $n), get_string('newbadge', 'badges'));
+
         $htmlpagingbar = $this->render($paging);
         $table = new html_table();
         $table->attributes['class'] = 'collection';
@@ -512,7 +527,7 @@ class core_badges_renderer extends plugin_renderer_base {
         }
         $htmltable = html_writer::table($table);
 
-        return $htmlpagingbar . $htmltable . $htmlpagingbar;
+        return $htmlnew . $htmlpagingbar . $htmltable . $htmlpagingbar;
     }
 
     // Prints tabs for badge editing.
@@ -575,9 +590,11 @@ class core_badges_renderer extends plugin_renderer_base {
         unset($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]);
         foreach ($badge->criteria as $type => $c) {
             if (count($c->params) == 1) {
-                $items[] .= get_string('criteria_descr_single_' . $type , 'badges', strtoupper($agg[$badge->get_aggregation_method($type)])) . $c->get_details();
+                $items[] .= get_string('criteria_descr_single_' . $type , 'badges',
+                        strtoupper($agg[$badge->get_aggregation_method($type)])) . $c->get_details();
             } else {
-                $items[] .= get_string('criteria_descr_' . $type , 'badges', strtoupper($agg[$badge->get_aggregation_method($type)])) . $c->get_details();
+                $items[] .= get_string('criteria_descr_' . $type , 'badges',
+                        strtoupper($agg[$badge->get_aggregation_method($type)])) . $c->get_details();
             }
         }
         $output .= html_writer::alist($items, array(), 'ul');

@@ -132,7 +132,7 @@ if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('managebadges', 'badges'));
 
-$totalcount = count(get_badges($type, $courseid));
+$totalcount = count(get_badges($type, $courseid, '', '' , '', ''));
 $records = get_badges($type, $courseid, $sortby, $sorthow, $page, BADGE_PERPAGE);
 
 if ($totalcount) {

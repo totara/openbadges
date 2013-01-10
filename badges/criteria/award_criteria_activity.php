@@ -133,6 +133,10 @@ class award_criteria_activity extends award_criteria {
             $parameter[] =& $mform->createElement('static', $prefix . '-action_' . $param['module'], null, $delete);
             $mform->addGroup($parameter, $prefix . '-param' . $param['module'], ucfirst($mod->modname) . ' - ' . $mod->name, array(' '), false);
 
+            $mform->disabledIf($prefix . '-bydate_' . $param['module'] . '[day]', $prefix . '-bydate_' . $param['module'] . '[enabled]', 'notchecked');
+            $mform->disabledIf($prefix . '-bydate_' . $param['module'] . '[month]', $prefix . '-bydate_' . $param['module'] . '[enabled]', 'notchecked');
+            $mform->disabledIf($prefix . '-bydate_' . $param['module'] . '[year]', $prefix . '-bydate_' . $param['module'] . '[enabled]', 'notchecked');
+
             // Set existing values.
             if (isset($param['bydate'])) {
                 $mform->setDefault($prefix . '-bydate_' . $param['module'], $param['bydate']);

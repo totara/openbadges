@@ -111,6 +111,10 @@ class award_criteria_courseset extends award_criteria_course {
             $parameter[] =& $mform->createElement('static', $prefix . '-action_' . $param['course'], null, $delete);
             $mform->addGroup($parameter, $prefix . '-param' . $param['course'], ucfirst($course->fullname), array(' '), false);
 
+            $mform->disabledIf($prefix . '-bydate_' . $param['course'] . '[day]', $prefix . '-bydate_' . $param['course'] . '[enabled]', 'notchecked');
+            $mform->disabledIf($prefix . '-bydate_' . $param['course'] . '[month]', $prefix . '-bydate_' . $param['course'] . '[enabled]', 'notchecked');
+            $mform->disabledIf($prefix . '-bydate_' . $param['course'] . '[year]', $prefix . '-bydate_' . $param['course'] . '[enabled]', 'notchecked');
+
             // Set existing values.
             if (isset($param['bydate'])) {
                 $mform->setDefault($prefix . '-bydate_' . $param['course'], $param['bydate']);

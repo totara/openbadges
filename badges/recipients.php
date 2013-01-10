@@ -32,7 +32,6 @@ $sortby     = optional_param('sort', 'dateissued', PARAM_ALPHA);
 $sorthow    = optional_param('dir', 'DESC', PARAM_ALPHA);
 $page       = optional_param('page', 0, PARAM_INT);
 $updatepref = optional_param('updatepref', false, PARAM_BOOL);
-$perpage    = optional_param('perpage', 20, PARAM_INT);
 
 require_login();
 
@@ -67,14 +66,6 @@ navigation_node::override_active_url($navurl);
 
 $output = $PAGE->get_renderer('core', 'badges');
 
-if ($updatepref) {
-    require_sesskey();
-    if ($perpage > 0) {
-        set_user_preference('recipients_perpage', $perpage);
-    }
-    redirect($PAGE->url);
-}
-
 echo $output->header();
 echo $output->heading($badge->name . ': ' . get_string('awards', 'badges'));
 
@@ -86,16 +77,15 @@ $sql = "SELECT b.userid, b.dateissued, b.uniquehash, u.firstname, u.lastname
     WHERE b.badgeid = :badgeid
     ORDER BY $sortby $sorthow";
 
-$perpage = get_user_preferences('recipients_perpage', 20);
 $totalcount = $DB->count_records('badge_issued', array('badgeid' => $badge->id));
 
 if ($badge->has_awards()) {
-    $users = $DB->get_records_sql($sql, array('badgeid' => $badge->id), $page * $perpage, $perpage);
+    $users = $DB->get_records_sql($sql, array('badgeid' => $badge->id), $page * BADGE_PERPAGE, BADGE_PERPAGE);
     $recipients             = new badge_recipients($users);
     $recipients->sort       = $sortby;
     $recipients->dir        = $sorthow;
     $recipients->page       = $page;
-    $recipients->perpage    = $perpage;
+    $recipients->perpage    = BADGE_PERPAGE;
     $recipients->totalcount = $totalcount;
 
     echo $output->render($recipients);
