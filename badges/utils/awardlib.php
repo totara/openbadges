@@ -88,6 +88,7 @@ abstract class badge_award_selector_base extends user_selector_base {
     protected function get_options() {
         global $CFG;
         $options = parent::get_options();
+        $options['file'] =  'badges/utils/awardlib.php';
         $options['context'] = $this->context;
         $options['badgeid'] = $this->badgeid;
         $options['issuerid'] = $this->issuerid;
@@ -128,18 +129,17 @@ class badge_potential_users_selector extends badge_award_selector_base {
         $existingids = array();
         foreach ($this->existingrecipients as $group) {
             foreach ($group as $user) {
-                $existingids[$user->id] = 1;
+                $existingids[] = $user->id;
             }
         }
         if ($existingids) {
-            list($usertest, $userparams) = $DB->get_in_or_equal(
-                    array_keys($existingids), SQL_PARAMS_NAMED, 'existing', false);
+            list($usertest, $userparams) = $DB->get_in_or_equal($existingids, SQL_PARAMS_NAMED, 'ex', false);
             $whereconditions[] = 'u.id ' . $usertest;
             $params = array_merge($params, $userparams);
         }
 
         if ($whereconditions) {
-            $wherecondition = 'WHERE ' . implode(' AND ', $whereconditions);
+            $wherecondition = ' WHERE ' . implode(' AND ', $whereconditions);
         }
 
         list($esql, $eparams) = get_enrolled_sql($this->context, 'moodle/badges:earnbadge', 0, true);
@@ -148,9 +148,13 @@ class badge_potential_users_selector extends badge_award_selector_base {
         $fields      = 'SELECT ' . $this->required_fields_sql('u');
         $countfields = 'SELECT COUNT(u.id)';
 
-        $sql = " FROM {user} u
-        JOIN ($esql) je ON je.id = u.id
-        $wherecondition";
+        $params['badgeid'] = $this->badgeid;
+        $params['issuerrole'] = $this->issuerrole;
+
+        $sql = " FROM {user} u JOIN ($esql) je ON je.id = u.id
+                 LEFT JOIN {badge_manual_award} bm
+                     ON (bm.recipientid = u.id AND bm.badgeid = :badgeid AND bm.issuerrole = :issuerrole)
+                 $wherecondition AND bm.id IS NULL";
 
         list($sort, $sortparams) = users_order_by_sql('u', $search, $this->accesscontext);
         $order = ' ORDER BY ' . $sort;
@@ -200,6 +204,7 @@ class badge_existing_users_selector extends badge_award_selector_base {
         list($esql, $eparams) = get_enrolled_sql($this->context, 'moodle/badges:earnbadge', 0, true);
         $fields = $this->required_fields_sql('u');
         list($sort, $sortparams) = users_order_by_sql('u', $search, $this->accesscontext);
+
         $params = array_merge($params, $eparams, $sortparams);
         $recipients = $DB->get_records_sql("SELECT $fields
                 FROM {user} u

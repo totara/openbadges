@@ -258,11 +258,11 @@ abstract class award_criteria {
         $fordb->method = $this->method;
         $fordb->badgeid = $newbadgeid;
         if (($newcrit = $DB->insert_record('badge_criteria', $fordb, true)) && isset($this->params)) {
-            foreach ($this->params as $param) {
+            foreach ($this->params as $k => $param) {
                 foreach ($param as $key => $value) {
                     $paramdb = new stdClass();
                     $paramdb->critid = $newcrit;
-                    $paramdb->name = $key . '_' . $value;
+                    $paramdb->name = $key . '_' . $k;
                     $paramdb->value = $value;
                     $DB->insert_record('badge_criteria_param', $paramdb);
                 }

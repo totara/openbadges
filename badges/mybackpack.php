@@ -107,6 +107,7 @@ if ($backpack) {
 
     if ($form->is_cancelled()) {
         redirect(new moodle_url('/badges/mybadges.php'));
+
     } else if ($data = $form->get_data()) {
         $bp = new OpenBadgesBackpackHandler($data);
 

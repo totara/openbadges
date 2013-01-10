@@ -48,12 +48,13 @@ class edit_details_form extends moodleform {
 
         $mform->addElement('header', 'badgedetails', get_string('badgedetails', 'badges'));
         $mform->addElement('text', 'name', get_string('name'), array('size' => '70'));
-        $mform->setType('name', PARAM_NOTAGS);
+        // Using PARAM_FILE to avoid problems later when downloading badge files.
+        $mform->setType('name', PARAM_FILE);
         $mform->addRule('name', null, 'required');
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
         $mform->addElement('textarea', 'description', get_string('description', 'badges'), 'wrap="virtual" rows="10" cols="70"');
-        $mform->setType('description', PARAM_TEXT);
+        $mform->setType('description', PARAM_CLEANHTML);
 
         $imageoptions = array('maxbytes' => 262144, 'accepted_types' => array('web_image'));
         $mform->addElement('filepicker', 'image', get_string('newimage', 'badges'), null, $imageoptions);

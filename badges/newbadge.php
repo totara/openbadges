@@ -64,7 +64,6 @@ if ($form->is_cancelled()) {
 
     $fordb->name = $data->name;
     $fordb->description = $data->description;
-    $fordb->visible = $data->visible;
     $fordb->timecreated = $now;
     $fordb->timemodified = $now;
     $fordb->usermodified = $USER->id;

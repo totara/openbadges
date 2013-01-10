@@ -29,11 +29,13 @@ require_once($CFG->libdir . '/badgeslib.php');
 require_once($CFG->dirroot . '/badges/utils/awardlib.php');
 
 $badgeid = required_param('id', PARAM_INT);
+$role = optional_param('role', 0, PARAM_INT);
 
 require_login();
 
 $badge = new badge($badgeid);
 $context = $badge->get_context();
+$isadmin = is_siteadmin($USER);
 
 $navurl = new moodle_url('/badges/index.php', array('type' => $badge->context));
 
@@ -137,5 +139,10 @@ if (data_submitted() && has_capability('moodle/badges:awardbadge', $context)) {
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading($strrecipients);
+
+if ($isadmin) {
+    echo $OUTPUT->box($roleselect);
+}
+
 echo $output->recipients_selection_form($existingselector, $recipientselector);
 echo $OUTPUT->footer();

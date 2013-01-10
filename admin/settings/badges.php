@@ -45,23 +45,23 @@ if (($hassiteconfig || has_any_capability(array(
     $globalsettings->add(new admin_setting_configtext('badges_defaultissuername',
             new lang_string('defaultissuername', 'badges'),
             new lang_string('defaultissuername_desc', 'badges'),
-            $SITE->fullname ? $SITE->fullname : $SITE->shortname, PARAM_TEXT));
+            get_config('badges', 'badges_defaultissuername'), PARAM_TEXT));
 
     $url = parse_url($CFG->wwwroot);
     $globalsettings->add(new admin_setting_configtext('badges_defaultissuerurl',
             new lang_string('defaultissuerurl', 'badges'),
             new lang_string('defaultissuerurl_desc', 'badges'),
-            $url['scheme'] . '://' . $url['host'], PARAM_TEXT));
+            $url['scheme'] . '://' . $url['host'], PARAM_URL));
 
     $globalsettings->add(new admin_setting_configtext('badges_defaultissuercontact',
             new lang_string('defaultissuercontact', 'badges'),
             new lang_string('defaultissuercontact_desc', 'badges'),
-            get_config('moodle','supportemail'), PARAM_TEXT));
+            get_config('badges', 'badges_defaultissuercontact'), PARAM_EMAIL));
 
     $globalsettings->add(new admin_setting_configtext('badges_defaultbadgesalt',
             new lang_string('defaultbadgesalt', 'badges'),
             new lang_string('defaultbadgesalt_desc', 'badges'),
-            'badges101', PARAM_ALPHANUM));
+            get_config('badges', 'badges_defaultbadgesalt'), PARAM_ALPHANUM));
 
     $globalsettings->add(new admin_setting_configcheckbox('badges_allowexternalbackpack',
             new lang_string('allowexternalbackpack', 'badges'),

@@ -76,8 +76,12 @@ class award_criteria_course extends award_criteria {
         $parameter[] =& $mform->createElement('static', $prefix . '-grade', null, get_string('mingrade', 'badges'));
         $parameter[] =& $mform->createElement('text', $prefix . '-grade_' . $param['course'], '', array('size' => '5'));
         $parameter[] =& $mform->createElement('static', $prefix . '-complby_' . $param['course'], null, get_string('bydate', 'badges'));
-        $parameter[] =& $mform->createElement('date_selector', $prefix . '-bydate_' . $param['course'], "", array('optional' => true));
+        $parameter[] =& $mform->createElement('date_selector', $prefix . '-bydate_' . $param['course'], '', array('optional' => true));
         $mform->addGroup($parameter, $prefix . '-course' . $param['course'], "Optional requirements: ", array(' '), false);
+
+        $mform->disabledIf($prefix . '-bydate_' . $param['course'] . '[day]', $prefix . '-bydate_' . $param['course'] . '[enabled]', 'notchecked');
+        $mform->disabledIf($prefix . '-bydate_' . $param['course'] . '[month]', $prefix . '-bydate_' . $param['course'] . '[enabled]', 'notchecked');
+        $mform->disabledIf($prefix . '-bydate_' . $param['course'] . '[year]', $prefix . '-bydate_' . $param['course'] . '[enabled]', 'notchecked');
 
         // Set existing values.
         if (isset($param['bydate'])) {
