@@ -411,7 +411,9 @@ $string['badgestatus_3'] = 'Active and locked';
 $string['badgestatus_4'] = 'Archived';
 
 // Badge criteria.
-$string['criteria_0'] = 'Overall criteria aggregation';
+$string['allmethod'] = 'All ';
+$string['anymethod'] = 'Any ';
+$string['criteria_0'] = 'This badge is awarded when...';
 $string['criteria_1'] = 'Activity completion';
 $string['criteria_2'] = 'Manual badge issue';
 $string['criteria_3'] = 'Social pariticipation';
@@ -424,14 +426,17 @@ $string['coursecompletion'] = 'Learners must complete this course. ';
 $string['default'] = 'Default user profile fields';
 $string['lockedbadge'] = 'Currently, this badge is either active or locked, so most of it\'s properties cannot be modified. If you would like to change this badge\'s details or criteria, please set its status to inactive.';
 $string['mingrade'] = 'Minimum grade required';
+$string['method'] = 'This criterion is complete when...';
 $string['noparamstoadd'] = 'There are no additional parameters available to add to this badge requirement.';
 $string['nothingtoadd'] = 'There are no available criteria to add.';
+$string['addc'] = 'Add criterion';
+$string['updatec'] = 'Update criterion';
 
 // Badge criteria description.
-$string['criteria_descr'] = '<p>To earn this badge, learners have to complete the following requirement: ';
-$string['criteria_descr_0'] = '<p>To earn this badge, learners have to complete <b>{$a}</b> of the following requirements:</p>';
-$string['criteria_descr_1'] = '<p><b>{$a}</b> of the following activities have to be completed:</p>';
-$string['criteria_descr_single_1'] = '<p>The following activity has to be completed:</p>';
+$string['criteria_descr'] = '<p>Learners are awarded this badge when they complete the following requirement: ';
+$string['criteria_descr_0'] = '<p>Learners are awarded this badge when they complete <b>{$a}</b> of the listed requirements.</p>';
+$string['criteria_descr_1'] = '<p><b>{$a}</b> of the following activities are completed:</p>';
+$string['criteria_descr_single_1'] = '<p>The following activity is completed:</p>';
 $string['criteria_descr_4'] = 'Learners must complete the course ';
 $string['criteria_descr_single_4'] = 'Learners must complete the course ';
 $string['criteria_descr_2'] = '<p>This badge has to be awarded by the users with <b>{$a}</b> of the following roles:</p>';
@@ -457,9 +462,7 @@ $string['expireperiods'] = 'This badge expires {$a} second(s) after being issued
 // Badge editing/creating strings.
 $string['actions'] = 'Actions';
 $string['activate'] = 'Activate';
-$string['activitiescriteria'] = 'Activity completion criteria';
 $string['addcriteria'] = 'Add new criteria';
-$string['additionalparameters'] = 'Additional parameters';
 $string['adminaward'] = 'As a site administrator, you can select a role to award this badge.';
 $string['after'] = 'after the date of issue.';
 $string['aggregationmethod'] = 'Aggregation method';
@@ -479,10 +482,6 @@ $string['bydate'] = ' complete by';
 $string['configuremessage'] = 'Configure badge message';
 $string['copyof'] = 'Copy of ';
 $string['boverview'] = 'Overview';
-$string['clear'] = 'Clear all criteria';
-$string['clearbadge'] = 'Remove all badge criteria';
-$string['clearconfirm'] = '<p>Are you sure you would like to remove all existing criteria for this badge?</p>
-<p><b>Warning!</b></p><p>If some users have already made progress towards earning this badge, their progress will be removed as well.</p>';
 $string['contact'] = 'Contact';
 $string['create'] = 'New badge';
 $string['createbutton'] = 'Create badge';
@@ -515,9 +514,8 @@ $string['numawards'] = 'This badge has been issued to {$a} user(s).';
 $string['noexpiry'] = 'This badge does not have an expiry date.';
 $string['notacceptedrole'] = 'Your current role assignment is not among the roles that can manually issue this badge. <br/>
 If you would like to see users who have already earned this badge, you can visit {$a} page. ';
-$string['overallcriteriaaggregation'] = 'Overall badge criteria aggregation';
+$string['overallcrit'] = 'of the selected criteria are complete.';
 $string['potentialrecipients'] = 'Potential badge recipients';
-$string['proceed'] = 'Proceed';
 $string['recipients'] = 'Badge recipients';
 $string['relative'] = 'Relative date';
 $string['reviewbadge'] = 'Review badge criteria';
@@ -545,7 +543,6 @@ $string['messagesubject'] = 'Congratulations! You just earned a badge!';
 $string['actions_help'] = '';
 $string['attachment_help'] = 'If this \'Attachment\' is checked, an issued badge will be attached to the recepient\'s email for download';
 $string['contact_help'] = 'An email address associated with the badge issuer.';
-$string['criteria_0_help'] = 'Overall criteria aggergation allows to issue badges when either all or any of the badge criteria are completed.';
 $string['criteria_1_help'] = 'Activity completion allows to award a badge to users who have completed a set of selected activities.';
 $string['criteria_2_help'] = 'This criterion allows to award a badge manually by the users with selected roles.';
 $string['criteria_3_help'] = 'Social';

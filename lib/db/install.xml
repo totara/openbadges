@@ -3019,7 +3019,7 @@
     <TABLE NAME="badge_criteria_met" COMMENT="Defines criteria that were met for an issued badge" PREVIOUS="badge_issued" NEXT="badge_manual_award">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" NEXT="issuedid"/>
-        <FIELD NAME="issuedid" TYPE="int" LENGTH="10" NOTNULL="false" PREVIOUS="id" NEXT="critid"/>
+        <FIELD NAME="issuedid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" PREVIOUS="id" NEXT="critid"/>
         <FIELD NAME="critid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="issuedid" NEXT="userid"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="critid" NEXT="datemet"/>
         <FIELD NAME="datemet" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="userid"/>
@@ -3034,7 +3034,7 @@
     <TABLE NAME="badge_manual_award" COMMENT="Track manual award criteria for badges" PREVIOUS="badge_criteria_met" NEXT="badge_backpack">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" NEXT="badgeid"/>
-        <FIELD NAME="badgeid" TYPE="int" LENGTH="10" NOTNULL="true" PREVIOUS="id" NEXT="recipientid"/>
+        <FIELD NAME="badgeid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="id" NEXT="recipientid"/>
         <FIELD NAME="recipientid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="badgeid" NEXT="issuerid"/>
         <FIELD NAME="issuerid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="recipientid" NEXT="issuerrole"/>
         <FIELD NAME="issuerrole" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="issuerid" NEXT="datemet"/>

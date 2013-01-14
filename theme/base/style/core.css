@@ -1303,8 +1303,7 @@ table.collection .name { text-align: left; vertical-align: middle; }
 table.collection .criteria { width: 30%; text-align: left; vertical-align: middle; font-size: 0.8em; }
 #page-badges-index table.collection .actions { width: 11em; text-align: center; vertical-align: middle; }
 
-div.criteria-header { padding: 0 1px; height: 12px; }
-a.criteria-action { float: right; }
+a.criteria-action { padding: 0px 3px; float: right; }
 table.issuedbadgebox { width: 750px; }
 table.badgeissuedimage { width: 150px; text-align: center; }
 table.badgeissuedinfo { width: 600px; }

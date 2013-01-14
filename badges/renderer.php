@@ -590,8 +590,7 @@ class core_badges_renderer extends plugin_renderer_base {
         unset($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]);
         foreach ($badge->criteria as $type => $c) {
             if (count($c->params) == 1) {
-                $items[] .= get_string('criteria_descr_single_' . $type , 'badges',
-                        strtoupper($agg[$badge->get_aggregation_method($type)])) . $c->get_details();
+                $items[] .= get_string('criteria_descr_single_' . $type , 'badges') . $c->get_details();
             } else {
                 $items[] .= get_string('criteria_descr_' . $type , 'badges',
                         strtoupper($agg[$badge->get_aggregation_method($type)])) . $c->get_details();
@@ -608,15 +607,6 @@ class core_badges_renderer extends plugin_renderer_base {
 
         $actions = array();
         if (!$badge->is_active() && !$badge->is_locked()) {
-            // Clear all criteria button.
-            if ($badge->has_criteria()) {
-                $actions[] = get_string('clear', 'badges');
-                $actions[] = $this->output->single_button(new moodle_url('/badges/action.php', array('id' => $badge->id, 'clear' => 1)), get_string('clear'));
-            }
-            $table->data[] = $actions;
-            $actions = array();
-
-            // Add criteria button.
             $accepted = $badge->get_accepted_criteria();
             $potential = array_diff($accepted, array_keys($badge->criteria));
 
@@ -627,12 +617,8 @@ class core_badges_renderer extends plugin_renderer_base {
                     }
                 }
                 $actions[] = get_string('addcriteria', 'badges');
-                $actions[] = $this->output->single_select(
-                        new moodle_url('/badges/criteria_action.php', array('badgeid' => $badge->id, 'add' => true)),
-                        'type',
-                        $select,
-                        false,
-                        array('value' => get_string('addcriteria', 'badges')));
+                $actions[] = $this->output->single_select(new moodle_url('/badges/criteria_settings.php',
+                        array('badgeid' => $badge->id, 'add' => true)), 'type', $select);
             } else {
                 $actions[] = $this->output->box(get_string('nothingtoadd', 'badges'), 'clearfix');
             }

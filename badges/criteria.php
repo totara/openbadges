@@ -26,9 +26,9 @@
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
-require_once($CFG->dirroot . '/badges/criteria_form.php');
 
 $badgeid = required_param('id', PARAM_INT);
+$update = optional_param('update', 0, PARAM_INT);
 
 require_login();
 
@@ -57,17 +57,15 @@ $output = $PAGE->get_renderer('core', 'badges');
 $msg = optional_param('msg', '', PARAM_TEXT);
 $emsg = optional_param('emsg', '', PARAM_TEXT);
 
-$form = new edit_criteria_form($currenturl, array('badge' => $badge));
-
-if ($form->is_cancelled()) {
-    redirect(new moodle_url('/badges/overview.php', array('id' => $badgeid)));
-} else if ($form->is_submitted() && $form->is_validated() && ($data = $form->get_data())) {
-    if ($badge->save_criteria($data)) {
+if ((($update == 1) || ($update == 2)) && confirm_sesskey()) {
+    require_capability('moodle/badges:configurecriteria', $context);
+    $obj = new stdClass();
+    $obj->id = $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->id;
+    $obj->method = $update;
+    if ($DB->update_record('badge_criteria', $obj)) {
         $msg = get_string('changessaved');
-        redirect(new moodle_url('/badges/criteria.php', array('id' => $badgeid, 'msg' => $msg)));
     } else {
         $emsg = get_string('error:save', 'badges');
-        redirect(new moodle_url('/badges/criteria.php', array('id' => $badgeid, 'emsg' => $emsg)));
     }
 }
 
@@ -82,14 +80,16 @@ if ($emsg !== '') {
 
 $output->print_badge_tabs($badgeid, $context, 'criteria');
 
-if ($badge->is_locked() || $badge->is_active()) {
-    echo $OUTPUT->notification(get_string('lockedbadge', 'badges'));
-    echo html_writer::tag('div',
-            $OUTPUT->heading(get_string('criteriasummary', 'badges'), 3) .
-            $output->print_badge_criteria($badge),
-            array('class' => 'generalbox'));
-} else {
+if (!$badge->is_locked() && !$badge->is_active()) {
     echo $output->print_criteria_actions($badge);
-    $form->display();
 }
+
+if ($badge->has_criteria()) {
+    ksort($badge->criteria);
+
+    foreach ($badge->criteria as $crit) {
+        $crit->config_form_criteria($badge);
+    }
+}
+
 echo $OUTPUT->footer();

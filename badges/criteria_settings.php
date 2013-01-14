@@ -33,18 +33,15 @@ $type    = optional_param('type', 0, PARAM_INT); // Criteria type.
 $edit    = optional_param('edit', 0, PARAM_INT); // Edit criteria ID.
 $crit    = optional_param('crit', 0, PARAM_INT); // Criteria ID for managing params.
 $param   = optional_param('param', '', PARAM_TEXT); // Param name for managing params.
-$goback    = optional_param('cancel', '', PARAM_TEXT);
-$addcourse = optional_param('addcourse', '', PARAM_TEXT);
-$submitcourse = optional_param('submitcourse', '', PARAM_TEXT);
+$add     = optional_param('add', 0, PARAM_BOOL);
+$goback    = optional_param('back', '', PARAM_TEXT);
 
 require_login();
 
 $return = new moodle_url('/badges/criteria.php', array('id' => $badgeid));
 $badge = new badge($badgeid);
 $context = $badge->get_context();
-$navurl = new moodle_url('/badges/index.php', array('type' => $badge->type));
-
-require_capability('moodle/badges:configurecriteria', $context);
+$navurl = new moodle_url('/badges/index.php', array('type' => $badge->context));
 
 if (!empty($goback)) {
     redirect($return);
@@ -55,9 +52,9 @@ if ($badge->is_active() || $badge->is_locked()) {
     redirect($return);
 }
 
-if ($badge->type == BADGE_TYPE_COURSE) {
+if ($badge->context == BADGE_TYPE_COURSE) {
     require_login($badge->courseid);
-    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->type, 'id' => $badge->courseid));
+    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->context, 'id' => $badge->courseid));
 }
 
 $PAGE->set_context($context);
@@ -70,26 +67,13 @@ $PAGE->navbar->add($badge->name, new moodle_url('overview.php', array('id' => $b
 
 $cparams = array('criteriatype' => $type, 'badgeid' => $badge->id);
 if ($edit) {
-    $criteria = $badge->criteria[$type];
-} else {
-    $criteria = award_criteria::build($cparams);
+    $cparams['id'] = $crit;
 }
+$criteria = award_criteria::build($cparams);
 
-$mform = new edit_criteria_form($FULLME, array('criteria' => $criteria, 'addcourse' => $addcourse));
+$mform = new edit_criteria_form($FULLME, array('criteria' => $criteria, 'add' => $add, 'edit' => $edit));
 
-if (!empty($addcourse)) {
-    if ($data = $mform->get_data()) {
-        // If no criteria yet, add overall aggregation.
-        if (count($badge->criteria) == 0) {
-            $criteria_overall = award_criteria::build(array('criteriatype' => BADGE_CRITERIA_TYPE_OVERALL, 'badgeid' => $badge->id));
-            $criteria_overall->save(array('agg' => BADGE_CRITERIA_AGGREGATION_ALL));
-        }
-
-        $id = $criteria->add_courses($data->courses);
-        redirect(new moodle_url('/badges/criteria_settings.php',
-            array('badgeid' => $badgeid, 'edit' => true, 'type' => BADGE_CRITERIA_TYPE_COURSESET, 'crit' => $id)));
-    }
-} else if ($data = $mform->get_data()) {
+if ($data = $mform->get_data()) {
     // If no criteria yet, add overall aggregation.
     if (count($badge->criteria) == 0) {
         $criteria_overall = award_criteria::build(array('criteriatype' => BADGE_CRITERIA_TYPE_OVERALL, 'badgeid' => $badge->id));

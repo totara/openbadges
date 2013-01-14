@@ -40,49 +40,20 @@ class award_criteria_profile extends award_criteria {
     public $optional_params = array();
 
     /**
-     * Add appropriate form elements to the criteria form
-     *
-     * @param moodleform $mform  Moodle forms object
-     * @param stdClass $data details of various modules
-     */
-    public function config_form_criteria(&$mform, $data = null) {
-        global $DB, $OUTPUT;
-        $prefix = 'criteria-' . $this->id;
-
-        $aggregation_methods = $data->get_aggregation_methods();
-
-        $editurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'edit' => true, 'type' => $this->criteriatype, 'crit' => $this->id));
-        $deleteurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'delete' => true, 'type' => $this->criteriatype));
-        $editaction = $OUTPUT->action_icon($editurl, new pix_icon('t/edit', get_string('edit')), null, array('class' => 'criteria-action'));
-        $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
-
-        // Criteria aggregation.
-        $mform->addElement('header', $prefix, '');
-        $mform->addElement('html', html_writer::tag('div', $deleteaction . $editaction, array('class' => 'criteria-header')));
-        $mform->addElement('html', $OUTPUT->heading_with_help($this->get_title(), 'criteria_' . BADGE_CRITERIA_TYPE_PROFILE, 'badges'));
-        if (!empty($this->params) && count($this->params) > 1) {
-            $mform->addElement('select', $prefix . '-aggregation', get_string('aggregationmethod', 'badges'), $aggregation_methods);
-            $mform->setDefault($prefix . '-aggregation', $data->get_aggregation_method(BADGE_CRITERIA_TYPE_PROFILE));
-        } else {
-            $mform->addElement('hidden', $prefix . '-aggregation', $data->get_aggregation_method(BADGE_CRITERIA_TYPE_PROFILE));
-            $mform->setType($prefix . '-aggregation', PARAM_INT);
-        }
-
-        // Add existing fields to the form.
-        if (!empty($this->params)) {
-            foreach ($this->params as $param) {
-                $this->config_form_criteria_param($mform, $param);
-            }
-        }
-    }
-
-    /**
-     * Add custom profile fields to the form.
+     * Add appropriate new criteria options to the form
      *
      */
-    private function get_custom_fields(array $existing, &$none) {
-        global $CFG, $DB;
-        $html = "";
+    public function get_options(&$mform) {
+        global $DB;
+
+        $none = true;
+        $existing = array();
+        $missing = array();
+
+        // Note: cannot use user_get_default_fields() here because it is not possible to decide which fields user can modify.
+        $dfields = array('firstname', 'lastname', 'email', 'address', 'phone1', 'phone2',
+                        'icq', 'skype', 'yahoo', 'aim', 'msn', 'department', 'institution',
+                        'interests', 'description', 'city', 'url', 'country');
 
         $sql = "SELECT uf.id as fieldid, uf.name as name, ic.id as categoryid, ic.name as categoryname, uf.datatype
                 FROM {user_info_field} uf
@@ -90,89 +61,64 @@ class award_criteria_profile extends award_criteria {
                 ON uf.categoryid = ic.id AND uf.visible <> 0
                 ORDER BY ic.sortorder ASC, uf.sortorder ASC";
 
-        if ( $fields = $DB->get_records_sql($sql)) {
-            foreach ($fields as $field) {
-                if (!isset($currentcat) || $currentcat != $field->categoryid) {
-                    $currentcat = $field->categoryid;
-                    $html .= html_writer::nonempty_tag('h3', format_string($field->categoryname));
-                }
-                if (!in_array($field, $existing)) {
-                    $html .= html_writer::checkbox('options[]', $field->fieldid, false, $field->name) . '<br/>';
-                    $none = false;
-                }
-            }
-        }
+        // Get custom fields.
+        $cfields = $DB->get_records_sql($sql);
+        $cfids = array_map(create_function('$o', 'return $o->fieldid;'), $cfields);
 
-        return $html;
-    }
-
-    /**
-     * Add appropriate new criteria options to the form
-     *
-     */
-    public function get_options() {
-        $options = "";
-        $none = true;
-        $existing = array();
-
-        // Note: cannot use user_get_default_fields() here because it is not possible to decide which fields user can modify.
-        $fields = array('firstname', 'lastname', 'email', 'address', 'phone1', 'phone2',
-                        'icq', 'skype', 'yahoo', 'aim', 'msn', 'department', 'institution',
-                        'interests', 'description', 'city', 'url', 'country');
-        // If it is an existing criterion, show only available params.
         if ($this->id !== 0) {
             $existing = array_keys($this->params);
+            $missing = array_diff($existing, array_merge($dfields, $cfids));
         }
 
-        if (!empty($fields)) {
-            $options .= html_writer::nonempty_tag('h3', get_string('default', 'badges'));
-            foreach ($fields as $field) {
-                if (!in_array($field, $existing)) {
-                    $options .= html_writer::checkbox('options[]', $field, false, get_user_field_name($field)) . '<br/>';
-                    $none = false;
-                }
+        if (!empty($missing)) {
+            $mform->addElement('header', 'category_errors', get_string('error'));
+            foreach ($missing as $m) {
+                $this->config_options($mform, array('id' => $m, 'checked' => true, 'name' => get_string('error:nosuchfield', 'badges'), 'error' => true));
+                $none = false;
             }
         }
 
-        // Load available to users custom profile fields.
-        $options .= $this->get_custom_fields($existing, $none);
-
-        return array($none, $options, get_string('noparamstoadd', 'badges'));
-    }
-
-    /**
-     * Add appropriate parameter elements to the criteria form
-     *
-     */
-    public function config_form_criteria_param(&$mform, $param) {
-        global $OUTPUT, $DB;
-        $prefix = 'criteria-' . $this->id;
-
-        $params = array(
-                'badgeid' => $this->badgeid,
-                'crit' => $this->id,
-                'param' => 'field_' . $param['field'],
-                'type' => $this->criteriatype
-        );
-        $url = new moodle_url('/badges/criteria_action.php', $params);
-        $delete = $OUTPUT->action_icon($url, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
-
-        $parameter = array();
-        if (is_numeric($param['field'])) {
-            $field = $DB->get_field('user_info_field', 'name', array('id' => $param['field']));
-        } else {
-            $field = get_user_field_name($param['field']);
+        if (!empty($dfields)) {
+            $mform->addElement('header', 'category_default', get_string('default', 'badges'));
+            foreach ($dfields as $field) {
+                $checked = false;
+                if (in_array($field, $existing)) {
+                    $checked = true;
+                }
+                $this->config_options($mform, array('id' => $field, 'checked' => $checked, 'name' => get_user_field_name($field), 'error' => false));
+                $none = false;
+            }
         }
-        if (!$field) {
-            $parameter[] =& $mform->createElement('static', $prefix . '-field_' . $param['field'], null,
-                    $OUTPUT->error_text(get_string('error:missingfield', 'badges')));
-            $parameter[] =& $mform->createElement('static', $prefix . '-action_' . $param['field'], null, $delete);
-            $mform->addGroup($parameter, $prefix . 'param' . $param['field'], $OUTPUT->error_text(get_string('error')), array(' '), false);
-        } else {
-            $parameter[] =& $mform->createElement('static', $prefix . '-field_' . $param['field'], null, $field);
-            $parameter[] =& $mform->createElement('static', $prefix . '-action_' . $param['field'], null, $delete);
-            $mform->addGroup($parameter, $prefix . '-param' . $param['field'], '', array(' '), false);
+
+        if (!empty($cfields)) {
+            foreach ($cfields as $field) {
+                if (!isset($currentcat) || $currentcat != $field->categoryid) {
+                    $currentcat = $field->categoryid;
+                    $mform->addElement('header', 'category_' . $currentcat, format_string($field->categoryname));
+                }
+                $checked = false;
+                if (in_array($field->fieldid, $existing)) {
+                    $checked = true;
+                }
+                $this->config_options($mform, array('id' => $field->fieldid, 'checked' => $checked, 'name' => $field->name, 'error' => false));
+                $none = false;
+            }
         }
+
+        // Add aggregation.
+        $mform->addElement('header', 'aggregation', get_string('method', 'badges'));
+        $agg = array();
+        $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethod', 'badges'), 1);
+        $agg[] =& $mform->createElement('static', 'none_break', null, '<br/><br/>');
+        $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethod', 'badges'), 2);
+        $mform->addGroup($agg, 'methodgr', '', array(' '), false);
+        if ($this->id !== 0) {
+            $mform->setDefault('agg', $this->method);
+        } else {
+            $mform->setDefault('agg', BADGE_CRITERIA_AGGREGATION_ALL);
+        }
+
+        return array($none, get_string('noparamstoadd', 'badges'));
     }
 
     /**
@@ -207,7 +153,7 @@ class award_criteria_profile extends award_criteria {
     public function review($userid) {
         global $DB;
 
-        $overall = null;
+        $overall = false;
         foreach ($this->params as $param) {
             if (is_numeric($param['field'])) {
                 $crit = $DB->get_field('user_info_data', 'data', array('userid' => $userid, 'fieldid' => $param['field']));

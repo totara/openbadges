@@ -28,13 +28,12 @@ require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
 $badgeid = optional_param('badgeid', 0, PARAM_INT); // Badge ID.
+$crit    = optional_param('crit', 0, PARAM_INT);
 $type    = optional_param('type', 0, PARAM_INT); // Criteria type.
-$edit    = optional_param('edit', 0, PARAM_INT); // Edit criteria ID.
-$crit    = optional_param('crit', 0, PARAM_INT); // Criteria ID for managing params.
-$param   = optional_param('param', '', PARAM_TEXT); // Param name for managing params.
 $delete  = optional_param('delete', 0, PARAM_BOOL);
 $confirm = optional_param('confirm', 0, PARAM_BOOL);
 $add     = optional_param('add', 0, PARAM_BOOL);
+$edit    = optional_param('edit', 0, PARAM_INT);
 
 require_login();
 
@@ -83,81 +82,6 @@ if ($delete && has_capability('moodle/badges:configurecriteria', $context)) {
         $badge->criteria[$type]->delete();
     }
     redirect($return);
-} else if (!empty($crit) && !empty($param) && has_capability('moodle/badges:configurecriteria', $context)) {
-    if (!$confirm || !confirm_sesskey()) {
-        $optionsyes = array('confirm' => 1, 'sesskey' => sesskey(), 'badgeid' => $badgeid, 'crit' => $crit, 'param' => $param, 'type' => $type);
-
-        $strdeletecheckfull = get_string('delparamconfirm', 'badges');
-
-        echo $OUTPUT->header();
-        $formcontinue = new single_button(new moodle_url('/badges/criteria_action.php', $optionsyes), get_string('yes'));
-        $formcancel = new single_button($return, get_string('no'), 'get');
-        echo $OUTPUT->confirm($strdeletecheckfull, $formcontinue, $formcancel);
-        echo $OUTPUT->footer();
-
-        die();
-    }
-
-    if (count($badge->criteria[$type]->params) == 1) {
-        // Remove entire criterion when the last param is removed.
-        $badge->criteria[$type]->delete();
-    } else {
-        $p = explode('_', $param);
-        $DB->delete_records('badge_criteria_param', array('critid' => $crit, 'name' => $param));
-        foreach ($badge->criteria[$type]->optional_params as $opt) {
-            $DB->delete_records('badge_criteria_param', array('critid' => $crit, 'name' => $opt . "_" . end($p)));
-        }
-    }
-    redirect($return);
-} else if (($add || $edit) && has_capability('moodle/badges:configurecriteria', $context)) {
-    require_once($CFG->libdir . '/formslib.php');
-    $cparams = array('criteriatype' => $type, 'badgeid' => $badge->id);
-    if ($edit) {
-        $cparams['id'] = $crit;
-    }
-    $criteria = award_criteria::build($cparams);
-
-    $options = optional_param_array('options', array(), PARAM_TEXT);
-    $goback = optional_param('back', "", PARAM_TEXT);
-    if (!empty($goback)) {
-        redirect($return);
-    }
-    if (!empty($options)) {
-        require_sesskey();
-        // If no criteria yet, add overall aggregation.
-        if (count($badge->criteria) == 0) {
-            $criteria_overall = award_criteria::build(array('criteriatype' => BADGE_CRITERIA_TYPE_OVERALL, 'badgeid' => $badge->id));
-            $criteria_overall->save(array());
-        }
-        $criteria->save($options);
-        redirect($return);
-    }
-
-    $urlparams = array('badgeid' => $badgeid, 'add' => $add, 'edit' => $edit, 'type' => $type, 'crit' => $crit);
-    $mform = new MoodleQuickForm('preferences',
-            'post',
-            new moodle_url('/badges/criteria_action.php', $urlparams),
-            '',
-            array('class' => 'preferences boxaligncenter boxwidthwide'));
-
-    list($none, $options, $message) = $criteria->get_options();
-
-    $mform->addElement('hidden', 'sesskey', sesskey());
-    $mform->addElement('header', 'ghoptions', get_string('additionalparameters', 'badges'));
-    if ($none) {
-        $mform->addElement('html', html_writer::tag('div', $message));
-        $mform->addElement('submit', 'back', get_string('back'));
-    } else {
-        $mform->addElement('html', html_writer::tag('div', $options));
-        $buttonarray = array();
-        $buttonarray[] =& $mform->createElement('submit', 'submitbutton', get_string('proceed', 'badges'));
-        $buttonarray[] =& $mform->createElement('submit', 'back', get_string('cancel'));
-        $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
-    }
-
-    echo $OUTPUT->header();
-    $mform->display();
-    echo $OUTPUT->footer();
-
-    die();
 }
+
+redirect($return);

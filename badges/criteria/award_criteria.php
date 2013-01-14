@@ -146,19 +146,77 @@ abstract class award_criteria {
      * Add appropriate criteria options to the form
      *
      */
-    abstract public function get_options();
-
-    /**
-     * Add appropriate criteria elements to the form
-     *
-     */
-    abstract public function config_form_criteria(&$mform, $data);
+    abstract public function get_options(&$mform);
 
     /**
      * Add appropriate parameter elements to the criteria form
      *
      */
-    abstract public function config_form_criteria_param(&$mform, $data);
+    public function config_options(&$mform, $param) {
+        global $OUTPUT;
+        $prefix = $this->required_param . '_';
+
+        if ($param['error']) {
+            $parameter[] =& $mform->createElement('advcheckbox', $prefix . $param['id'], '', $OUTPUT->error_text($param['name']), null, array(0, $param['id']));
+            $mform->addGroup($parameter, 'param_' . $prefix . $param['id'], '', array(' '), false);
+        } else {
+            $parameter[] =& $mform->createElement('advcheckbox', $prefix . $param['id'], '', $param['name'], null, array(0, $param['id']));
+
+            if (in_array('bydate', $this->optional_params)) {
+                $parameter[] =& $mform->createElement('static', 'complby_' . $param['id'], null, get_string('bydate', 'badges'));
+                $parameter[] =& $mform->createElement('date_selector', 'bydate_' . $param['id'], "", array('optional' => true));
+            }
+
+            if (in_array('grade', $this->optional_params)) {
+                $parameter[] =& $mform->createElement('static', 'mgrade_' . $param['id'], null, get_string('mingrade', 'badges'));
+                $parameter[] =& $mform->createElement('text', 'grade_' . $param['id'], '', array('size' => '5'));
+            }
+            $mform->addGroup($parameter, 'param_' . $prefix . $param['id'], '', array(' '), false);
+            $mform->disabledIf('bydate_' . $param['id'] . '[day]', 'bydate_' . $param['id'] . '[enabled]', 'notchecked');
+            $mform->disabledIf('bydate_' . $param['id'] . '[month]', 'bydate_' . $param['id'] . '[enabled]', 'notchecked');
+            $mform->disabledIf('bydate_' . $param['id'] . '[year]', 'bydate_' . $param['id'] . '[enabled]', 'notchecked');
+        }
+
+        // Set default values.
+        $mform->setDefault($prefix . $param['id'], $param['checked']);
+        if (isset($param['bydate'])) {
+            $mform->setDefault('bydate_' . $param['id'], $param['bydate']);
+        }
+        if (isset($param['grade'])) {
+            $mform->setDefault('grade_' . $param['id'], $param['grade']);
+        }
+    }
+
+    /**
+     * Add appropriate criteria elements
+     *
+     */
+    public function config_form_criteria($data) {
+        global $OUTPUT;
+        $agg = $data->get_aggregation_methods();
+
+        $editurl = new moodle_url('/badges/criteria_settings.php', array('badgeid' => $this->badgeid, 'edit' => true, 'type' => $this->criteriatype, 'crit' => $this->id));
+        $deleteurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'delete' => true, 'type' => $this->criteriatype));
+        $editaction = $OUTPUT->action_icon($editurl, new pix_icon('t/edit', get_string('edit')), null, array('class' => 'criteria-action'));
+        $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
+
+        echo $OUTPUT->box_start();
+        if (!$data->is_locked() && !$data->is_active()) {
+            echo $OUTPUT->box($deleteaction . $editaction, array('criteria-header'));
+        }
+        echo $OUTPUT->heading_with_help($this->get_title(), 'criteria_' . $this->criteriatype, 'badges');
+
+        if (!empty($this->params)) {
+            if (count($this->params) > 1) {
+                echo $OUTPUT->box(get_string('criteria_descr_' . $this->criteriatype, 'badges',
+                        strtoupper($agg[$data->get_aggregation_method($this->criteriatype)])), array('clearfix'));
+            } else {
+                echo $OUTPUT->box(get_string('criteria_descr_single_' . $this->criteriatype , 'badges'), array('clearfix'));
+            }
+            echo $OUTPUT->box($this->get_details(), array('clearfix'));
+        }
+        echo $OUTPUT->box_end();
+    }
 
     /**
      * Review this criteria and decide if the user has completed
@@ -223,25 +281,58 @@ abstract class award_criteria {
     /**
      * Saves intial criteria records with required parameters set up.
      */
-    public function save(array $params) {
+    public function save($params = array()) {
         global $DB;
         $fordb = new stdClass();
         $fordb->criteriatype = $this->criteriatype;
-        $fordb->method = $this->method;
+        $fordb->method = $params->agg;
         $fordb->badgeid = $this->badgeid;
         $t = $DB->start_delegated_transaction();
+
+        // Unset unnecessary parameters supplied with form.
+        unset($params->agg);
+        unset($params->submitbutton);
+
         if ($this->id !== 0) {
             $cid = $this->id;
+
+            // Update criteria before doing anything with parameters.
+            $fordb->id = $cid;
+            $DB->update_record('badge_criteria', $fordb, true);
+
+            $arr = array_keys(array_filter((array)$params));
+            $existing = $DB->get_fieldset_select('badge_criteria_param', 'name', 'critid = ?', array($cid));
+            $todelete = array_diff($existing, $arr);
+
+            if (!empty($todelete)) {
+                list($sql, $sqlparams) = $DB->get_in_or_equal($todelete, SQL_PARAMS_NAMED, 'd', true);
+                $sqlparams = array_merge(array('critid' => $cid), $sqlparams);
+                $DB->delete_records_select('badge_criteria_param', 'critid = :critid AND name ' . $sql, $sqlparams);
+            }
+
+            foreach ($params as $key => $value) {
+                if (in_array($key, $existing)) {
+                    $updp = $DB->get_record('badge_criteria_param', array('name' => $key, 'critid' => $cid));
+                    $updp->value = $value;
+                    $DB->update_record('badge_criteria_param', $updp, true);
+                } else {
+                    $newp = new stdClass();
+                    $newp->critid = $cid;
+                    $newp->name = $key;
+                    $newp->value = $value;
+                    $DB->insert_record('badge_criteria_param', $newp);
+                }
+            }
         } else {
             $cid = $DB->insert_record('badge_criteria', $fordb, true);
-        }
-        if ($cid) {
-            foreach ($params as $p) {
-                $newp = new stdClass();
-                $newp->critid = $cid;
-                $newp->name = $this->required_param . '_' . $p;
-                $newp->value = $p;
-                $DB->insert_record('badge_criteria_param', $newp);
+            if ($cid) {
+                foreach ($params as $key => $value) {
+                    $newp = new stdClass();
+                    $newp->critid = $cid;
+                    $newp->name = $key;
+                    $newp->value = $value;
+                    $DB->insert_record('badge_criteria_param', $newp, false, true);
+                }
             }
         }
         $t->allow_commit();

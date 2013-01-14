@@ -606,15 +606,6 @@ class badge {
     }
 
     /**
-     * Clear all badge criteria
-     */
-    public function clear_criteria() {
-        foreach ($this->criteria as $crit) {
-            $crit->delete();
-        }
-    }
-
-    /**
      * Marks the badge as archived.
      * For reporting and historical purposed we cannot completely delete badges.
      * We will just change their status to BADGE_STATUS_ARCHIVED.
@@ -664,7 +655,7 @@ function notify_badge_award(badge $badge, $userid, $issued, $filepathhash) {
             $plaintext,
             $message,
             str_replace($CFG->dataroot, '', $attachment),
-            $issued . ".png"
+            str_replace(' ', '_', $badge->name) . ".png"
         );
         @unlink($attachment);
     } else {
