@@ -47,50 +47,24 @@ class award_criteria_course extends award_criteria {
      * @param moodleform $mform  Moodle forms object
      * @param stdClass $data details of various modules
      */
-    public function config_form_criteria(&$mform, $data = null) {
+    public function config_form_criteria($data) {
         global $OUTPUT;
-        $prefix = 'criteria-' . $this->id;
 
-        $deleteurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'type' => $this->criteriatype, 'delete' => true));
+        $editurl = new moodle_url('/badges/criteria_settings.php', array('badgeid' => $this->badgeid, 'edit' => true, 'type' => $this->criteriatype, 'crit' => $this->id));
+        $deleteurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'delete' => true, 'type' => $this->criteriatype));
+        $editaction = $OUTPUT->action_icon($editurl, new pix_icon('t/edit', get_string('edit')), null, array('class' => 'criteria-action'));
         $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
-        $mform->addElement('header', $prefix, '');
-        $mform->addElement('html', html_writer::tag('div', $deleteaction, array('class' => 'criteria-header')));
-        $mform->addElement('html', $OUTPUT->heading_with_help($this->get_title(), 'criteria_' . BADGE_CRITERIA_TYPE_COURSE, 'badges'));
-        $mform->addElement('html', $OUTPUT->heading(get_string('coursecompletion', 'badges'), 4));
 
-        // Existing parameters.
+        echo $OUTPUT->box_start();
+        if (!$data->is_locked() && !$data->is_active()) {
+            echo $OUTPUT->box($deleteaction . $editaction, array('criteria-header'));
+        }
+        echo $OUTPUT->heading_with_help($this->get_title(), 'criteria_' . $this->criteriatype, 'badges');
+
         if (!empty($this->params)) {
-            foreach ($this->params as $param) {
-                $this->config_form_criteria_param($mform, $param);
-            }
+            echo $OUTPUT->box(get_string('criteria_descr_' . $this->criteriatype, 'badges') . $this->get_details(), array('clearfix'));
         }
-    }
-
-    /**
-     * Add appropriate parameter elements to the criteria form
-     *
-     */
-    public function config_form_criteria_param(&$mform, $param) {
-        $prefix = 'criteria-' . $this->id;
-        $parameter = array();
-        $parameter[] =& $mform->createElement('static', $prefix . '-grade', null, get_string('mingrade', 'badges'));
-        $parameter[] =& $mform->createElement('text', $prefix . '-grade_' . $param['course'], '', array('size' => '5'));
-        $parameter[] =& $mform->createElement('static', $prefix . '-complby_' . $param['course'], null, get_string('bydate', 'badges'));
-        $parameter[] =& $mform->createElement('date_selector', $prefix . '-bydate_' . $param['course'], '', array('optional' => true));
-        $mform->addGroup($parameter, $prefix . '-course' . $param['course'], "Optional requirements: ", array(' '), false);
-
-        $mform->disabledIf($prefix . '-bydate_' . $param['course'] . '[day]', $prefix . '-bydate_' . $param['course'] . '[enabled]', 'notchecked');
-        $mform->disabledIf($prefix . '-bydate_' . $param['course'] . '[month]', $prefix . '-bydate_' . $param['course'] . '[enabled]', 'notchecked');
-        $mform->disabledIf($prefix . '-bydate_' . $param['course'] . '[year]', $prefix . '-bydate_' . $param['course'] . '[enabled]', 'notchecked');
-
-        // Set existing values.
-        if (isset($param['bydate'])) {
-            $mform->setDefault($prefix . '-bydate_' . $param['course'], $param['bydate']);
-        }
-
-        if (isset($param['grade'])) {
-            $mform->setDefault($prefix . '-grade_' . $param['course'], $param['grade']);
-        }
+        echo $OUTPUT->box_end();
     }
 
     /**
@@ -117,19 +91,41 @@ class award_criteria_course extends award_criteria {
      * Add appropriate new criteria options to the form
      *
      */
-    public function get_options() {
+    public function get_options(&$mform) {
         global $PAGE, $DB;
+        $param = array_shift($this->params);
         $course = $DB->get_record('course', array('id' => $PAGE->course->id));
-        $options = html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'options[]', 'value' => $PAGE->course->id));
-        $options .= get_string('noparamstoadd', 'badges');
+
         if (!($course->enablecompletion == COMPLETION_ENABLED)) {
             $none = true;
             $message = get_string('completionnotenabled', 'badges');
         } else {
+            $mform->addElement('header', 'criteria_course', $this->get_title());
+            $parameter = array();
+            $parameter[] =& $mform->createElement('static', 'mgrade_', null, get_string('mingrade', 'badges'));
+            $parameter[] =& $mform->createElement('text', 'grade_' . $param['course'], '', array('size' => '5'));
+            $parameter[] =& $mform->createElement('static', 'complby_' . $param['course'], null, get_string('bydate', 'badges'));
+            $parameter[] =& $mform->createElement('date_selector', 'bydate_' . $param['course'], '', array('optional' => true));
+            $mform->addGroup($parameter, 'param_' . $param['course'], '', array(' '), false);
+
+            $mform->disabledIf('bydate_' . $param['course'] . '[day]', 'bydate_' . $param['course'] . '[enabled]', 'notchecked');
+            $mform->disabledIf('bydate_' . $param['course'] . '[month]', 'bydate_' . $param['course'] . '[enabled]', 'notchecked');
+            $mform->disabledIf('bydate_' . $param['course'] . '[year]', 'bydate_' . $param['course'] . '[enabled]', 'notchecked');
+
+            // Set existing values.
+            if (isset($param['bydate'])) {
+                $mform->setDefault('bydate_' . $param['course'], $param['bydate']);
+            }
+
+            if (isset($param['grade'])) {
+                $mform->setDefault('grade_' . $param['course'], $param['grade']);
+            }
+            $mform->addElement('hidden', 'course_' . $course->id, $course->id);
+            $mform->setType('course_' . $course->id, PARAM_INT);
             $none = false;
             $message = '';
         }
-        return array($none, $options, $message);
+        return array($none, $message);
     }
 
     /**

@@ -36,33 +36,23 @@ require_once($CFG->libdir . '/badgeslib.php');
 class edit_criteria_form extends moodleform {
     public function definition() {
         $mform = $this->_form;
-        $badge = $this->_customdata['badge'];
+        $criteria = $this->_customdata['criteria'];
+        $add = $this->_customdata['add'];
+        $edit = $this->_customdata['edit'];
 
-        if ($badge->has_criteria()) {
-            ksort($badge->criteria);
+        list($none, $message) = $criteria->get_options($mform);
 
-            foreach ($badge->criteria as $crit) {
-                $crit->config_form_criteria($mform, $badge);
-            }
-
-            $this->add_action_buttons(false, get_string('update'));
+        if ($none) {
+            $mform->addElement('html', html_writer::tag('div', $message));
+            $mform->addElement('submit', 'back', get_string('back'));
         } else {
-            $mform->addElement('html', '<div>'. get_string('nocriteria', 'badges') . '</div>');
+            $buttonarray = array();
+            $str = $edit ? get_string('updatec', 'badges') : get_string('addc', 'badges');
+            $buttonarray[] =& $mform->createElement('submit', 'submitbutton', $str);
+            $buttonarray[] =& $mform->createElement('submit', 'back', get_string('cancel'));
+
+            $mform->closeHeaderBefore('buttonar');
+            $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
         }
-
-        // Add hidden fields.
-        $mform->addElement('hidden', 'id', $badge->id);
-        $mform->setType('id', PARAM_INT);
-
-        // Freeze all elements if badge is active.
-        if ($badge->is_active() || $badge->is_locked()) {
-            $mform->hardFreeze();
-        }
-    }
-
-    public function validation($data, $files) {
-        $errors = parent::validation($data, $files);
-
-        return $errors;
     }
 }

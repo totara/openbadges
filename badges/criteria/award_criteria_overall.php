@@ -41,21 +41,28 @@ class award_criteria_overall extends award_criteria {
      * @param moodleform $mform  Moodle forms object
      * @param stdClass $data details of various modules
      */
-    public function config_form_criteria(&$mform, $data = null) {
+    public function config_form_criteria($data) {
         global $OUTPUT;
         $prefix = 'criteria-' . $this->id;
         if (count($data->criteria) > 2) {
-            $aggregation_methods = $data->get_aggregation_methods();
+            echo $OUTPUT->box_start();
+            echo $OUTPUT->heading($this->get_title(), 2);
 
-            // Overall criteria aggregation.
-            $mform->addElement('header', $prefix, '');
-            $mform->addElement('html', $OUTPUT->heading_with_help($this->get_title(), 'criteria_' . BADGE_CRITERIA_TYPE_OVERALL, 'badges'));
-            $mform->addElement('select', $prefix . '-aggregation', get_string('aggregationmethod', 'badges'), $aggregation_methods);
-            $mform->setDefault($prefix . '-aggregation', $data->get_aggregation_method(BADGE_CRITERIA_TYPE_OVERALL));
-        } else {
-            // Add hidden aggregation.
-            $mform->addElement('hidden', $prefix . '-aggregation', $data->get_aggregation_method(BADGE_CRITERIA_TYPE_OVERALL));
-            $mform->setType($prefix . '-aggregation', PARAM_INT);
+            $agg = $data->get_aggregation_methods();
+            if (!$data->is_locked() && !$data->is_active()) {
+                $url = new moodle_url('criteria.php', array('id' => $data->id, 'sesskey' => sesskey()));
+                $table = new html_table();
+                $table->attributes = array('class' => 'clearfix');
+                $table->data[] = array(
+                        $OUTPUT->single_select($url, 'update', $agg, $data->get_aggregation_method($this->criteriatype), null),
+                        get_string('overallcrit', 'badges')
+                        );
+                echo html_writer::table($table);
+            } else {
+                echo $OUTPUT->box(get_string('criteria_descr_' . $this->criteriatype, 'badges',
+                        strtoupper($agg[$data->get_aggregation_method()])), 'clearfix');
+            }
+            echo $OUTPUT->box_end();
         }
     }
 
@@ -63,7 +70,7 @@ class award_criteria_overall extends award_criteria {
      * Add appropriate parameter elements to the criteria form
      *
      */
-    public function config_form_criteria_param(&$mform, $param) {
+    public function config_options(&$mform, $param) {
     }
 
     /**
@@ -72,7 +79,6 @@ class award_criteria_overall extends award_criteria {
      * @return string
      */
     public function get_details() {
-        return "";
     }
 
     /**
@@ -99,7 +105,7 @@ class award_criteria_overall extends award_criteria {
                 );
 
         $criteria = $DB->get_records_sql($sql, $params);
-        $overall = null;
+        $overall = false;
         foreach ($criteria as $crit) {
             if ($this->method == BADGE_CRITERIA_AGGREGATION_ALL) {
                 if ($crit->datemet === null) {
@@ -125,7 +131,7 @@ class award_criteria_overall extends award_criteria {
      * Add appropriate criteria elements to the form
      *
      */
-    public function get_options() {
+    public function get_options(&$mform) {
     }
 
     /**

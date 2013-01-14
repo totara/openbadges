@@ -38,42 +38,38 @@ class award_criteria_manual extends award_criteria {
     public $required_param = 'role';
     public $optional_params = array();
 
-    /**
-     * Add appropriate form elements to the criteria form
-     *
-     * @param moodleform $mform  Moodle forms object
-     * @param stdClass $data details of various modules
-     */
-    public function config_form_criteria(&$mform, $data = null) {
-        global $DB, $OUTPUT;
-        $prefix = 'criteria-' . $this->id;
+//     /**
+//      * Add appropriate form elements to the criteria form
+//      *
+//      * @param moodleform $mform  Moodle forms object
+//      * @param stdClass $data details of various modules
+//      */
+//     public function config_form_criteria($data = null) {
+//         global $OUTPUT;
+//         $agg = $data->get_aggregation_methods();
 
-        $aggregation_methods = $data->get_aggregation_methods();
+//         $editurl = new moodle_url('/badges/criteria_settings.php', array('badgeid' => $this->badgeid, 'edit' => true, 'type' => $this->criteriatype, 'crit' => $this->id));
+//         $deleteurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'delete' => true, 'type' => $this->criteriatype));
+//         $editaction = $OUTPUT->action_icon($editurl, new pix_icon('t/edit', get_string('edit')), null, array('class' => 'criteria-action'));
+//         $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
 
-        $editurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'edit' => true, 'type' => $this->criteriatype, 'crit' => $this->id));
-        $deleteurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'delete' => true, 'type' => $this->criteriatype));
-        $editaction = $OUTPUT->action_icon($editurl, new pix_icon('t/edit', get_string('edit')), null, array('class' => 'criteria-action'));
-        $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
+//         echo $OUTPUT->box_start();
+//         if (!$data->is_locked() && !$data->is_active()) {
+//             echo $OUTPUT->box($deleteaction . $editaction, array('criteria-header'));
+//         }
+//         echo $OUTPUT->heading_with_help($this->get_title(), 'criteria_' . $this->criteriatype, 'badges');
 
-        // Criteria aggregation.
-        $mform->addElement('header', $prefix, '');
-        $mform->addElement('html', html_writer::tag('div', $deleteaction . $editaction, array('class' => 'criteria-header')));
-        $mform->addElement('html', $OUTPUT->heading_with_help($this->get_title(), 'criteria_' . BADGE_CRITERIA_TYPE_MANUAL, 'badges'));
-        if (!empty($this->params) && count($this->params) > 1) {
-            $mform->addElement('select', $prefix . '-aggregation', get_string('aggregationmethod', 'badges'), $aggregation_methods);
-            $mform->setDefault($prefix . '-aggregation', $data->get_aggregation_method(BADGE_CRITERIA_TYPE_MANUAL));
-        } else {
-            $mform->addElement('hidden', $prefix . '-aggregation', $data->get_aggregation_method(BADGE_CRITERIA_TYPE_MANUAL));
-            $mform->setType($prefix . '-aggregation', PARAM_INT);
-        }
-
-        // Add existing roles to the form.
-        if (!empty($this->params)) {
-            foreach ($this->params as $param) {
-                $this->config_form_criteria_param($mform, $param);
-            }
-        }
-    }
+//         if (!empty($this->params)) {
+//             if (count($this->params) > 1) {
+//                 echo $OUTPUT->box(get_string('criteria_descr_' . $this->criteriatype, 'badges',
+//                         strtoupper($agg[$data->get_aggregation_method($this->criteriatype)])), array('clearfix'));
+//             } else {
+//                 echo $OUTPUT->box(get_string('criteria_descr_single_' . $this->criteriatype , 'badges'), array('clearfix'));
+//             }
+//             echo $OUTPUT->box($this->get_details(), array('clearfix'));
+//         }
+//         echo $OUTPUT->box_end();
+//     }
 
     /**
      * Gets role name.
@@ -96,57 +92,55 @@ class award_criteria_manual extends award_criteria {
      * Add appropriate new criteria options to the form
      *
      */
-    public function get_options() {
+    public function get_options(&$mform) {
         global $PAGE;
-        $options = "";
+        $options = '';
         $none = true;
+
         $roles = get_roles_with_capability('moodle/badges:awardbadge', CAP_ALLOW, $PAGE->context);
+        $roleids = array_map(create_function('$o', 'return $o->id;'), $roles);
         $existing = array();
-        // If it is an existing criterion, show only available params.
+        $missing = array();
+
         if ($this->id !== 0) {
             $existing = array_keys($this->params);
+            $missing = array_diff($existing, $roleids);
         }
 
-        if (!empty($roles)) {
-            foreach ($roles as $role) {
-                if (!in_array($role->id, $existing)) {
-                    $options .= html_writer::checkbox('options[]', $role->id, false, self::get_role_name($role->id)) . '<br/>';
-                    $none = false;
-                }
+        if (!empty($missing)) {
+            $mform->addElement('header', 'category_errors', get_string('error'));
+            foreach ($missing as $m) {
+                $this->config_options($mform, array('id' => $m, 'checked' => true, 'name' => get_string('error:missingrole', 'badges'), 'error' => true));
+                $none = false;
             }
         }
-        return array($none, $options, get_string('noparamstoadd', 'badges'));
-    }
 
-    /**
-     * Add appropriate parameter elements to the criteria form
-     *
-     */
-    public function config_form_criteria_param(&$mform, $param) {
-        global $OUTPUT;
-        $prefix = 'criteria-' . $this->id;
-
-        $params = array(
-                'badgeid' => $this->badgeid,
-                'crit' => $this->id,
-                'param' => 'role_' . $param['role'],
-                'type' => $this->criteriatype
-                );
-        $url = new moodle_url('/badges/criteria_action.php', $params);
-        $delete = $OUTPUT->action_icon($url, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
-
-        $parameter = array();
-        $role = self::get_role_name($param['role']);
-        if (!$role) {
-            $parameter[] =& $mform->createElement('static', $prefix . '-role_' . $param['role'], null,
-                    $OUTPUT->error_text(get_string('error:missingrole', 'badges')));
-            $parameter[] =& $mform->createElement('static', $prefix . '-action_' . $param['role'], null, $delete);
-            $mform->addGroup($parameter, $prefix . 'param' . $param['role'], $OUTPUT->error_text(get_string('error')), array(' '), false);
-        } else {
-            $parameter[] =& $mform->createElement('static', $prefix . '-role_' . $param['role'], null, $role);
-            $parameter[] =& $mform->createElement('static', $prefix . '-action_' . $param['role'], null, $delete);
-            $mform->addGroup($parameter, $prefix . '-param' . $param['role'], '', array(' '), false);
+        if (!empty($roleids)) {
+            $mform->addElement('header', 'category_roles', $this->get_title());
+            foreach ($roleids as $rid) {
+                $checked = false;
+                if (in_array($rid, $existing)) {
+                    $checked = true;
+                }
+                $this->config_options($mform, array('id' => $rid, 'checked' => $checked, 'name' => self::get_role_name($rid), 'error' => false));
+                $none = false;
+            }
         }
+
+        // Add aggregation.
+        $mform->addElement('header', 'aggregation', get_string('method', 'badges'));
+        $agg = array();
+        $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethod', 'badges'), 1);
+        $agg[] =& $mform->createElement('static', 'none_break', null, '<br/><br/>');
+        $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethod', 'badges'), 2);
+        $mform->addGroup($agg, 'methodgr', '', array(' '), false);
+        if ($this->id !== 0) {
+            $mform->setDefault('agg', $this->method);
+        } else {
+            $mform->setDefault('agg', BADGE_CRITERIA_AGGREGATION_ALL);
+        }
+
+        return array($none, get_string('noparamstoadd', 'badges'));
     }
 
     /**
@@ -176,7 +170,7 @@ class award_criteria_manual extends award_criteria {
     public function review($userid) {
         global $DB;
 
-        $overall = null;
+        $overall = false;
         foreach ($this->params as $param) {
             $crit = $DB->get_record('badge_manual_award', array('issuerrole' => $param['role'], 'recipientid' => $userid, 'badgeid' => $this->badgeid));
             if ($this->method == BADGE_CRITERIA_AGGREGATION_ALL) {
