@@ -38,39 +38,6 @@ class award_criteria_manual extends award_criteria {
     public $required_param = 'role';
     public $optional_params = array();
 
-//     /**
-//      * Add appropriate form elements to the criteria form
-//      *
-//      * @param moodleform $mform  Moodle forms object
-//      * @param stdClass $data details of various modules
-//      */
-//     public function config_form_criteria($data = null) {
-//         global $OUTPUT;
-//         $agg = $data->get_aggregation_methods();
-
-//         $editurl = new moodle_url('/badges/criteria_settings.php', array('badgeid' => $this->badgeid, 'edit' => true, 'type' => $this->criteriatype, 'crit' => $this->id));
-//         $deleteurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'delete' => true, 'type' => $this->criteriatype));
-//         $editaction = $OUTPUT->action_icon($editurl, new pix_icon('t/edit', get_string('edit')), null, array('class' => 'criteria-action'));
-//         $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
-
-//         echo $OUTPUT->box_start();
-//         if (!$data->is_locked() && !$data->is_active()) {
-//             echo $OUTPUT->box($deleteaction . $editaction, array('criteria-header'));
-//         }
-//         echo $OUTPUT->heading_with_help($this->get_title(), 'criteria_' . $this->criteriatype, 'badges');
-
-//         if (!empty($this->params)) {
-//             if (count($this->params) > 1) {
-//                 echo $OUTPUT->box(get_string('criteria_descr_' . $this->criteriatype, 'badges',
-//                         strtoupper($agg[$data->get_aggregation_method($this->criteriatype)])), array('clearfix'));
-//             } else {
-//                 echo $OUTPUT->box(get_string('criteria_descr_single_' . $this->criteriatype , 'badges'), array('clearfix'));
-//             }
-//             echo $OUTPUT->box($this->get_details(), array('clearfix'));
-//         }
-//         echo $OUTPUT->box_end();
-//     }
-
     /**
      * Gets role name.
      * If no such role exists this function returns null.
@@ -149,6 +116,7 @@ class award_criteria_manual extends award_criteria {
      * @return string
      */
     public function get_details() {
+        global $OUTPUT;
         $output = array();
         foreach ($this->params as $p) {
             $str = self::get_role_name($p['role']);

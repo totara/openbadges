@@ -39,20 +39,29 @@ class edit_criteria_form extends moodleform {
         $criteria = $this->_customdata['criteria'];
         $add = $this->_customdata['add'];
         $edit = $this->_customdata['edit'];
+        $addcourse = $this->_customdata['addcourse'];
 
-        list($none, $message) = $criteria->get_options($mform);
-
-        if ($none) {
-            $mform->addElement('html', html_writer::tag('div', $message));
-            $mform->addElement('submit', 'back', get_string('back'));
+        // Get course selector first if it's a new courseset criteria.
+        if (($criteria->id == 0 || $addcourse) && $criteria->criteriatype == BADGE_CRITERIA_TYPE_COURSESET) {
+            $criteria->get_courses($mform);
         } else {
-            $buttonarray = array();
-            $str = $edit ? get_string('updatec', 'badges') : get_string('addc', 'badges');
-            $buttonarray[] =& $mform->createElement('submit', 'submitbutton', $str);
-            $buttonarray[] =& $mform->createElement('submit', 'back', get_string('cancel'));
+            list($none, $message) = $criteria->get_options($mform);
 
-            $mform->closeHeaderBefore('buttonar');
-            $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
+            if ($none) {
+                $mform->addElement('html', html_writer::tag('div', $message));
+                $mform->addElement('submit', 'back', get_string('back'));
+            } else {
+                $buttonarray = array();
+                if ($criteria->criteriatype == BADGE_CRITERIA_TYPE_COURSESET) {
+                    $buttonarray[] =& $mform->createElement('submit', 'addcourse', get_string('addcourse', 'badges'));
+                }
+                $str = $edit ? get_string('updatec', 'badges') : get_string('addc', 'badges');
+                $buttonarray[] =& $mform->createElement('submit', 'submitbutton', $str);
+                $buttonarray[] =& $mform->createElement('submit', 'back', get_string('cancel'));
+
+                $mform->closeHeaderBefore('buttonar');
+                $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
+            }
         }
     }
 }
