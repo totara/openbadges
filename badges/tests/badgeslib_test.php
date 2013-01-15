@@ -27,7 +27,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
-require_once($CFG->libroot . '/badgeslib.php'');
+require_once($CFG->libroot . '/badgeslib.php');
 
 class badges_testcase extends advanced_testcase {
     public function test_create_badge() {
