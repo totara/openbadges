@@ -162,15 +162,16 @@ abstract class award_criteria {
         } else {
             $parameter[] =& $mform->createElement('advcheckbox', $prefix . $param['id'], '', $param['name'], null, array(0, $param['id']));
 
+            if (in_array('grade', $this->optional_params)) {
+                $parameter[] =& $mform->createElement('static', 'mgrade_' . $param['id'], null, get_string('mingrade', 'badges'));
+                $parameter[] =& $mform->createElement('text', 'grade_' . $param['id'], '', array('size' => '5'));
+            }
+
             if (in_array('bydate', $this->optional_params)) {
                 $parameter[] =& $mform->createElement('static', 'complby_' . $param['id'], null, get_string('bydate', 'badges'));
                 $parameter[] =& $mform->createElement('date_selector', 'bydate_' . $param['id'], "", array('optional' => true));
             }
 
-            if (in_array('grade', $this->optional_params)) {
-                $parameter[] =& $mform->createElement('static', 'mgrade_' . $param['id'], null, get_string('mingrade', 'badges'));
-                $parameter[] =& $mform->createElement('text', 'grade_' . $param['id'], '', array('size' => '5'));
-            }
             $mform->addGroup($parameter, 'param_' . $prefix . $param['id'], '', array(' '), false);
             $mform->disabledIf('bydate_' . $param['id'] . '[day]', 'bydate_' . $param['id'] . '[enabled]', 'notchecked');
             $mform->disabledIf('bydate_' . $param['id'] . '[month]', 'bydate_' . $param['id'] . '[enabled]', 'notchecked');
@@ -285,13 +286,14 @@ abstract class award_criteria {
         global $DB;
         $fordb = new stdClass();
         $fordb->criteriatype = $this->criteriatype;
-        $fordb->method = $params->agg;
+        $fordb->method = isset($params->agg) ? $params->agg : $params['agg'];
         $fordb->badgeid = $this->badgeid;
         $t = $DB->start_delegated_transaction();
 
         // Unset unnecessary parameters supplied with form.
         unset($params->agg);
         unset($params->submitbutton);
+        $params = array_filter((array)$params);
 
         if ($this->id !== 0) {
             $cid = $this->id;
@@ -300,9 +302,8 @@ abstract class award_criteria {
             $fordb->id = $cid;
             $DB->update_record('badge_criteria', $fordb, true);
 
-            $arr = array_keys(array_filter((array)$params));
             $existing = $DB->get_fieldset_select('badge_criteria_param', 'name', 'critid = ?', array($cid));
-            $todelete = array_diff($existing, $arr);
+            $todelete = array_diff($existing, array_keys($params));
 
             if (!empty($todelete)) {
                 list($sql, $sqlparams) = $DB->get_in_or_equal($todelete, SQL_PARAMS_NAMED, 'd', true);

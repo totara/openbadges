@@ -120,8 +120,13 @@ class award_criteria_course extends award_criteria {
             if (isset($param['grade'])) {
                 $mform->setDefault('grade_' . $param['course'], $param['grade']);
             }
+
+            // Add hidden elements.
             $mform->addElement('hidden', 'course_' . $course->id, $course->id);
             $mform->setType('course_' . $course->id, PARAM_INT);
+            $mform->addElement('hidden', 'agg', BADGE_CRITERIA_AGGREGATION_ALL);
+            $mform->setType('agg', PARAM_INT);
+
             $none = false;
             $message = '';
         }
