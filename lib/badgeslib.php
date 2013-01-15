@@ -657,7 +657,7 @@ function badge_message_from_template($message, $params) {
 }
 
 /**
- * Gets all badges.
+ * Get all badges.
  *
  * @param int Type of badges to return
  * @param int Course ID for course badges
