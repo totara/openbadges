@@ -123,7 +123,7 @@ class award_criteria_activity extends award_criteria {
         }
 
         if (!empty($missing)) {
-            $mform->addElement('header', 'category_errors', get_string('error'));
+            $mform->addElement('header', 'category_errors', get_string('criterror', 'badges'));
             foreach ($missing as $m) {
                 $this->config_options($mform, array('id' => $m, 'checked' => true,
                         'name' => get_string('error:nosuchmod', 'badges'), 'error' => true));
@@ -132,7 +132,7 @@ class award_criteria_activity extends award_criteria {
         }
 
         if (!empty($mods)) {
-            $mform->addElement('header', 'category_mods', $this->get_title());
+            $mform->addElement('header', 'first_header', $this->get_title());
             foreach ($mods as $mod) {
                 $checked = false;
                 if (in_array($mod->id, $existing)) {
@@ -158,15 +158,17 @@ class award_criteria_activity extends award_criteria {
         }
 
         // Add aggregation.
-        $mform->addElement('header', 'aggregation', get_string('method', 'badges'));
-        $agg = array();
-        $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethod', 'badges'), 1);
-        $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethod', 'badges'), 2);
-        $mform->addGroup($agg, 'methodgr', '', array('<br/>'), false);
-        if ($this->id !== 0) {
-            $mform->setDefault('agg', $this->method);
-        } else {
-            $mform->setDefault('agg', BADGE_CRITERIA_AGGREGATION_ALL);
+        if (!$none) {
+            $mform->addElement('header', 'aggregation', get_string('method', 'badges'));
+            $agg = array();
+            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethod', 'badges'), 1);
+            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethod', 'badges'), 2);
+            $mform->addGroup($agg, 'methodgr', '', array('<br/>'), false);
+            if ($this->id !== 0) {
+                $mform->setDefault('agg', $this->method);
+            } else {
+                $mform->setDefault('agg', BADGE_CRITERIA_AGGREGATION_ALL);
+            }
         }
 
         return array($none, get_string('noparamstoadd', 'badges'));

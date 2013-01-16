@@ -75,7 +75,7 @@ class award_criteria_manual extends award_criteria {
         }
 
         if (!empty($missing)) {
-            $mform->addElement('header', 'category_errors', get_string('error'));
+            $mform->addElement('header', 'category_errors', get_string('criterror', 'badges'));
             foreach ($missing as $m) {
                 $this->config_options($mform, array('id' => $m, 'checked' => true, 'name' => get_string('error:missingrole', 'badges'), 'error' => true));
                 $none = false;
@@ -83,7 +83,7 @@ class award_criteria_manual extends award_criteria {
         }
 
         if (!empty($roleids)) {
-            $mform->addElement('header', 'category_roles', $this->get_title());
+            $mform->addElement('header', 'first_header', $this->get_title());
             foreach ($roleids as $rid) {
                 $checked = false;
                 if (in_array($rid, $existing)) {
@@ -95,16 +95,18 @@ class award_criteria_manual extends award_criteria {
         }
 
         // Add aggregation.
-        $mform->addElement('header', 'aggregation', get_string('method', 'badges'));
-        $agg = array();
-        $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethod', 'badges'), 1);
-        $agg[] =& $mform->createElement('static', 'none_break', null, '<br/><br/>');
-        $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethod', 'badges'), 2);
-        $mform->addGroup($agg, 'methodgr', '', array(' '), false);
-        if ($this->id !== 0) {
-            $mform->setDefault('agg', $this->method);
-        } else {
-            $mform->setDefault('agg', BADGE_CRITERIA_AGGREGATION_ALL);
+        if (!$none) {
+            $mform->addElement('header', 'aggregation', get_string('method', 'badges'));
+            $agg = array();
+            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethod', 'badges'), 1);
+            $agg[] =& $mform->createElement('static', 'none_break', null, '<br/><br/>');
+            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethod', 'badges'), 2);
+            $mform->addGroup($agg, 'methodgr', '', array(' '), false);
+            if ($this->id !== 0) {
+                $mform->setDefault('agg', $this->method);
+            } else {
+                $mform->setDefault('agg', BADGE_CRITERIA_AGGREGATION_ALL);
+            }
         }
 
         return array($none, get_string('noparamstoadd', 'badges'));

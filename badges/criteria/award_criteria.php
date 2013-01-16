@@ -157,7 +157,8 @@ abstract class award_criteria {
         $prefix = $this->required_param . '_';
 
         if ($param['error']) {
-            $parameter[] =& $mform->createElement('advcheckbox', $prefix . $param['id'], '', $OUTPUT->error_text($param['name']), null, array(0, $param['id']));
+            $parameter[] =& $mform->createElement('advcheckbox', $prefix . $param['id'], '',
+                    $OUTPUT->error_text($param['name']), null, array(0, $param['id']));
             $mform->addGroup($parameter, 'param_' . $prefix . $param['id'], '', array(' '), false);
         } else {
             $parameter[] =& $mform->createElement('advcheckbox', $prefix . $param['id'], '', $param['name'], null, array(0, $param['id']));
@@ -173,9 +174,14 @@ abstract class award_criteria {
             }
 
             $mform->addGroup($parameter, 'param_' . $prefix . $param['id'], '', array(' '), false);
+            if (in_array('grade', $this->optional_params)) {
+                $mform->addGroupRule('param_' . $prefix . $param['id'], array(
+                    'grade_' . $param['id'] => array(array(get_string('err_numeric', 'form'), 'numeric', '', 'client'))));
+            }
             $mform->disabledIf('bydate_' . $param['id'] . '[day]', 'bydate_' . $param['id'] . '[enabled]', 'notchecked');
             $mform->disabledIf('bydate_' . $param['id'] . '[month]', 'bydate_' . $param['id'] . '[enabled]', 'notchecked');
             $mform->disabledIf('bydate_' . $param['id'] . '[year]', 'bydate_' . $param['id'] . '[enabled]', 'notchecked');
+            $mform->disabledIf('param_' . $prefix . $param['id'], $prefix . $param['id'], 'notchecked');
         }
 
         // Set default values.
@@ -306,6 +312,16 @@ abstract class award_criteria {
             $todelete = array_diff($existing, array_keys($params));
 
             if (!empty($todelete)) {
+                // A walkaround to add some disabled elements that are still being submitted from the form.
+                foreach ($todelete as $del) {
+                    $name = explode('_', $del);
+                    if ($name[0] == $this->required_param) {
+                        foreach ($this->optional_params as $opt) {
+                            $todelete[] = $opt . '_' . $name[1];
+                        }
+                    }
+                }
+                $todelete = array_unique($todelete);
                 list($sql, $sqlparams) = $DB->get_in_or_equal($todelete, SQL_PARAMS_NAMED, 'd', true);
                 $sqlparams = array_merge(array('critid' => $cid), $sqlparams);
                 $DB->delete_records_select('badge_criteria_param', 'critid = :critid AND name ' . $sql, $sqlparams);
@@ -335,8 +351,8 @@ abstract class award_criteria {
                     $DB->insert_record('badge_criteria_param', $newp, false, true);
                 }
             }
-        }
-        $t->allow_commit();
+         }
+         $t->allow_commit();
     }
 
     /**

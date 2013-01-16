@@ -55,6 +55,7 @@ class edit_details_form extends moodleform {
 
         $mform->addElement('textarea', 'description', get_string('description', 'badges'), 'wrap="virtual" rows="10" cols="70"');
         $mform->setType('description', PARAM_CLEANHTML);
+        $mform->addRule('description', null, 'required');
 
         $imageoptions = array('maxbytes' => 262144, 'accepted_types' => array('web_image'));
         $mform->addElement('filepicker', 'image', get_string('newimage', 'badges'), null, $imageoptions);
@@ -78,13 +79,13 @@ class edit_details_form extends moodleform {
         $mform->addElement('text', 'issuerurl', get_string('url'), array('size' => '70'));
         $mform->setType('issuerurl', PARAM_URL);
         $mform->setDefault('issuerurl', $CFG->badges_defaultissuerurl);
-        $mform->addRule('issuerurl', null, 'required');
+        $mform->addRule('issuerurl', null, 'required', '', 'client');
         $mform->addHelpButton('issuerurl', 'issuerurl', 'badges');
 
         $mform->addElement('text', 'issuercontact', get_string('contact', 'badges'), array('size' => '70'));
         $mform->setDefault('issuercontact', $CFG->badges_defaultissuercontact);
         $mform->setType('issuercontact', PARAM_EMAIL);
-        $mform->addRule('issuercontact', get_string('invalidemail'), 'email', null, 'client', true);
+        $mform->addRule('issuercontact', get_string('invalidemail', 'moodle'), 'email', null, 'client', true);
         $mform->addHelpButton('issuercontact', 'contact', 'badges');
 
         $mform->addElement('header', 'issuancedetails', get_string('issuancedetails', 'badges'));
@@ -161,7 +162,7 @@ class edit_details_form extends moodleform {
             $host     = isset($url['host']) ? $url['host'] : '';
             $port     = isset($url['port']) ? ':' . $url['port'] : '';
             $suggest = "$scheme$host$port";
-            $errors['issuerurl'] = get_string('error:invalidbadgeurl', 'badges', $suggest);
+            $errors['issuerurl'] = get_string('error:invalidbadgeurl', 'badges');
         }
 
         if ($data['expiry'] == 2 && $data['expireperiod'] <= 0) {

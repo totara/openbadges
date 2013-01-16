@@ -411,8 +411,8 @@ $string['badgestatus_3'] = 'Active and locked';
 $string['badgestatus_4'] = 'Archived';
 
 // Badge criteria.
-$string['allmethod'] = 'All ';
-$string['anymethod'] = 'Any ';
+$string['allmethod'] = 'All of the selected conditions are met';
+$string['anymethod'] = 'Any of the selected conditions is met';
 $string['criteria_0'] = 'This badge is awarded when...';
 $string['criteria_1'] = 'Activity completion';
 $string['criteria_2'] = 'Manual badge issue';
@@ -424,7 +424,7 @@ $string['criteriasummary'] = 'Criteria summary';
 $string['completionnotenabled'] = 'Course completion is not enabled for this course, so it cannot be included in badge criteria. <br/> You can enable course completion in the course settings.';
 $string['coursecompletion'] = 'Learners must complete this course. ';
 $string['default'] = 'Default user profile fields';
-$string['lockedbadge'] = 'Currently, this badge is either active or locked, so most of it\'s properties cannot be modified. If you would like to change this badge\'s details or criteria, please set its status to inactive.';
+$string['lockedbadge'] = 'Currently, this badge\'s status does not allow it\'s properties to be modified.';
 $string['mingrade'] = 'Minimum grade required';
 $string['method'] = 'This criterion is complete when...';
 $string['noparamstoadd'] = 'There are no additional parameters available to add to this badge requirement.';
@@ -471,6 +471,7 @@ $string['all'] = 'All';
 $string['any'] = 'Any';
 $string['awards'] = 'Awards';
 $string['award'] = 'Award badge';
+$string['awardedtoyou'] = 'Issued to me';
 $string['attachment'] = 'Attach badge to message';
 $string['bawards'] = 'Awards ({$a})';
 $string['badgeimage'] = 'Image';
@@ -488,7 +489,7 @@ $string['create'] = 'New badge';
 $string['createbutton'] = 'Create badge';
 $string['currentimage'] = 'Current image';
 $string['dateawarded'] = 'Date issued';
-$string['dateearned'] = 'Earned on {$a}';
+$string['dateearned'] = 'Date: {$a}';
 $string['day'] = 'Day(s)';
 $string['deactivate'] = 'Deactivate';
 $string['delbadge'] = 'Delete badge';
@@ -590,6 +591,7 @@ $string['variablesubstitution_help'] = 'In a badge message, certain variables ca
 :   This will be replaced by the public URL with information about the issued badge.';
 
 // Error messages.
+$string['criterror'] = 'Current parameters issues';
 $string['error:cannotact'] = 'Cannot activate the badge. ';
 $string['error:cannotawardbadge'] = 'Cannot award badge to a user.';
 $string['error:clone'] = 'Cannot clone the badge.';
@@ -611,8 +613,9 @@ $string['error:nosuchrole'] = 'Warning: This role is no longer available.';
 $string['error:nosuchbadge'] = 'Badge with id {$a} does not exist.';
 $string['error:nosuchuser'] = 'User with such email does not have an account with the current backpack provider';
 $string['error:invalidcriteriatype'] = 'Invalid criteria type.';
-$string['error:invalidbadgeurl'] = 'Invalid badge issuer URL format. If it is possible, try using {$a}';
+$string['error:invalidbadgeurl'] = 'Invalid badge issuer URL format.';
 $string['error:invalidexpireperiod'] = 'Expiry period cannot be negative or equal 0.';
 $string['error:invalidexpiredate'] = 'Expiry date has to be in the future.';
 $string['error:nopermissiontoview'] = 'You have no permissions to view badge recipients';
+$string['error:parameter'] = 'Warning: At least one parameter should be selected to ensure correct badge issueing workflow.';
 $string['requiredcourse'] = 'At least one course should be added to the courseset criterion.';

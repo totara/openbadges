@@ -64,4 +64,35 @@ class edit_criteria_form extends moodleform {
             }
         }
     }
+
+    /**
+     * Validates form data
+     */
+    public function validation($data, $files) {
+        global $OUTPUT;
+        $errors = parent::validation($data, $files);
+        $addcourse = $this->_customdata['addcourse'];
+
+        if (!$addcourse) {
+            $required = $this->_customdata['criteria']->required_param;
+            $pattern1 = '/^' . $required . '_(\d+)$/';
+            $pattern2 = '/^' . $required . '_(\w+)$/';
+
+            $ok = false;
+            foreach ($data as $key => $value) {
+                if ((preg_match($pattern1, $key) || preg_match($pattern2, $key)) && !($value === 0 || $value == '0')) {
+                    $ok = true;
+                }
+            }
+
+            $warning = $this->_form->createElement('html',
+                    $OUTPUT->notification(get_string('error:parameter', 'badges'), 'notifyproblem'), 'submissionerror');
+
+            if (!$ok) {
+                $errors['formerrors'] = 'Error';
+                $this->_form->insertElementBefore($warning, 'first_header');
+            }
+        }
+        return $errors;
+    }
 }

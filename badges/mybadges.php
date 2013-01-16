@@ -86,18 +86,14 @@ echo $OUTPUT->header();
 $totalcount = count($badges);
 $records = get_user_badges($USER->id, null, $page, $perpage, $search);
 
-if ($totalcount) {
-    $userbadges             = new badge_user_collection($records, $USER->id);
-    $userbadges->sort       = 'dateissued';
-    $userbadges->dir        = 'DESC';
-    $userbadges->page       = $page;
-    $userbadges->perpage    = $perpage;
-    $userbadges->totalcount = $totalcount;
-    $userbadges->search     = $search;
+$userbadges             = new badge_user_collection($records, $USER->id);
+$userbadges->sort       = 'dateissued';
+$userbadges->dir        = 'DESC';
+$userbadges->page       = $page;
+$userbadges->perpage    = $perpage;
+$userbadges->totalcount = $totalcount;
+$userbadges->search     = $search;
 
-    echo $output->render($userbadges);
-} else {
-    echo $output->notification(get_string('nobadges', 'badges'));
-}
+echo $output->render($userbadges);
 
 echo $OUTPUT->footer();

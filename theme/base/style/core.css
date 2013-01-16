@@ -1296,7 +1296,7 @@ table.collection .r0 { background-color: #F6F6F6; }
 #page-badges-index table.collection .status { width: 15%; text-align: center; vertical-align: middle; }
 #page-badges-index table.collection .badgeimage,
 #page-badges-view table.collection .awards,
-#page-badges-index table.collection .awards { width: 7%; text-align: center; vertical-align: middle; }
+#page-badges-index table.collection .awards { width: 10%; text-align: center; vertical-align: middle; }
 #page-badges-view table.collection .description { width: 30%; text-align: left; }
 
 table.collection .name { text-align: left; vertical-align: middle; }
@@ -1304,7 +1304,7 @@ table.collection .criteria { width: 30%; text-align: left; vertical-align: middl
 #page-badges-index table.collection .actions { width: 11em; text-align: center; vertical-align: middle; }
 
 a.criteria-action { padding: 0px 3px; float: right; }
-table.issuedbadgebox { width: 750px; }
+table.issuedbadgebox { width: 750px; background-color: white; }
 table.badgeissuedimage { width: 150px; text-align: center; }
 table.badgeissuedinfo { width: 600px; }
 table.badgeissuedinfo .bvalue { text-align: left; vertical-align: middle; }

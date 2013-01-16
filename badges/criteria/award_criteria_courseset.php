@@ -138,7 +138,7 @@ class award_criteria_courseset extends award_criteria {
         global $DB;
         $none = true;
 
-        $mform->addElement('header', 'category_courses', $this->get_title());
+        $mform->addElement('header', 'first_header', $this->get_title());
 
         // In courseset, print out only the ones that were already selected.
         foreach ($this->params as $p) {
@@ -165,16 +165,18 @@ class award_criteria_courseset extends award_criteria {
         }
 
         // Add aggregation.
-        $mform->addElement('header', 'aggregation', get_string('method', 'badges'));
-        $agg = array();
-        $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethod', 'badges'), 1);
-        $agg[] =& $mform->createElement('static', 'none_break', null, '<br/><br/>');
-        $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethod', 'badges'), 2);
-        $mform->addGroup($agg, 'methodgr', '', array(' '), false);
-        if ($this->id !== 0) {
-            $mform->setDefault('agg', $this->method);
-        } else {
-            $mform->setDefault('agg', BADGE_CRITERIA_AGGREGATION_ALL);
+        if (!$none) {
+            $mform->addElement('header', 'aggregation', get_string('method', 'badges'));
+            $agg = array();
+            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethod', 'badges'), 1);
+            $agg[] =& $mform->createElement('static', 'none_break', null, '<br/><br/>');
+            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethod', 'badges'), 2);
+            $mform->addGroup($agg, 'methodgr', '', array(' '), false);
+            if ($this->id !== 0) {
+                $mform->setDefault('agg', $this->method);
+            } else {
+                $mform->setDefault('agg', BADGE_CRITERIA_AGGREGATION_ALL);
+            }
         }
 
         return array($none, get_string('noparamstoadd', 'badges'));

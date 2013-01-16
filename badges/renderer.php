@@ -387,12 +387,13 @@ class core_badges_renderer extends plugin_renderer_base {
         $paging = new paging_bar($badges->totalcount, $badges->page, $badges->perpage, $this->page->url, 'page');
         $htmlpagingbar = $this->render($paging);
 
+
         $searchform = $this->helper_search_form($badges->search);
         // Local badges.
         $localhtml = html_writer::start_tag('fieldset', array('class' => 'generalbox'));
         $localhtml .= html_writer::tag('legend', $this->output->heading_with_help(get_string('localbadges', 'badges'), 'localbadges', 'badges'));
-        $localhtml .= html_writer::tag('div', get_string('badgesearned', 'badges', $badges->totalcount));
         if ($badges->badges) {
+            $localhtml .= html_writer::tag('div', get_string('badgesearned', 'badges', $badges->totalcount));
             $htmllist = $this->print_badges_list($badges->badges, $USER->id);
             $htmlactions  = $this->bulk_user_action_form();
             $attributes = array(
@@ -402,11 +403,10 @@ class core_badges_renderer extends plugin_renderer_base {
                     'class'  => 'boxaligncenter'
             );
             $htmlform = html_writer::tag('form', $htmllist . $htmlactions, $attributes);
+            $localhtml .= $searchform . $htmlpagingbar . $htmlform . $htmlpagingbar;
         } else {
-            $htmlform = "";
+            $localhtml .= $this->output->notification(get_string('nobadges', 'badges'));
         }
-
-        $localhtml .= $searchform . $htmlpagingbar . $htmlform . $htmlpagingbar;
         $localhtml .= html_writer::end_tag('fieldset');
 
         // External badges.
@@ -447,7 +447,7 @@ class core_badges_renderer extends plugin_renderer_base {
 
         $sortbyname = $this->helper_sortable_heading(get_string('name'),
                 'name', $badges->sort, $badges->dir);
-        $sortbyawarded = $this->helper_sortable_heading(get_string('awards', 'badges'),
+        $sortbyawarded = $this->helper_sortable_heading(get_string('awardedtoyou', 'badges'),
                 'dateissued', $badges->sort, $badges->dir);
         $table->head = array(
                     get_string('badgeimage', 'badges'),
@@ -465,9 +465,10 @@ class core_badges_renderer extends plugin_renderer_base {
             $criteria = self::print_badge_criteria($badge);
             if ($badge->dateissued) {
                 $icon = new pix_icon('i/tick_green_big',
-                            get_string('dateearned', 'badges', userdate($badge->dateissued)));
+                            get_string('dateearned', 'badges',
+                                userdate($badge->dateissued, get_string('strftimedatefullshort', 'core_langconfig'))));
                 $badgeurl = new moodle_url('/badges/badge.php', array('hash' => $badge->uniquehash));
-                $awarded = $this->output->action_icon($badgeurl, $icon);
+                $awarded = $this->output->action_icon($badgeurl, $icon, null, null, true);
             } else {
                 $awarded = "";
             }
