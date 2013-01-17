@@ -459,7 +459,7 @@ class badge {
     public function get_criteria_completions($userid) {
         global $DB;
         $completions = array();
-        $sql = "SELECT bcm.id
+        $sql = "SELECT bcm.id, bcm.critid
                 FROM {badge_criteria_met} bcm
                     INNER JOIN {badge_criteria} bc ON bcm.critid = bc.id
                 WHERE bc.badgeid = :badgeid AND bcm.userid = :userid ";

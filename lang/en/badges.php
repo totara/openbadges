@@ -481,6 +481,7 @@ $string['bcriteria'] = 'Criteria';
 $string['bdetails'] = 'Edit details';
 $string['bmessage'] = 'Message';
 $string['bydate'] = ' complete by';
+$string['completioninfo'] = 'This badge was issued for completing: ';
 $string['configuremessage'] = 'Configure badge message';
 $string['copyof'] = 'Copy of ';
 $string['boverview'] = 'Overview';

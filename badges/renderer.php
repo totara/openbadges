@@ -327,7 +327,28 @@ class core_badges_renderer extends plugin_renderer_base {
             if (isset($issued['expires'])) {
                 $datatable->data[] = array(get_string('expirydate', 'badges'), $issued['expires']);
             }
-            // $datatable->data[] = array(get_string('evidence', 'badges'), 'TODO'); // @TODO: print completed criteria.
+
+            // Print evidence.
+            $agg = $badge->get_aggregation_methods();
+            $evidence = $badge->get_criteria_completions($ibadge->recipient);
+            $eids = array_map(create_function('$o', 'return $o->critid;'), $evidence);
+            unset($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]);
+
+            $items = array();
+            foreach ($badge->criteria as $type => $c) {
+                if (in_array($c->id, $eids)) {
+                    if (count($c->params) == 1) {
+                        $items[] = get_string('criteria_descr_single_' . $type , 'badges') . $c->get_details();
+                    } else {
+                        $items[] = get_string('criteria_descr_' . $type , 'badges',
+                                strtoupper($agg[$badge->get_aggregation_method($type)])) . $c->get_details();
+                    }
+                }
+            }
+
+            $datatable->data[] = array(get_string('evidence', 'badges'),
+                    get_string('completioninfo', 'badges') .
+                    html_writer::alist($items, array(), 'ul'));
             $table->attributes = array('class' => 'generalbox boxaligncenter issuedbadgebox');
             $table->data[] = array(html_writer::table($imagetable), html_writer::table($datatable));
             $htmlbadge = html_writer::table($table);
@@ -593,9 +614,9 @@ class core_badges_renderer extends plugin_renderer_base {
         unset($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]);
         foreach ($badge->criteria as $type => $c) {
             if (count($c->params) == 1) {
-                $items[] .= get_string('criteria_descr_single_' . $type , 'badges') . $c->get_details();
+                $items[] = get_string('criteria_descr_single_' . $type , 'badges') . $c->get_details();
             } else {
-                $items[] .= get_string('criteria_descr_' . $type , 'badges',
+                $items[] = get_string('criteria_descr_' . $type , 'badges',
                         strtoupper($agg[$badge->get_aggregation_method($type)])) . $c->get_details();
             }
         }
