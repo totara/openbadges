@@ -50,7 +50,7 @@ class edit_criteria_form extends moodleform {
 
             if ($none) {
                 $mform->addElement('html', html_writer::tag('div', $message));
-                $mform->addElement('submit', 'back', get_string('back'));
+                $mform->addElement('submit', 'back', get_string('continue'));
             } else {
                 $buttonarray = array();
                 if ($criteria->criteriatype == BADGE_CRITERIA_TYPE_COURSESET) {

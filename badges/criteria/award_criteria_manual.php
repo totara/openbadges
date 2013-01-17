@@ -78,7 +78,7 @@ class award_criteria_manual extends award_criteria {
             $mform->addElement('header', 'category_errors', get_string('criterror', 'badges'));
             $mform->addHelpButton('category_errors', 'criterror', 'badges');
             foreach ($missing as $m) {
-                $this->config_options($mform, array('id' => $m, 'checked' => true, 'name' => get_string('error:missingrole', 'badges'), 'error' => true));
+                $this->config_options($mform, array('id' => $m, 'checked' => true, 'name' => get_string('error:nosuchrole', 'badges'), 'error' => true));
                 $none = false;
             }
         }

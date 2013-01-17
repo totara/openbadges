@@ -597,16 +597,12 @@ $string['error:cannotact'] = 'Cannot activate the badge. ';
 $string['error:cannotawardbadge'] = 'Cannot award badge to a user.';
 $string['error:clone'] = 'Cannot clone the badge.';
 $string['error:save'] = 'Cannot save the badge.';
-$string['error:missingcourse'] = 'It looks like this course does not exist any more. If you want users to be able to earn this badge, please revise this parameter';
-$string['error:missingfield'] = 'It looks like this profile field does not exist any more. If you want users to be able to earn this badge, please revise this parameter';
-$string['error:missingmodule'] = 'It looks like this activity does not exist any more. If you want users to be able to earn this badge, please revise this parameter';
-$string['error:missingrole'] = 'It looks like this role does not exist any more. If you want users to be able to earn this badge, please revise this parameter';
 $string['error:nogroups'] = '<p>There are no public groups of badges available in your backpack.</p>
 
 <p>To display external badges, you will need to visit your backpack and make at least one group of badges public.</p>
 
 <p>If you already have backpack service connection established and your previously selected badge group has been removed, clear these settings and try again.</p>';
-$string['error:noactivities'] = 'No activities with completion criteria enabled.';
+$string['error:noactivities'] = 'There are no activities with completion criteria enabled in this course.';
 $string['error:nocourses'] = 'Course completion is not enabled for any of the courses, so none can be displayed. You can enable course completion in the course settings.';
 $string['error:nosuchcourse'] = 'Warning: This course is no longer available.';
 $string['error:nosuchfield'] = 'Warning: This user profile field is no longer available.';

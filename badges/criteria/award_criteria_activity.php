@@ -172,7 +172,7 @@ class award_criteria_activity extends award_criteria {
             }
         }
 
-        return array($none, get_string('noparamstoadd', 'badges'));
+        return array($none, get_string('error:noactivities', 'badges'));
     }
 
     /**
