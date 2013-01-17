@@ -51,9 +51,8 @@ class award_criteria_profile extends award_criteria {
         $missing = array();
 
         // Note: cannot use user_get_default_fields() here because it is not possible to decide which fields user can modify.
-        $dfields = array('firstname', 'lastname', 'email', 'address', 'phone1', 'phone2',
-                        'icq', 'skype', 'yahoo', 'aim', 'msn', 'department', 'institution',
-                        'interests', 'description', 'city', 'url', 'country');
+        $dfields = array('firstname', 'lastname', 'email', 'address', 'phone1', 'phone2', 'icq', 'skype', 'yahoo',
+                         'aim', 'msn', 'department', 'institution', 'description', 'city', 'url', 'country');
 
         $sql = "SELECT uf.id as fieldid, uf.name as name, ic.id as categoryid, ic.name as categoryname, uf.datatype
                 FROM {user_info_field} uf
@@ -72,6 +71,7 @@ class award_criteria_profile extends award_criteria {
 
         if (!empty($missing)) {
             $mform->addElement('header', 'category_errors', get_string('criterror', 'badges'));
+            $mform->addHelpButton('category_errors', 'criterror', 'badges');
             foreach ($missing as $m) {
                 $this->config_options($mform, array('id' => $m, 'checked' => true, 'name' => get_string('error:nosuchfield', 'badges'), 'error' => true));
                 $none = false;
@@ -80,6 +80,7 @@ class award_criteria_profile extends award_criteria {
 
         if (!empty($dfields)) {
             $mform->addElement('header', 'first_header', get_string('default', 'badges'));
+            $mform->addHelpButton('first_header', 'criteria_' . $this->criteriatype, 'badges');
             foreach ($dfields as $field) {
                 $checked = false;
                 if (in_array($field, $existing)) {

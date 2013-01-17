@@ -101,6 +101,7 @@ class award_criteria_course extends award_criteria {
             $message = get_string('completionnotenabled', 'badges');
         } else {
             $mform->addElement('header', 'criteria_course', $this->get_title());
+            $mform->addHelpButton('criteria_course', 'criteria_' . $this->criteriatype, 'badges');
             $parameter = array();
             $parameter[] =& $mform->createElement('static', 'mgrade_', null, get_string('mingrade', 'badges'));
             $parameter[] =& $mform->createElement('text', 'grade_' . $param['course'], '', array('size' => '5'));
@@ -143,6 +144,11 @@ class award_criteria_course extends award_criteria {
         global $DB;
         foreach ($this->params as $param) {
             $course = $DB->get_record('course', array('id' => $param['course']));
+
+            if ($course->startdate > time()) {
+                return false;
+            }
+
             $info = new completion_info($course);
             $check_grade = true;
             $check_date = true;

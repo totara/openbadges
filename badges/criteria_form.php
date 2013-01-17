@@ -35,6 +35,7 @@ require_once($CFG->libdir . '/badgeslib.php');
  */
 class edit_criteria_form extends moodleform {
     public function definition() {
+        global $DB;
         $mform = $this->_form;
         $criteria = $this->_customdata['criteria'];
         $add = $this->_customdata['add'];
@@ -53,7 +54,9 @@ class edit_criteria_form extends moodleform {
             } else {
                 $buttonarray = array();
                 if ($criteria->criteriatype == BADGE_CRITERIA_TYPE_COURSESET) {
-                    $buttonarray[] =& $mform->createElement('submit', 'addcourse', get_string('addcourse', 'badges'));
+                    if ($courses = $DB->get_records('course', array('enablecompletion' => COMPLETION_ENABLED))) {
+                        $buttonarray[] =& $mform->createElement('submit', 'addcourse', get_string('addcourse', 'badges'));
+                    }
                 }
                 $str = $edit ? get_string('updatec', 'badges') : get_string('addc', 'badges');
                 $buttonarray[] =& $mform->createElement('submit', 'submitbutton', $str);

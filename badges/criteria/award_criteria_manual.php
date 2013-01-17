@@ -76,6 +76,7 @@ class award_criteria_manual extends award_criteria {
 
         if (!empty($missing)) {
             $mform->addElement('header', 'category_errors', get_string('criterror', 'badges'));
+            $mform->addHelpButton('category_errors', 'criterror', 'badges');
             foreach ($missing as $m) {
                 $this->config_options($mform, array('id' => $m, 'checked' => true, 'name' => get_string('error:missingrole', 'badges'), 'error' => true));
                 $none = false;
@@ -84,6 +85,7 @@ class award_criteria_manual extends award_criteria {
 
         if (!empty($roleids)) {
             $mform->addElement('header', 'first_header', $this->get_title());
+            $mform->addHelpButton('first_header', 'criteria_' . $this->criteriatype, 'badges');
             foreach ($roleids as $rid) {
                 $checked = false;
                 if (in_array($rid, $existing)) {

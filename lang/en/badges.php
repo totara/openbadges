@@ -545,6 +545,7 @@ $string['messagesubject'] = 'Congratulations! You just earned a badge!';
 $string['actions_help'] = '';
 $string['attachment_help'] = 'If this \'Attachment\' is checked, an issued badge will be attached to the recepient\'s email for download';
 $string['contact_help'] = 'An email address associated with the badge issuer.';
+$string['criterror_help'] = 'This fieldset shows all parameters that were initially added to this badge requirement but are no longer available. It is recommended that you uncheck such parameteres to make sure that learners can earn this badge in the future.';
 $string['criteria_1_help'] = 'Activity completion allows to award a badge to users who have completed a set of selected activities.';
 $string['criteria_2_help'] = 'This criterion allows to award a badge manually by the users with selected roles.';
 $string['criteria_3_help'] = 'Social';
@@ -606,12 +607,14 @@ $string['error:nogroups'] = '<p>There are no public groups of badges available i
 
 <p>If you already have backpack service connection established and your previously selected badge group has been removed, clear these settings and try again.</p>';
 $string['error:noactivities'] = 'No activities with completion criteria enabled.';
+$string['error:nocourses'] = 'Course completion is not enabled for any of the courses, so none can be displayed. You can enable course completion in the course settings.';
 $string['error:nosuchcourse'] = 'Warning: This course is no longer available.';
 $string['error:nosuchfield'] = 'Warning: This user profile field is no longer available.';
 $string['error:nosuchmod'] = 'Warning: This activity is no longer available.';
 $string['error:nosuchrole'] = 'Warning: This role is no longer available.';
 $string['error:nosuchbadge'] = 'Badge with id {$a} does not exist.';
 $string['error:nosuchuser'] = 'User with such email does not have an account with the current backpack provider';
+$string['error:notifycoursedate'] = 'Warning: Badges associated with course and activity completions will not be issued until the course start date.';
 $string['error:invalidcriteriatype'] = 'Invalid criteria type.';
 $string['error:invalidbadgeurl'] = 'Invalid badge issuer URL format.';
 $string['error:invalidexpireperiod'] = 'Expiry period cannot be negative or equal 0.';

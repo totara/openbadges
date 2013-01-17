@@ -71,8 +71,10 @@ class award_criteria_courseset extends award_criteria {
     public function get_courses(&$mform) {
         global $DB, $CFG, $PAGE;
         require_once $CFG->dirroot . '/course/lib.php';
+        $buttonarray = array();
 
-        $courses = $DB->get_records('course', array('enablecompletion' => COMPLETION_ENABLED, 'visible' => 1));
+        // Get courses with enabled completion.
+        $courses = $DB->get_records('course', array('enablecompletion' => COMPLETION_ENABLED));
         if (!empty($courses)) {
             $list = array();
             $parents = array();
@@ -89,18 +91,23 @@ class award_criteria_courseset extends award_criteria {
             }
             $mform->addElement('select', 'courses', get_string('addcourse', 'badges'), $select, array('multiple' => 'multiple', 'size' => 20));
             $mform->addRule('courses', get_string('requiredcourse', 'badges'), 'required');
-        }
-        $buttonarray = array();
-        $buttonarray[] =& $mform->createElement('submit', 'submitcourse', get_string('addcourse', 'badges'));
-        $buttonarray[] =& $mform->createElement('submit', 'back', get_string('cancel'));
-        $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
 
-        $mform->addElement('hidden', 'addcourse', 'addcourse');
-        $mform->setType('addcourse', PARAM_TEXT);
-        if ($this->id !== 0) {
-            $mform->setDefault('courses', $selected);
+            $buttonarray[] =& $mform->createElement('submit', 'submitcourse', get_string('addcourse', 'badges'));
+            $buttonarray[] =& $mform->createElement('submit', 'back', get_string('cancel'));
+            $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
+
+            $mform->addElement('hidden', 'addcourse', 'addcourse');
+            $mform->setType('addcourse', PARAM_TEXT);
+            if ($this->id !== 0) {
+                $mform->setDefault('courses', $selected);
+            }
+            $mform->setType('agg', PARAM_INT);
         }
-        $mform->setType('agg', PARAM_INT);
+        else {
+            $mform->addElement('static', 'nocourses', '', get_string('error:nocourses', 'badges'));
+            $buttonarray[] =& $mform->createElement('submit', 'back', get_string('continue'));
+            $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
+        }
     }
 
     public function add_courses($params = array()) {
@@ -139,6 +146,7 @@ class award_criteria_courseset extends award_criteria {
         $none = true;
 
         $mform->addElement('header', 'first_header', $this->get_title());
+        $mform->addHelpButton('first_header', 'criteria_' . $this->criteriatype, 'badges');
 
         // In courseset, print out only the ones that were already selected.
         foreach ($this->params as $p) {

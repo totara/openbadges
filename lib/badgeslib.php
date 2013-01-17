@@ -732,6 +732,7 @@ function get_user_badges($userid, $courseid = 0, $page = 0, $perpage = 0, $searc
                 bi.uniquehash,
                 bi.dateissued,
                 bi.dateexpire,
+                bi.id as issuedid,
                 bi.visible as public,
                 u.email,
                 b.*

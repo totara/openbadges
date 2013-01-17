@@ -52,9 +52,11 @@ class core_badges_renderer extends plugin_renderer_base {
             if (($userid == $USER->id) && !$profile) {
                 $checkbox = html_writer::checkbox('badges[]', $b->uniquehash, false, '', array('class' => 'badge-select'));
                 if ($b->public) {
-                    $status = $this->output->pix_icon('t/hide', get_string('visible', 'badges')) . " ";
+                    $url = new moodle_url('mybadges.php', array('hide' => $b->issuedid));
+                    $status = $this->output->action_icon($url, new pix_icon('t/hide', get_string('hide'))) . " ";
                 } else {
-                    $status = $this->output->pix_icon('t/show', get_string('hidden', 'badges')) . " ";
+                    $url = new moodle_url('mybadges.php', array('show' => $b->issuedid));
+                    $status = $this->output->action_icon($url, new pix_icon('t/show', get_string('makepublic', 'badges'))) . " ";
                 }
             }
 

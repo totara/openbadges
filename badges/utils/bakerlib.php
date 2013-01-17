@@ -81,8 +81,22 @@ class PNG_MetaDataHandler
 
         // Baking iTXt is not working at the moment. Need to have a look at this when Mozilla spec is out of beta.
         if ($type == 'iTXt') {
-            $data = $key . "\0" . 0 . 0 . "json" . "\0" . "''" . "\0" . '{"method": "hosted", "assertionUrl": "' . $value . '"}';
+            // iTXt International textual data
+            // Keyword:             1-79 bytes (character string)
+            // Null separator:      1 byte
+            // Compression flag:    1 byte
+            // Compression method:  1 byte
+            // Language tag:        0 or more bytes (character string)
+            // Null separator:      1 byte
+            // Translated keyword:  0 or more bytes
+            // Null separator:      1 byte
+            // Text:                0 or more bytes
+            $data = $key . "\000'json'\0''\0\"{'method': 'hosted', 'assertionUrl': '" . $value . "'}\"";
         } else {
+            // tEXt Textual data
+            // Keyword:        1-79 bytes (character string)
+            // Null separator: 1 byte
+            // Text:           n bytes (character string)
             $data = $key . "\0" . $value;
         }
         $crc = pack("N", crc32($type . $data));
@@ -90,7 +104,7 @@ class PNG_MetaDataHandler
 
         // Chunk format: length + type + data + CRC.
         // CRC is a CRC-32 computed over the chunk type and chunk data.
-        $newchunk = $len .  $type  . $data . $crc;
+        $newchunk = $len . $type . $data . $crc;
 
         $result = substr($this->_contents, 0, $this->_size - 12)
                 . $newchunk

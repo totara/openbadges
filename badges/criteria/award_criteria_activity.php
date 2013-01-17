@@ -124,6 +124,7 @@ class award_criteria_activity extends award_criteria {
 
         if (!empty($missing)) {
             $mform->addElement('header', 'category_errors', get_string('criterror', 'badges'));
+            $mform->addHelpButton('category_errors', 'criterror', 'badges');
             foreach ($missing as $m) {
                 $this->config_options($mform, array('id' => $m, 'checked' => true,
                         'name' => get_string('error:nosuchmod', 'badges'), 'error' => true));
@@ -184,6 +185,11 @@ class award_criteria_activity extends award_criteria {
         global $DB;
         $completionstates = array(COMPLETION_COMPLETE, COMPLETION_COMPLETE_PASS);
         $course = $DB->get_record('course', array('id' => $this->courseid));
+
+        if ($course->startdate > time()) {
+            return false;
+        }
+
         $info = new completion_info($course);
 
         $overall = false;

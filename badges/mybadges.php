@@ -28,11 +28,12 @@ require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
 $page        = optional_param('page', 0, PARAM_INT);
-$perpage     = optional_param('perpage', 30, PARAM_INT);
 $search      = optional_param('search', '', PARAM_CLEAN);
 $clearsearch = optional_param('clearsearch', '', PARAM_TEXT);
 $action      = optional_param('action', '', PARAM_TEXT);
 $options     = optional_param_array('badges', array(), PARAM_TEXT);
+$hide        = optional_param('hide', 0, PARAM_INT);
+$show        = optional_param('show', 0, PARAM_INT);
 
 require_login();
 if (isguestuser()) {
@@ -47,7 +48,11 @@ if ($clearsearch) {
     $search = '';
 }
 
-if ($action && !empty($options)) {
+if ($hide) {
+    $DB->set_field('badge_issued', 'visible', 0, array('id' => $hide));
+} else if ($show) {
+    $DB->set_field('badge_issued', 'visible', 1, array('id' => $show));
+} else if ($action && !empty($options)) {
     list($sql, $params) = $DB->get_in_or_equal($options);
     if ($action == 'hide') {
         $DB->set_field_select('badge_issued', 'visible', 0, "uniquehash $sql", $params);
@@ -84,13 +89,13 @@ $badges = badges_get_user_badges($USER->id);
 
 echo $OUTPUT->header();
 $totalcount = count($badges);
-$records = get_user_badges($USER->id, null, $page, $perpage, $search);
+$records = get_user_badges($USER->id, null, $page, BADGE_PERPAGE, $search);
 
 $userbadges             = new badge_user_collection($records, $USER->id);
 $userbadges->sort       = 'dateissued';
 $userbadges->dir        = 'DESC';
 $userbadges->page       = $page;
-$userbadges->perpage    = $perpage;
+$userbadges->perpage    = BADGE_PERPAGE;
 $userbadges->totalcount = $totalcount;
 $userbadges->search     = $search;
 
