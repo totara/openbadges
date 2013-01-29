@@ -26,13 +26,27 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// Information on PNG file chunks can be found at http://www.w3.org/TR/PNG/#11Chunks
-// Some other info on PNG that I used http://garethrees.org/2007/11/14/pngcrush/
+/**
+ * Information on PNG file chunks can be found at http://www.w3.org/TR/PNG/#11Chunks
+ * Some other info on PNG that I used http://garethrees.org/2007/11/14/pngcrush/
+ *
+ * Example of use:
+ * $png = new PNG_MetaDataHandler('file.png');
+ *
+ * if ($png->check_chunks("tEXt", "openbadge")) {
+ *     $newcontents = $png->add_chunks("tEXt", "openbadge", 'http://community.totaralms.com/testbadge.php');
+ * }
+ *
+ * file_put_contents('file.png', $newcontents);
+ */
 
 class PNG_MetaDataHandler
 {
+    /** @var string File content as a string */
     private $_contents;
+    /** @var int Length of the image file */
     private $_size;
+    /** @var array Variable for storing parsed chunks */
     private $_chunks;
 
     /**
