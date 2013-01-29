@@ -34,7 +34,7 @@ defined('MOODLE_INTERNAL') || die();
  * $png = new PNG_MetaDataHandler('file.png');
  *
  * if ($png->check_chunks("tEXt", "openbadge")) {
- *     $newcontents = $png->add_chunks("tEXt", "openbadge", 'http://community.totaralms.com/testbadge.php');
+ *     $newcontents = $png->add_chunks("tEXt", "openbadge", 'http://some.public.url/to.your.assertion.file');
  * }
  *
  * file_put_contents('file.png', $newcontents);
