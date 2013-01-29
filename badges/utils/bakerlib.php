@@ -26,12 +26,22 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+// Information on PNG file chunks can be found at http://www.w3.org/TR/PNG/#11Chunks
+// Some other info on PNG that I used http://garethrees.org/2007/11/14/pngcrush/
+
 class PNG_MetaDataHandler
 {
     private $_contents;
     private $_size;
     private $_chunks;
 
+    /**
+     * Prepares file for handling metadata.
+     * Verifies that this file is a valid PNG file.
+     * Unpacks file chunks and reads them into an array.
+     *
+     * @param string $contents File content as a string
+     */
     public function __construct($contents) {
         $this->_contents = $contents;
         $png_signature = pack("C8", 137, 80, 78, 71, 13, 10, 26, 10);
@@ -47,7 +57,7 @@ class PNG_MetaDataHandler
 
         $this->_chunks = array();
 
-        // Skip 8 bytes of header.
+        // Skip 8 bytes of IHDR image header.
         $position = 8;
         do {
             $chunk = @unpack('Nsize/a4type', substr($this->_contents, $position, 8));
@@ -58,7 +68,15 @@ class PNG_MetaDataHandler
         } while ($position < $this->_size);
     }
 
-    // Checks if key already exists in the chunk of said type.
+    /**
+     * Checks if a key already exists in the chunk of said type.
+     * We need to avoid writing same keyword into file chunks.
+     *
+     * @param string $type Chunk type, like iTXt, tEXt, etc.
+     * @param string $check Keyword that needs to be checked.
+     *
+     * @return boolean (true|false) True if file is safe to write this keyword, false otherwise.
+     */
     public function check_chunks($type, $check) {
         if (array_key_exists($type, $this->_chunks)) {
             foreach (array_keys($this->_chunks[$type]) as $typekey) {
@@ -73,13 +91,21 @@ class PNG_MetaDataHandler
         return true;
     }
 
-    // Adds a chunk to contents.
+    /**
+     * Adds a chunk with keyword and data to the file content.
+     * Chunk is added to the end of the file, before IEND image trailer.
+     *
+     * @param string $type Chunk type, like iTXt, tEXt, etc.
+     * @param string $key Keyword that needs to be added.
+     * @param string $value Currently an assertion URL that is added to an image metadata.
+     *
+     * @return string $result File content with a new chunk as a string. Can be used in file_put_contents() to write to a file.
+     */
     public function add_chunks($type, $key, $value) {
         if (strlen($key) > 79) {
             debugging('Key is too big');
         }
 
-        // Baking iTXt is not working at the moment. Need to have a look at this when Mozilla spec is out of beta.
         if ($type == 'iTXt') {
             // iTXt International textual data
             // Keyword:             1-79 bytes (character string)
