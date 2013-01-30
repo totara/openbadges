@@ -254,13 +254,13 @@ class registration_manager {
         } else {
             $badges = $DB->count_records_select('badge', 'status <> ' . BADGE_STATUS_ARCHIVED);
         }
-        $siteinfo['badges'] = $usercount;
+        $siteinfo['badges'] = $badges;
         if (get_config('hub', 'site_issuedbadges_' . $cleanhuburl) == -1) {
             $issuedbadges = -1;
         } else {
             $issuedbadges = $DB->count_records('badge_issued');
         }
-        $siteinfo['issuedbadges'] = $usercount;
+        $siteinfo['issuedbadges'] = $issuedbadges;
         //TODO
         require_once($CFG->dirroot . "/course/lib.php");
         if (get_config('hub', 'site_participantnumberaverage_' . $cleanhuburl) == -1) {
