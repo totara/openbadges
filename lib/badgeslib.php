@@ -97,6 +97,7 @@ class badge {
     public $description;
     public $timecreated;
     public $timemodified;
+    public $usercreated;
     public $usermodified;
     public $image;
     public $issuername;
@@ -619,7 +620,7 @@ function notify_badge_award(badge $badge, $userid, $issued, $filepathhash) {
 
     // Notify badge creator about the award.
     if ($badge->notification) {
-        $creator = $DB->get_record('user', array('id' => $badge->usermodified), '*', MUST_EXIST);
+        $creator = $DB->get_record('user', array('id' => $badge->usercreated), '*', MUST_EXIST);
         $a = new stdClass();
         $a->user = fullname($userto);
         $a->link = $issuedlink;

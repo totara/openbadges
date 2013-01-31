@@ -2939,8 +2939,9 @@
         <FIELD NAME="description" TYPE="text" NOTNULL="false" SEQUENCE="false" PREVIOUS="name" NEXT="image"/>
         <FIELD NAME="image" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="description" NEXT="timecreated"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" PREVIOUS="image" NEXT="timemodified"/>
-        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" PREVIOUS="timecreated" NEXT="usermodified"/>
-        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="timemodified" NEXT="issuername"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" PREVIOUS="timecreated" NEXT="usercreated"/>
+        <FIELD NAME="usercreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="timemodified" NEXT="usermodified"/>
+        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" PREVIOUS="usercreated" NEXT="issuername"/>
         <FIELD NAME="issuername" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" PREVIOUS="usermodified" NEXT="issuerurl"/>
         <FIELD NAME="issuerurl" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" PREVIOUS="issuername" NEXT="issuercontact"/>
         <FIELD NAME="issuercontact" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" PREVIOUS="issuerurl" NEXT="expiredate"/>
@@ -2957,7 +2958,8 @@
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="fk_courseid"/>
         <KEY NAME="fk_courseid" TYPE="foreign" FIELDS="courseid" REFTABLE="course" REFFIELDS="id" PREVIOUS="primary" NEXT="fk_usermodified"/>
-        <KEY NAME="fk_usermodified" TYPE="foreign" FIELDS="usermodified" REFTABLE="user" REFFIELDS="id" PREVIOUS="fk_courseid"/>
+        <KEY NAME="fk_usermodified" TYPE="foreign" FIELDS="usermodified" REFTABLE="user" REFFIELDS="id" PREVIOUS="fk_courseid" NEXT="fk_usercreated"/>
+        <KEY NAME="fk_usercreated" TYPE="foreign" FIELDS="usercreated" REFTABLE="user" REFFIELDS="id" PREVIOUS="fk_usermodified"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="context" UNIQUE="false" FIELDS="context"/>
