@@ -346,9 +346,4 @@ function xmldb_main_install() {
     $DB->insert_record('my_pages', $mypage);
     $mypage->private = 1;
     $DB->insert_record('my_pages', $mypage);
-
-    // Init badge default settings.
-    set_config('badges_defaultbadgesalt', 'badges' . rand(1, 10000));
-    set_config('badges_defaultissuername', $SITE->fullname ? $SITE->fullname : $SITE->shortname);
-    set_config('badges_defaultissuercontact', get_config('moodle','supportemail'));
 }
