@@ -1564,7 +1564,7 @@ function xmldb_main_upgrade($oldversion) {
         upgrade_main_savepoint(true, 2012120300.07);
     }
 
-    if ($oldversion < 2013011100.01) {
+    if ($oldversion < 2013013100.00) {
         // Add openbadges tables.
 
         // Define table 'badge' to be created
@@ -1747,7 +1747,7 @@ function xmldb_main_upgrade($oldversion) {
         }
 
         // Main savepoint reached.
-        upgrade_main_savepoint(true, 2013011100.01);
+        upgrade_main_savepoint(true, 2013013100.00);
     }
 
     if ($oldversion < 2013021800.00) {
