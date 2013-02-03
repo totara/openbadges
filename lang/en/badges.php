@@ -434,19 +434,19 @@ $string['updatec'] = 'Update criterion';
 
 // Badge criteria description.
 $string['criteria_descr'] = '<p>Learners are awarded this badge when they complete the following requirement: ';
-$string['criteria_descr_0'] = '<p>Learners are awarded this badge when they complete <b>{$a}</b> of the listed requirements.</p>';
-$string['criteria_descr_1'] = '<p><b>{$a}</b> of the following activities are completed:</p>';
+$string['criteria_descr_0'] = '<p>Learners are awarded this badge when they complete <strong>{$a}</strong> of the listed requirements.</p>';
+$string['criteria_descr_1'] = '<p><strong>{$a}</strong> of the following activities are completed:</p>';
 $string['criteria_descr_single_1'] = '<p>The following activity has to be completed:</p>';
 $string['criteria_descr_4'] = 'Learners must complete the course ';
 $string['criteria_descr_single_4'] = 'Learners must complete the course ';
-$string['criteria_descr_2'] = '<p>This badge has to be awarded by the users with <b>{$a}</b> of the following roles:</p>';
+$string['criteria_descr_2'] = '<p>This badge has to be awarded by the users with <strong>{$a}</strong> of the following roles:</p>';
 $string['criteria_descr_single_2'] = '<p>This badge has to be awarded by a user with the following role:</p>';
-$string['criteria_descr_5'] = '<p><b>{$a}</b> of the following courses have to be completed:</p>';
+$string['criteria_descr_5'] = '<p><strong>{$a}</strong> of the following courses have to be completed:</p>';
 $string['criteria_descr_single_5'] = '<p>The following course has to be completed:</p>';
-$string['criteria_descr_6'] = '<p><b>{$a}</b> of the following user profile fields have to be completed:</p>';
+$string['criteria_descr_6'] = '<p><strong>{$a}</strong> of the following user profile fields have to be completed:</p>';
 $string['criteria_descr_single_6'] = '<p>The following user profile field has to be completed:</p>';
-$string['criteria_descr_grade'] = ' with minimum grade of <i>{$a}</i> ';
-$string['criteria_descr_bydate'] = ' by <i>{$a}</i> ';
+$string['criteria_descr_grade'] = ' with minimum grade of <em>{$a}</em> ';
+$string['criteria_descr_bydate'] = ' by <em>{$a}</em> ';
 
 // Badge details.
 $string['addtobackpack'] = 'Add to backpack';
