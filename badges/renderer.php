@@ -46,6 +46,14 @@ class core_badges_renderer extends plugin_renderer_base {
                 $imageurl = $b->imageUrl;
             }
             $image = html_writer::empty_tag('img', array('src' => $imageurl, 'class' => 'badge-image'));
+            if (!empty($b->dateexpire) && $b->dateexpire < time()) {
+                $image .= html_writer::start_tag('span', array('class' => 'expired'))
+                       . $this->output->pix_icon('i/expired', 
+                               get_string('expireddate', 'badges', userdate($b->dateexpire)),
+                               'moodle',
+                               array('class' => 'expireimage'))
+                       . html_writer::end_tag('span');
+            }
             $name = html_writer::tag('span', $bname, array('class' => 'badge-name'));
             $checkbox = $status = "";
 
@@ -72,8 +80,8 @@ class core_badges_renderer extends plugin_renderer_base {
             $items[] = $checkbox .
                         html_writer::link(
                             $url,
-                            $image . $status. $name,
-                            array('class' => 'badge', 'title' => $bname)
+                            $image . $status . $name,
+                            array('title' => $bname)
                         );
         }
 
@@ -316,8 +324,10 @@ class core_badges_renderer extends plugin_renderer_base {
             $datatable->data[] = array(get_string('issuername', 'badges'), $badge->issuername);
             $datatable->data[] = array(get_string('issuerurl', 'badges'),
                     html_writer::tag('a', $badge->issuerurl, array('href' => $badge->issuerurl)));
-            $datatable->data[] = array(get_string('contact', 'badges'),
+            if (isset($badge->issuercontact) && !empty($badge->issuercontact)) {
+                $datatable->data[] = array(get_string('contact', 'badges'),
                     html_writer::tag('a', $badge->issuercontact, array('href' => 'mailto:' . $badge->issuercontact)));
+            }
             $datatable->data[] = array($this->output->heading(get_string('badgedetails', 'badges'), 3), '');
             $datatable->data[] = array(get_string('name'), $badge->name);
             $datatable->data[] = array(get_string('description', 'badges'), $badge->description);
@@ -325,7 +335,27 @@ class core_badges_renderer extends plugin_renderer_base {
             $datatable->data[] = array($this->output->heading(get_string('issuancedetails', 'badges'), 3), '');
             $datatable->data[] = array(get_string('dateawarded', 'badges'), $issued['issued_on']);
             if (isset($issued['expires'])) {
-                $datatable->data[] = array(get_string('expirydate', 'badges'), $issued['expires']);
+                $today_date = date('Y-m-d');
+                $today = strtotime($today_date);
+                $expiration = strtotime($issued['expires']);
+                if ($expiration < $today) {
+                    $cell = new html_table_cell($issued['expires']);
+                    $cell->attributes = array('class' => 'notifyproblem warning');
+                    $datatable->data[] = array(get_string('expirydate', 'badges'), $cell);
+
+                    $image = html_writer::start_tag('div', array('class' => 'badge'));
+                    $image .= html_writer::empty_tag('img', array('src' => $issued['badge']['image']));
+                    $image .= html_writer::start_tag('span', array('class' => 'expired'))
+                                . $this->output->pix_icon('i/expired',
+                                    get_string('expireddate', 'badges', $issued['expires']),
+                                    'moodle',
+                                    array('class' => 'expireimage'))
+                                . html_writer::end_tag('span');
+                    $image .= html_writer::end_tag('div');
+                    $imagetable->data[0] = array($image);
+                } else {
+                    $datatable->data[] = array(get_string('expirydate', 'badges'), $issued['expires']);
+                }
             }
 
             // Print evidence.
@@ -391,7 +421,27 @@ class core_badges_renderer extends plugin_renderer_base {
             $datatable->data[] = array(get_string('dateawarded', 'badges'), $assertion->issued_on);
         }
         if (isset($assertion->badge->expire)) {
-            $datatable->data[] = array(get_string('expirydate', 'badges'), $assertion->badge->expire);
+            $today_date = date('Y-m-d');
+            $today = strtotime($today_date);
+            $expiration = strtotime($assertion->badge->expire);
+            if ($expiration < $today) {
+                $cell = new html_table_cell($assertion->badge->expire);
+                $cell->attributes = array('class' => 'notifyproblem warning');
+                $datatable->data[] = array(get_string('expirydate', 'badges'), $cell);
+
+                $image = html_writer::start_tag('div', array('class' => 'badge'));
+                $image .= html_writer::empty_tag('img', array('src' => $issued['badge']['image']));
+                $image .= html_writer::start_tag('span', array('class' => 'expired'))
+                            . $this->output->pix_icon('i/expired',
+                                get_string('expireddate', 'badges', $assertion->badge->expire),
+                                'moodle',
+                                array('class' => 'expireimage'))
+                            . html_writer::end_tag('span');
+                $image .= html_writer::end_tag('div');
+                $imagetable->data[0] = array($image);
+            } else {
+                $datatable->data[] = array(get_string('expirydate', 'badges'), $assertion->badge->expire);
+            }
         }
         if (isset($assertion->evidence)) {
             $datatable->data[] = array(get_string('evidence', 'badges'),

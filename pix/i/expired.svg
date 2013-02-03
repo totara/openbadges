@@ -1,11 +1,18 @@
-<svg width="150" height="150" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMid meet">
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 15.1.0, SVG Export Plug-In  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" [
+	<!ENTITY ns_flows "http://ns.adobe.com/Flows/1.0/">
+]>
+
+<svg width="150" height="150" xmlns="http://www.w3.org/2000/svg">
  <!-- Created with SVG-edit - http://svg-edit.googlecode.com/ -->
  <g>
   <title>Layer 1</title>
-  <g id="svg_5">
-   <rect stroke="#ffffff" transform="rotate(-45 75.0089 73.625)" id="svg_4" height="42" width="151" y="52.625" x="-0.491117" fill-opacity="0" stroke-linecap="null" stroke-linejoin="null" stroke-dasharray="null" stroke-width="8" fill="#000000"/>
-   <rect fill="#000000" stroke-width="5" x="-0.29617" y="52.95618" width="150" height="41.49538" id="svg_1" fill-opacity="0" stroke="#bf3b08" transform="rotate(-45 74.7038 73.7039)"/>
-   <text stroke="#ffffff" fill="#bf3b08" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x="72.605337" y="79.726979" id="svg_2" font-size="20" font-family="Sans-serif" text-anchor="middle" xml:space="preserve" font-weight="bold" font-style="normal" transform="rotate(-45 74.9404 73.9979) matrix(1.00967 0 0 1 1.94841 0.788716)">E X P I R E D</text>
+  <g id="svg_3">
+   <g id="svg_5">
+    <rect fill="#000000" stroke-width="5" x="-1.29617" y="52.956178" width="150" height="41.495385" id="svg_1" fill-opacity="0" stroke="#bf3b08" transform="rotate(-45 73.7038 73.7039)"/>
+    <text fill="#bf3b08" stroke="#bf3b08" stroke-width="0" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x="73.665658" y="80.757881" id="svg_2" font-size="20" font-family="serif" text-anchor="middle" xml:space="preserve" font-weight="bold" font-style="normal" transform="rotate(-45 73.5 74)">E X P I R E D</text>
+   </g>
   </g>
  </g>
 </svg>

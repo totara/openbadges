@@ -454,6 +454,7 @@ $string['badgedetails'] = 'Badge details';
 $string['issuerdetails'] = 'Issuer details';
 $string['issuancedetails'] = 'Badge expiry';
 $string['expiredate'] = 'This badge expires on {$a}.';
+$string['expireddate'] = 'This badge expired on {$a}.';
 $string['expireperiod'] = 'This badge expires {$a} day(s) after being issued.';
 $string['expireperiodh'] = 'This badge expires {$a} hour(s) after being issued.';
 $string['expireperiodm'] = 'This badge expires {$a} minute(s) after being issued.';

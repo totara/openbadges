@@ -1746,21 +1746,6 @@ function xmldb_main_upgrade($oldversion) {
             $dbman->create_table($table);
         }
 
-        // Adding badge default settings.
-        $url = parse_url($CFG->wwwroot);
-        set_config('badges_defaultissuerurl', $url['scheme'] . '://' . $url['host']);
-        set_config('badges_defaultbadgesalt', 'badges' . rand(1, 10000));
-        set_config('badges_defaultissuername', $SITE->fullname ? $SITE->fullname : $SITE->shortname);
-        set_config('badges_defaultissuercontact', get_config('moodle', 'supportemail'));
-
-        // TODO: Capablilities.
-        // Adding capabilities.
-//         $allroles = $DB->get_records_menu('role', array(), 'id', 'archetype, id');
-//         $syscontext = context_system::instance();
-//         $usrcontext = context_user::instance();
-//         assign_capability($capability, CAP_ALLOW, $allroles['manager'], $syscontext->id, true);
-//         assign_capability($capability, CAP_PREVENT, $roleid, $context);
-
         // Main savepoint reached.
         upgrade_main_savepoint(true, 2013011100.01);
     }
