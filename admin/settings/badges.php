@@ -26,7 +26,6 @@
 */
 
 global $SITE;
-require_once($CFG->libdir . '/badgeslib.php');
 
 if (($hassiteconfig || has_any_capability(array(
             'moodle/badges:viewawarded',
