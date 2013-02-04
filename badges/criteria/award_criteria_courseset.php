@@ -70,7 +70,7 @@ class award_criteria_courseset extends award_criteria {
 
     public function get_courses(&$mform) {
         global $DB, $CFG, $PAGE;
-        require_once $CFG->dirroot . '/course/lib.php';
+        require_once($CFG->dirroot . '/course/lib.php');
         $buttonarray = array();
 
         // Get courses with enabled completion.
@@ -102,8 +102,7 @@ class award_criteria_courseset extends award_criteria {
                 $mform->setDefault('courses', $selected);
             }
             $mform->setType('agg', PARAM_INT);
-        }
-        else {
+        } else {
             $mform->addElement('static', 'nocourses', '', get_string('error:nocourses', 'badges'));
             $buttonarray[] =& $mform->createElement('submit', 'back', get_string('continue'));
             $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);

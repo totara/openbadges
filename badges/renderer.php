@@ -48,7 +48,7 @@ class core_badges_renderer extends plugin_renderer_base {
             $image = html_writer::empty_tag('img', array('src' => $imageurl, 'class' => 'badge-image'));
             if (!empty($b->dateexpire) && $b->dateexpire < time()) {
                 $image .= html_writer::start_tag('span', array('class' => 'expired'))
-                       . $this->output->pix_icon('i/expired', 
+                       . $this->output->pix_icon('i/expired',
                                get_string('expireddate', 'badges', userdate($b->dateexpire)),
                                'moodle',
                                array('class' => 'expireimage'))
