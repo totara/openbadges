@@ -175,9 +175,9 @@ class award_criteria_courseset extends award_criteria {
         if (!$none) {
             $mform->addElement('header', 'aggregation', get_string('method', 'badges'));
             $agg = array();
-            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethod', 'badges'), 1);
+            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethodcourseset', 'badges'), 1);
             $agg[] =& $mform->createElement('static', 'none_break', null, '<br/><br/>');
-            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethod', 'badges'), 2);
+            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethodcourseset', 'badges'), 2);
             $mform->addGroup($agg, 'methodgr', '', array(' '), false);
             if ($this->id !== 0) {
                 $mform->setDefault('agg', $this->method);

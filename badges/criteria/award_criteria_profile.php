@@ -79,7 +79,7 @@ class award_criteria_profile extends award_criteria {
         }
 
         if (!empty($dfields)) {
-            $mform->addElement('header', 'first_header', get_string('default', 'badges'));
+            $mform->addElement('header', 'first_header', $this->get_title());
             $mform->addHelpButton('first_header', 'criteria_' . $this->criteriatype, 'badges');
             foreach ($dfields as $field) {
                 $checked = false;
@@ -110,9 +110,9 @@ class award_criteria_profile extends award_criteria {
         if (!$none) {
             $mform->addElement('header', 'aggregation', get_string('method', 'badges'));
             $agg = array();
-            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethod', 'badges'), 1);
+            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethodprofile', 'badges'), 1);
             $agg[] =& $mform->createElement('static', 'none_break', null, '<br/><br/>');
-            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethod', 'badges'), 2);
+            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethodprofile', 'badges'), 2);
             $mform->addGroup($agg, 'methodgr', '', array(' '), false);
             if ($this->id !== 0) {
                 $mform->setDefault('agg', $this->method);
