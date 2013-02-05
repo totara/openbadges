@@ -298,6 +298,7 @@ abstract class award_criteria {
 
         // Unset unnecessary parameters supplied with form.
         unset($params->agg);
+        unset($params['agg']);
         unset($params->submitbutton);
         $params = array_filter((array)$params);
 

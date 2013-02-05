@@ -224,7 +224,7 @@ class badge {
      * @return int ID of new badge.
      */
     public function make_clone() {
-        global $DB;
+        global $DB, $USER;
 
         $fordb = new stdClass();
         foreach (get_object_vars($this) as $k => $v) {
@@ -234,6 +234,10 @@ class badge {
         $fordb->name = get_string('copyof', 'badges') . $this->name;
         $fordb->status = BADGE_STATUS_INACTIVE;
         $fordb->image = 0;
+        $fordb->usercreated = $USER->id;
+        $fordb->usermodified = $USER->id;
+        $fordb->timecreated = time();
+        $fordb->timemodified = time();
         unset($fordb->id);
 
         $criteria = $fordb->criteria;
@@ -352,8 +356,10 @@ class badge {
     /**
      * Issue a badge to user.
      *
+     * @param int $userid User who earned the badge
+     * @param bool $nobake Not baking actual badges (for testing purposes)
      */
-    public function issue($userid) {
+    public function issue($userid, $nobake = false) {
         global $DB;
 
         $now = time();
@@ -389,11 +395,13 @@ class badge {
                 $DB->update_record('badge_criteria_met', $obj, true);
             }
 
-            // Bake a badge image.
-            $pathhash = bake($issued->uniquehash, $this->id, $userid, true);
+            if (!$nobake) {
+                // Bake a badge image.
+                $pathhash = bake($issued->uniquehash, $this->id, $userid, true);
 
-            // Notify recipients.
-            notify_badge_award($this, $userid, $issued->uniquehash, $pathhash);
+                // Notify recipients.
+                notify_badge_award($this, $userid, $issued->uniquehash, $pathhash);
+            }
         }
     }
 

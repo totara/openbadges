@@ -32,8 +32,6 @@ $crit    = optional_param('crit', 0, PARAM_INT);
 $type    = optional_param('type', 0, PARAM_INT); // Criteria type.
 $delete  = optional_param('delete', 0, PARAM_BOOL);
 $confirm = optional_param('confirm', 0, PARAM_BOOL);
-$add     = optional_param('add', 0, PARAM_BOOL);
-$edit    = optional_param('edit', 0, PARAM_INT);
 
 require_login();
 

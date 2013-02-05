@@ -27,30 +27,119 @@
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
-require_once($CFG->libroot . '/badgeslib.php');
+require_once($CFG->libdir . '/badgeslib.php');
 
 class badges_testcase extends advanced_testcase {
-    public function test_create_badge() {
+    protected $badgeid;
 
+    protected function setUp() {
+        global $DB;
+        $this->resetAfterTest(true);
+
+        $user = $this->getDataGenerator()->create_user();
+
+        $fordb = new stdClass();
+        $fordb->id = null;
+        $fordb->name = "Test badge";
+        $fordb->description = "Testing badges";
+        $fordb->timecreated = time();
+        $fordb->timemodified = time();
+        $fordb->usercreated = $user->id;
+        $fordb->usermodified = $user->id;
+        $fordb->image = 0;
+        $fordb->issuername = "Test issuer";
+        $fordb->issuerurl = "http://issuer-url.domain.co.nz";
+        $fordb->expiredate = null;
+        $fordb->expireperiod = null;
+        $fordb->context = BADGE_TYPE_SITE;
+        $fordb->courseid = null;
+        $fordb->messagesubject = "Test message subject";
+        $fordb->message = "Test message body";
+        $fordb->attachment = 1;
+        $fordb->notification = 0;
+        $fordb->status = BADGE_STATUS_INACTIVE;
+
+        $this->badgeid = $DB->insert_record('badge', $fordb, true);
+    }
+
+    public function test_create_badge() {
+        $badge = new badge($this->badgeid);
+
+        $this->assertInstanceOf('badge', $badge);
+        $this->assertEquals($this->badgeid, $badge->id);
     }
 
     public function test_clone_badge() {
+        $badge = new badge($this->badgeid);
+        $newid = $badge->make_clone();
+        $cloned_badge = new badge($newid);
 
+        $this->assertEquals($badge->image, $cloned_badge->image);
+        $this->assertEquals($badge->description, $cloned_badge->description);
+        $this->assertEquals($badge->issuercontact, $cloned_badge->issuercontact);
+        $this->assertEquals($badge->issuername, $cloned_badge->issuername);
+        $this->assertEquals($badge->issuerurl, $cloned_badge->issuerurl);
+        $this->assertEquals($badge->expiredate, $cloned_badge->expiredate);
+        $this->assertEquals($badge->expireperiod, $cloned_badge->expireperiod);
+        $this->assertEquals($badge->context, $cloned_badge->context);
+        $this->assertEquals($badge->courseid, $cloned_badge->courseid);
+        $this->assertEquals($badge->message, $cloned_badge->message);
+        $this->assertEquals($badge->messagesubject, $cloned_badge->messagesubject);
+        $this->assertEquals($badge->attachment, $cloned_badge->attachment);
+        $this->assertEquals($badge->notification, $cloned_badge->notification);
     }
 
     public function test_badge_status() {
+        $badge = new badge($this->badgeid);
+        $old_status = $badge->status;
+        $badge->set_status(BADGE_STATUS_ACTIVE);
+        $this->assertAttributeNotEquals($old_status, 'status', $badge);
+        $this->assertAttributeEquals(BADGE_STATUS_ACTIVE, 'status', $badge);
+    }
 
+    public function test_delete_badge() {
+        $badge = new badge($this->badgeid);
+        $badge->delete();
+        // We don't actually delete badges. We archive them.
+        $this->assertAttributeEquals(BADGE_STATUS_ARCHIVED, 'status', $badge);
     }
 
     public function test_create_badge_criteria() {
+        $badge = new badge($this->badgeid);
+        $criteria_overall = award_criteria::build(array('criteriatype' => BADGE_CRITERIA_TYPE_OVERALL, 'badgeid' => $badge->id));
+        $criteria_overall->save(array('agg' => BADGE_CRITERIA_AGGREGATION_ALL));
 
+        $this->assertCount(1, $badge->get_criteria());
+
+        $criteria_profile = award_criteria::build(array('criteriatype' => BADGE_CRITERIA_TYPE_PROFILE, 'badgeid' => $badge->id));
+        $params = array('agg' => BADGE_CRITERIA_AGGREGATION_ALL, 'field_address' => 'address');
+        $criteria_profile->save($params);
+
+        $this->assertCount(2, $badge->get_criteria());
     }
 
-    public function test_clear_criteria() {
+    public function test_delete_badge_criteria() {
+        $criteria_overall = award_criteria::build(array('criteriatype' => BADGE_CRITERIA_TYPE_OVERALL, 'badgeid' => $this->badgeid));
+        $criteria_overall->save(array('agg' => BADGE_CRITERIA_AGGREGATION_ALL));
+        $badge = new badge($this->badgeid);
 
+        $this->assertInstanceOf('award_criteria_overall', $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]);
+
+        $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->delete();
+        $this->assertEmpty($badge->get_criteria());
     }
 
-    public function test_badge_award() {
+    public function test_badge_awards() {
+        $badge = new badge($this->badgeid);
+        $user1 = $this->getDataGenerator()->create_user();
 
+        $badge->issue($user1->id, true);
+        $this->assertTrue($badge->is_issued($user1->id));
+
+        $user2 = $this->getDataGenerator()->create_user();
+        $badge->issue($user2->id, true);
+        $this->assertTrue($badge->is_issued($user2->id));
+
+        $this->assertCount(2, $badge->get_awards());
     }
 }
