@@ -89,7 +89,8 @@ class award_criteria_courseset extends award_criteria {
             if ($this->id !== 0) {
                 $selected = array_keys($this->params);
             }
-            $mform->addElement('select', 'courses', get_string('addcourse', 'badges'), $select, array('multiple' => 'multiple', 'size' => 20));
+            $settings = array('multiple' => 'multiple', 'size' => 20, 'style' => 'width:300px');
+            $mform->addElement('select', 'courses', get_string('addcourse', 'badges'), $select, $settings);
             $mform->addRule('courses', get_string('requiredcourse', 'badges'), 'required');
 
             $buttonarray[] =& $mform->createElement('submit', 'submitcourse', get_string('addcourse', 'badges'));
