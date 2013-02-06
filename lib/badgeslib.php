@@ -803,8 +803,8 @@ function get_issued_badge_info($hash) {
         $url = new moodle_url('/badges/badge.php', array('hash' => $hash));
 
         // Recipient's email is hashed: <algorithm>$<hash(email + salt)>.
-        $a['recipient'] = 'sha256$' . hash('sha256', $record->email . $CFG->badges_defaultbadgesalt);
-        $a['salt'] = $CFG->badges_defaultbadgesalt;
+        $a['recipient'] = 'sha256$' . hash('sha256', $record->email . $CFG->badges_badgesalt);
+        $a['salt'] = $CFG->badges_badgesalt;
 
         if ($record->dateexpire) {
             $a['expires'] = date('Y-m-d', $record->dateexpire);

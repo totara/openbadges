@@ -57,9 +57,9 @@ if (($hassiteconfig || has_any_capability(array(
             new lang_string('defaultissuercontact_desc', 'badges'),
             get_config('moodle','supportemail'), PARAM_EMAIL));
 
-    $globalsettings->add(new admin_setting_configtext('badges_defaultbadgesalt',
-            new lang_string('defaultbadgesalt', 'badges'),
-            new lang_string('defaultbadgesalt_desc', 'badges'),
+    $globalsettings->add(new admin_setting_configtext('badges_badgesalt',
+            new lang_string('badgesalt', 'badges'),
+            new lang_string('badgesalt_desc', 'badges'),
             'badges' . $SITE->timecreated, PARAM_ALPHANUM));
 
     $globalsettings->add(new admin_setting_configcheckbox('badges_allowexternalbackpack',

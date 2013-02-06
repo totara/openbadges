@@ -365,18 +365,18 @@ $string['mybackpack'] = 'My backpack settings';
 $string['sitebadges'] = 'Site badges';
 
 // Global settings.
+$string['allowcoursebadges'] = 'Enable course badges';
+$string['allowcoursebadges_desc'] = 'Allow badges to be created and awarded in course context.';
+$string['allowexternalbackpack'] = 'Enable external backpacks connections';
+$string['allowexternalbackpack_desc'] = 'Allow users to set up connections and display badges from their external backpack providers.';
+$string['badgesalt'] = 'Salt for hashing the recepient\'s email address';
+$string['badgesalt_desc'] = 'Using a hash allows backpack services to confirm the badge earner without having to expose their email address. This setting should only use numbers and letters.';
 $string['defaultissuername'] = 'Default badge issuer name';
 $string['defaultissuername_desc'] = 'Name of the issuing agent or authority.';
 $string['defaultissuerurl'] = 'Default badge issuer URL';
 $string['defaultissuerurl_desc'] = 'Origin of the issuer. This setting should be in form &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;';
 $string['defaultissuercontact'] = 'Default badge issuer contact details';
 $string['defaultissuercontact_desc'] = 'An email address associated with the badge issuer.';
-$string['defaultbadgesalt'] = 'Salt for hashing the recepient\'s email address';
-$string['defaultbadgesalt_desc'] = 'Using a hash allows backpack services to confirm the badge earner without having to expose their email address. This setting should only use numbers and letters.';
-$string['allowexternalbackpack'] = 'Enable external backpacks connections';
-$string['allowexternalbackpack_desc'] = 'Allow users to set up connections and display badges from their external backpack providers.';
-$string['allowcoursebadges'] = 'Enable course badges';
-$string['allowcoursebadges_desc'] = 'Allow badges to be created and awarded in course context.';
 
 // MyBadges page strings.
 $string['backpackbadges'] = 'You have {$a->totalbadges} badge(s) displayed from your backpack at <a href="{$a->backpackurl}">{$a->backpackurl}</a>.<br/>';
@@ -552,6 +552,7 @@ $string['messagesubject'] = 'Congratulations! You just earned a badge!';
 
 // Help text for elements.
 $string['actions_help'] = '';
+$string['addcourse_help'] = 'Select all courses that should be added to this badge requirement. Hold CTRL key to select multiple items.';
 $string['attachment_help'] = 'If checked, an issued badge will be attached to the recepient\'s email for download';
 $string['contact_help'] = 'An email address associated with the badge issuer.';
 $string['criterror_help'] = 'This fieldset shows all parameters that were initially added to this badge requirement but are no longer available. It is recommended that you uncheck such parameters to make sure that learners can earn this badge in the future.';
@@ -605,6 +606,7 @@ $string['criterror'] = 'Current parameters issues';
 $string['error:cannotact'] = 'Cannot activate the badge. ';
 $string['error:cannotawardbadge'] = 'Cannot award badge to a user.';
 $string['error:clone'] = 'Cannot clone the badge.';
+$string['error:duplicatename'] = 'Badge with such name already exists in the system.';
 $string['error:save'] = 'Cannot save the badge.';
 $string['error:nogroups'] = '<p>There are no public groups of badges available in your backpack.</p>
 

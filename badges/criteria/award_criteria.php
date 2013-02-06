@@ -162,7 +162,7 @@ abstract class award_criteria {
             $mform->addGroup($parameter, 'param_' . $prefix . $param['id'], '', array(' '), false);
         } else {
             $parameter[] =& $mform->createElement('advcheckbox', $prefix . $param['id'], '', $param['name'], null, array(0, $param['id']));
-            $parameter[] =& $mform->createElement('static', 'break_' . $param['id'], null, '<br/>');
+            $parameter[] =& $mform->createElement('static', 'break_start_' . $param['id'], null, '<div style="margin-left: 3em;">');
 
             if (in_array('grade', $this->optional_params)) {
                 $parameter[] =& $mform->createElement('static', 'mgrade_' . $param['id'], null, get_string('mingrade', 'badges'));
@@ -174,6 +174,7 @@ abstract class award_criteria {
                 $parameter[] =& $mform->createElement('date_selector', 'bydate_' . $param['id'], "", array('optional' => true));
             }
 
+            $parameter[] =& $mform->createElement('static', 'break_end_' . $param['id'], null, '</div>');
             $mform->addGroup($parameter, 'param_' . $prefix . $param['id'], '', array(' '), false);
             if (in_array('grade', $this->optional_params)) {
                 $mform->addGroupRule('param_' . $prefix . $param['id'], array(
@@ -203,8 +204,10 @@ abstract class award_criteria {
         global $OUTPUT;
         $agg = $data->get_aggregation_methods();
 
-        $editurl = new moodle_url('/badges/criteria_settings.php', array('badgeid' => $this->badgeid, 'edit' => true, 'type' => $this->criteriatype, 'crit' => $this->id));
-        $deleteurl = new moodle_url('/badges/criteria_action.php', array('badgeid' => $this->badgeid, 'delete' => true, 'type' => $this->criteriatype));
+        $editurl = new moodle_url('/badges/criteria_settings.php',
+                array('badgeid' => $this->badgeid, 'edit' => true, 'type' => $this->criteriatype, 'crit' => $this->id));
+        $deleteurl = new moodle_url('/badges/criteria_action.php',
+                array('badgeid' => $this->badgeid, 'delete' => true, 'type' => $this->criteriatype));
         $editaction = $OUTPUT->action_icon($editurl, new pix_icon('t/edit', get_string('edit')), null, array('class' => 'criteria-action'));
         $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
 
@@ -298,8 +301,11 @@ abstract class award_criteria {
         $t = $DB->start_delegated_transaction();
 
         // Unset unnecessary parameters supplied with form.
-        unset($params->agg);
-        unset($params['agg']);
+        if (isset($params->agg)) {
+            unset($params->agg);
+        } else {
+            unset($params['agg']);
+        }
         unset($params->submitbutton);
         $params = array_filter((array)$params);
 

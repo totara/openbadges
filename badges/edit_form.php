@@ -71,7 +71,7 @@ class edit_details_form extends moodleform {
         $mform->addElement('header', 'issuerdetails', get_string('issuerdetails', 'badges'));
 
         $mform->addElement('text', 'issuername', get_string('name'), array('size' => '70'));
-        $mform->setType('issuerurl', PARAM_NOTAGS);
+        $mform->setType('issuername', PARAM_NOTAGS);
         $mform->addRule('issuername', null, 'required');
         $mform->setDefault('issuername', $CFG->badges_defaultissuername);
         $mform->addHelpButton('issuername', 'issuername', 'badges');
@@ -154,6 +154,7 @@ class edit_details_form extends moodleform {
      * Validates form data
      */
     public function validation($data, $files) {
+        global $DB;
         $errors = parent::validation($data, $files);
 
         $url = parse_url($data['issuerurl']);
@@ -171,6 +172,10 @@ class edit_details_form extends moodleform {
 
         if ($data['expiry'] == 1 && $data['expiredate'] <= time()) {
             $errors['expirydategr'] = get_string('error:invalidexpiredate', 'badges');
+        }
+
+        if ($DB->record_exists('badge', array('name' => $data['name']))) {
+            $errors['name'] = get_string('error:duplicatename', 'badges');
         }
 
         return $errors;
