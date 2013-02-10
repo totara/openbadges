@@ -64,9 +64,11 @@ if ($type == BADGE_TYPE_SITE) {
     $PAGE->set_context(context_course::instance($course->id));
     $PAGE->set_pagelayout('course');
     $PAGE->set_heading($course->fullname . ": " . $title);
-    navigation_node::override_active_url(
-        new moodle_url('/badges/view.php', array('type' => BADGE_TYPE_COURSE, 'id' => $course->id))
-    );
+
+    // Fix course navigation.
+    $PAGE->navbar->ignore_active();
+    $PAGE->navbar->add($course->shortname, new moodle_url('/course/view.php', array('id' => $course->id)));
+    $PAGE->navbar->add(get_string('coursebadges', 'badges'));
 }
 
 $PAGE->set_title($title);
