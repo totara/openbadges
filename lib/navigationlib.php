@@ -2188,7 +2188,7 @@ class global_navigation extends navigation_node {
             $usernode->add(get_string('myfiles'), $url, self::TYPE_SETTING);
         }
 
-        if ($iscurrentuser && has_capability('moodle/badges:manageownbadges', $context)) {
+        if ($iscurrentuser && has_capability('moodle/badges:manageownbadges', context_user::instance($USER->id))) {
             $url = new moodle_url('/badges/mybadges.php');
             $usernode->add(get_string('mybadges', 'badges'), $url, self::TYPE_SETTING);
         }
