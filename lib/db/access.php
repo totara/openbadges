@@ -1938,6 +1938,7 @@ $capabilities = array(
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes'   => array(
             'manager'        => CAP_ALLOW,
+            'coursecreator'  => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
             'student'        => CAP_PREVENT
         )
@@ -1950,6 +1951,7 @@ $capabilities = array(
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes'   => array(
             'manager'        => CAP_ALLOW,
+            'coursecreator'  => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
             'student'        => CAP_PREVENT
         )
@@ -1962,6 +1964,7 @@ $capabilities = array(
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes'   => array(
             'manager'        => CAP_ALLOW,
+            'coursecreator'  => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
             'student'        => CAP_PREVENT
         )
@@ -1974,6 +1977,7 @@ $capabilities = array(
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes'   => array(
             'manager'        => CAP_ALLOW,
+            'coursecreator'  => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
             'student'        => CAP_PREVENT
         )
@@ -1986,6 +1990,7 @@ $capabilities = array(
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes'   => array(
             'manager'        => CAP_ALLOW,
+            'coursecreator'  => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
             'student'        => CAP_PREVENT
         )
@@ -1998,6 +2003,7 @@ $capabilities = array(
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes'   => array(
             'manager'        => CAP_ALLOW,
+            'coursecreator'  => CAP_ALLOW,
             'teacher'        => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
             'student'        => CAP_PREVENT
