@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * DESCRIPTION
+ * Behat badge-related steps definitions.
  *
  * @package    core
  * @subpackage badges
