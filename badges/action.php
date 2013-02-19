@@ -50,7 +50,11 @@ $PAGE->set_url('/badges/action.php', array('id' => $badge->id));
 $PAGE->set_pagelayout('standard');
 navigation_node::override_active_url($navurl);
 
-$returnurl = new moodle_url('/badges/overview.php', array('id' => $badge->id));
+if (!empty($_SERVER['HTTP_REFERER']) && $_SERVER['HTTP_REFERER'] !== "$CFG->wwwroot/badges/action.php") {
+    $returnurl = $_SERVER['HTTP_REFERER'];
+} else {
+    $returnurl = new moodle_url('/badges/overview.php', array('id' => $badge->id));
+}
 
 if ($delete) {
     require_capability('moodle/badges:deletebadge', $context);
