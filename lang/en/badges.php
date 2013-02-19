@@ -404,11 +404,16 @@ $string['viewbadge'] = 'View issued badge';
 
 // Badge status.
 $string['currentstatus'] = 'Current status: ';
-$string['badgestatus_0'] = 'Inactive';
-$string['badgestatus_1'] = 'Active';
-$string['badgestatus_2'] = 'Inactive and locked';
-$string['badgestatus_3'] = 'Active and locked';
+$string['badgestatus_0'] = 'Not available to users';
+$string['badgestatus_1'] = 'Available to users';
+$string['badgestatus_2'] = 'Not available to users';
+$string['badgestatus_3'] = 'Available to users';
 $string['badgestatus_4'] = 'Archived';
+$string['statusmessage_0'] = 'This badge is currently not available to users';
+$string['statusmessage_1'] = 'This badge is currently available to users';
+$string['statusmessage_2'] = 'This badge is currently not available to users, and its criteria are locked';
+$string['statusmessage_3'] = 'This badge is currently available to users, and its criteria are locked';
+$string['statusmessage_4'] = 'This badge is currently archived';
 
 // Badge criteria.
 $string['allmethod'] = 'All of the selected conditions are met';
@@ -469,7 +474,7 @@ $string['expireperiods'] = 'This badge expires {$a} second(s) after being issued
 
 // Badge editing/creating strings.
 $string['actions'] = 'Actions';
-$string['activate'] = 'Activate';
+$string['activate'] = 'Enable access';
 $string['addcriteria'] = 'Add new criteria';
 $string['addcourse'] = 'Add courses';
 $string['adminaward'] = 'As a site administrator, you can select a role to award this badge.';
@@ -500,7 +505,7 @@ $string['currentimage'] = 'Current image';
 $string['dateawarded'] = 'Date issued';
 $string['dateearned'] = 'Date: {$a}';
 $string['day'] = 'Day(s)';
-$string['deactivate'] = 'Deactivate';
+$string['deactivate'] = 'Disable access';
 $string['delbadge'] = 'Delete badge';
 $string['delcritconfirm'] = 'Are you sure that you want to delete this criterion?';
 $string['delparamconfirm'] = 'Are you sure that you want to delete this parameter?';
@@ -574,17 +579,13 @@ This setting should be in form &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;.';
 $string['issuername_help'] = 'Name of the issuing agent or authority.';
 $string['notification'] = 'Notify badge creator';
 $string['notification_help'] = 'If checked, the badge creator will also be sent a notification to let them know that the badge has been issued.';
-$string['status_help'] = 'Badge status determines its behaviour in the system:
+$string['status_help'] = 'Status of a badge determines its behaviour in the system:
 
-* **ACTIVE** – Active badge means that this badge can we earned by users, but it has not been issued yet. When a badge is active, its criteria cannot be changed.
+* **AVAILABLE** – Means that this badge can be earned by users. While a badge is available to users, its criteria cannot be modified.
 
-* **INACTIVE** – Inactive badge means that this badge is not available to users and cannot be earned. Criteria of an inactive badge can be changed.
+* **NOT AVAILABLE** – Means that this badge is not available to users and cannot be earned or manually issued. If such badge has never been issued before, its criteria can be changed.
 
-* **ACTIVE AND LOCKED** – Badges with such status can be earned by users, but they have been issued in the past. Therefore, their criteria are locked and cannot be changed.
-
-* **INACTIVE AND LOCKED** – Inactive badges cannot be earned by users and their criteria cannot be updated.
-
-Badges are set to locked automatically once they have been issued to at least one user. Unlike active or inactive, this property cannot be manually changed. If you need to modify details or criteria of a locked badge, you can duplicate this badge and make all the required changes.
+Once a badge has been issued to at least one user, it automatically becomes **LOCKED**. Locked badges can still be earned by users, but their criteria can no longer be changed. If you need to modify details or criteria of a locked badge, you can duplicate this badge and make all the required changes.
 
 *Why do we lock badges?*
 

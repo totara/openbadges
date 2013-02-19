@@ -140,7 +140,6 @@ class badge {
         $this->criteria = self::get_criteria();
     }
 
-
     /**
      * Use to get context instance of a badge.
      * @return context instance.

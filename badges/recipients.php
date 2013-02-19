@@ -70,6 +70,7 @@ echo $output->header();
 echo $output->heading($badge->name . ': ' . get_string('awards', 'badges'));
 
 $output->print_badge_tabs($badgeid, $context, 'awards');
+echo $output->print_badge_status_box($badge);
 
 $sql = "SELECT b.userid, b.dateissued, b.uniquehash, u.firstname, u.lastname
     FROM {badge_issued} b INNER JOIN {user} u

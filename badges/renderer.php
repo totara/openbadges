@@ -128,10 +128,6 @@ class core_badges_renderer extends plugin_renderer_base {
     public function print_badge_overview($badge, $context) {
         $display = "";
 
-        // Current badge status.
-        $status = get_string('currentstatus', 'badges') . $badge->get_status_name();
-        $display .= $this->output->heading_with_help($status, 'status', 'badges');
-
         // Badge details.
         $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
         $display .= html_writer::tag('legend', get_string('badgedetails', 'badges'), array('class' => 'bold'));
@@ -222,18 +218,6 @@ class core_badges_renderer extends plugin_renderer_base {
             $actions[] = $this->output->single_button(
                     new moodle_url('/badges/action.php', array('id' => $badge->id, 'copy' => 1, 'sesskey' => sesskey())),
                     get_string('duplicate'));
-        }
-
-        if (has_capability('moodle/badges:configurecriteria', $context)) {
-            if ($badge->is_active()) {
-                $actions[] = $this->output->single_button(
-                        new moodle_url('/badges/action.php', array('id' => $badge->id, 'lock' => 1, 'sesskey' => sesskey())),
-                        get_string('deactivate', 'badges'));
-            } else {
-                $actions[] = $this->output->single_button(
-                        new moodle_url('/badges/action.php', array('id' => $badge->id, 'activate' => 1)),
-                        get_string('activate', 'badges'));
-            }
         }
 
         $table->data[] = $actions;
@@ -584,7 +568,8 @@ class core_badges_renderer extends plugin_renderer_base {
         foreach ($badges->badges as $b) {
             $badgeimage = print_badge_image($b, $this->page->context);
 
-            $name = html_writer::link(new moodle_url('/badges/overview.php', array('id' => $b->id)), $b->name);
+            $style = !$b->is_active() ? array('class' => 'dimmed') : array();
+            $name = html_writer::link(new moodle_url('/badges/overview.php', array('id' => $b->id)), $b->name, $style);
             $status = $b->statstring;
             $criteria = self::print_badge_criteria($b);
 
@@ -647,6 +632,31 @@ class core_badges_renderer extends plugin_renderer_base {
         $tabs[] = $row;
 
         print_tabs($tabs, $current);
+    }
+
+    // Prints badge status box.
+    public function print_badge_status_box(badge $badge) {
+        $table = new html_table();
+        $table->attributes['class'] = 'boxaligncenter statustable';
+
+        $status = get_string('statusmessage_' . $badge->status, 'badges');
+
+        if (has_capability('moodle/badges:configurecriteria', $badge->get_context())) {
+            if ($badge->is_active()) {
+                $action = $this->output->single_button(
+                        new moodle_url('/badges/action.php', array('id' => $badge->id, 'lock' => 1, 'sesskey' => sesskey())),
+                        get_string('deactivate', 'badges'));
+            } else {
+                $action = $this->output->single_button(
+                        new moodle_url('/badges/action.php', array('id' => $badge->id, 'activate' => 1)),
+                        get_string('activate', 'badges'));
+            }
+        }
+        $row = array($status . $this->output->help_icon('status', 'badges'), $action);
+        $table->data[] = $row;
+
+        $style = $badge->is_active() ? 'generalbox statusbox active' : 'generalbox statusbox inactive';
+        return $this->output->box(html_writer::table($table), $style);
     }
 
     // Prints badge criteria.

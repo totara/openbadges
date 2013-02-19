@@ -79,6 +79,7 @@ if ($emsg !== '') {
 }
 
 $output->print_badge_tabs($badgeid, $context, 'criteria');
+echo $output->print_badge_status_box($badge);
 
 if (!$badge->is_locked() && !$badge->is_active()) {
     echo $output->print_criteria_actions($badge);

@@ -106,10 +106,8 @@ if ($errormsg !== '') {
 }
 
 $output->print_badge_tabs($badgeid, $context, $action);
+echo $output->print_badge_status_box($badge);
 
-if ($badge->is_locked() || $badge->is_active()) {
-    echo $OUTPUT->notification(get_string('lockedbadge', 'badges'));
-}
 $form->display();
 
 echo $OUTPUT->footer();

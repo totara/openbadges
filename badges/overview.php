@@ -62,6 +62,7 @@ if ($awards) {
 
 $output = $PAGE->get_renderer('core', 'badges');
 $output->print_badge_tabs($badgeid, $context, 'overview');
+echo $output->print_badge_status_box($badge);
 echo $output->print_badge_overview($badge, $context);
 echo $output->print_badge_overview_actions($badge, $context);
 
