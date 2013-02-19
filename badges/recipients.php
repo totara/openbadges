@@ -72,6 +72,12 @@ echo $output->heading($badge->name . ': ' . get_string('awards', 'badges'));
 $output->print_badge_tabs($badgeid, $context, 'awards');
 echo $output->print_badge_status_box($badge);
 
+// Add button for badge manual award.
+if ($badge->has_manual_award_criteria() && has_capability('moodle/badges:awardbadge', $context) && $badge->is_active()) {
+    $url = new moodle_url('/badges/award.php', array('id' => $badge->id));
+    echo $OUTPUT->box($OUTPUT->single_button($url, get_string('award', 'badges')), 'clearfix mdl-align');
+}
+
 $sql = "SELECT b.userid, b.dateissued, b.uniquehash, u.firstname, u.lastname
     FROM {badge_issued} b INNER JOIN {user} u
         ON b.userid = u.id
