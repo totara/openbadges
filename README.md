@@ -37,6 +37,8 @@ have been pushed to backpack and shared).
 
 For more information about the project see <http://docs.moodle.org/dev/openbadges>
 
-The final specs are available at <https://github.com/totara/openbadges-docs>
+The final specifications are available at <https://github.com/totara/openbadges-docs>
+
+Current functionality description and user documentation can be found on <http://docs.moodle.org/dev/OpenBadges_User_Documentation>
 
 Feel free to send any questions or comments to Yuliya Bozhko <yuliya.bozhko@totaralms.com>
