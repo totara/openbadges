@@ -107,7 +107,7 @@ class award_criteria_manual extends award_criteria {
             if ($this->id !== 0) {
                 $mform->setDefault('agg', $this->method);
             } else {
-                $mform->setDefault('agg', BADGE_CRITERIA_AGGREGATION_ALL);
+                $mform->setDefault('agg', BADGE_CRITERIA_AGGREGATION_ANY);
             }
         }
 

@@ -100,7 +100,7 @@ abstract class award_criteria {
      */
     public function __construct($params) {
         $this->id = isset($params['id']) ? $params['id'] : 0;
-        $this->method = isset($params['method']) ? $params['method'] : BADGE_CRITERIA_AGGREGATION_ALL;
+        $this->method = isset($params['method']) ? $params['method'] : BADGE_CRITERIA_AGGREGATION_ANY;
         $this->badgeid = $params['badgeid'];
         if (isset($params['id'])) {
             $this->params = $this->get_params($params['id']);

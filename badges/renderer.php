@@ -274,7 +274,7 @@ class core_badges_renderer extends plugin_renderer_base {
 
     // Outputs issued badge with actions available.
     protected function render_issued_badge(issued_badge $ibadge) {
-        global $USER, $CFG;
+        global $USER, $CFG, $DB;
         $issued = $ibadge->issued;
         $badge = new badge($ibadge->badgeid);
 
@@ -315,6 +315,12 @@ class core_badges_renderer extends plugin_renderer_base {
             $datatable->data[] = array($this->output->heading(get_string('badgedetails', 'badges'), 3), '');
             $datatable->data[] = array(get_string('name'), $badge->name);
             $datatable->data[] = array(get_string('description', 'badges'), $badge->description);
+
+            if ($badge->context == BADGE_TYPE_COURSE && isset($badge->courseid)) {
+                $coursename = $DB->get_field('course', 'fullname', array('id' => $badge->courseid));
+                $datatable->data[] = array(get_string('course'), $coursename);
+            }
+
             $datatable->data[] = array(get_string('bcriteria', 'badges'), self::print_badge_criteria($badge));
             $datatable->data[] = array($this->output->heading(get_string('issuancedetails', 'badges'), 3), '');
             $datatable->data[] = array(get_string('dateawarded', 'badges'), $issued['issued_on']);
