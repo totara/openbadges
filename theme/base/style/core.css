@@ -1333,3 +1333,4 @@ span.expired { position: absolute; left: 15%; top: 0%; filter: alpha(opacity = 8
 .statusbox { border-color: #BBBBBB; }
 .statusbox.active { background-color: #D9F991; }
 .statusbox.inactive { background-color: #FFEBA8; }
+.activatebadge { margin: 0px; }

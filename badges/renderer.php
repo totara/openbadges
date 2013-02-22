@@ -651,11 +651,11 @@ class core_badges_renderer extends plugin_renderer_base {
             if ($badge->is_active()) {
                 $action = $this->output->single_button(
                         new moodle_url('/badges/action.php', array('id' => $badge->id, 'lock' => 1, 'sesskey' => sesskey())),
-                        get_string('deactivate', 'badges'));
+                        get_string('deactivate', 'badges'), 'POST', array('class' => 'activatebadge'));
             } else {
                 $action = $this->output->single_button(
                         new moodle_url('/badges/action.php', array('id' => $badge->id, 'activate' => 1)),
-                        get_string('activate', 'badges'));
+                        get_string('activate', 'badges'), 'POST', array('class' => 'activatebadge'));
             }
         }
         $row = array($status . $this->output->help_icon('status', 'badges'), $action);
