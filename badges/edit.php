@@ -58,8 +58,20 @@ $output = $PAGE->get_renderer('core', 'badges');
 $statusmsg = '';
 $errormsg  = '';
 
+$badge->message = clean_text($badge->message, FORMAT_HTML);
+$editoroptions = array(
+        'subdirs' => 0,
+        'maxbytes' => 0,
+        'maxfiles' => 0,
+        'changeformat' => 0,
+        'context' => $context,
+        'noclean' => false,
+        'trusttext' => false
+        );
+$badge = file_prepare_standard_editor($badge, 'message', $editoroptions, $context);
+
 $form_class = 'edit_' . $action . '_form';
-$form = new $form_class($currenturl, array('badge' => $badge, 'action' => $action));
+$form = new $form_class($currenturl, array('badge' => $badge, 'action' => $action, 'editoroptions' => $editoroptions));
 
 if ($form->is_cancelled()) {
     redirect(new moodle_url('/badges/overview.php', array('id' => $badgeid)));
@@ -82,7 +94,7 @@ if ($form->is_cancelled()) {
             $errormsg = get_string('error:save', 'badges');
         }
     } else if ($action == 'message') {
-        $badge->message = $data->message;
+        $badge->message = clean_text($data->message_editor['text'], FORMAT_HTML);
         $badge->messagesubject = $data->messagesubject;
         $badge->notification = $data->notification;
         $badge->attachment = $data->attachment;
@@ -96,7 +108,7 @@ if ($form->is_cancelled()) {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading($badge->name . ': ' . get_string('b' . $action, 'badges'));
+echo $OUTPUT->heading($badge->name);
 
 if ($errormsg !== '') {
     echo $OUTPUT->notification($errormsg);
@@ -105,8 +117,8 @@ if ($errormsg !== '') {
     echo $OUTPUT->notification($statusmsg, 'notifysuccess');
 }
 
-$output->print_badge_tabs($badgeid, $context, $action);
 echo $output->print_badge_status_box($badge);
+$output->print_badge_tabs($badgeid, $context, $action);
 
 $form->display();
 

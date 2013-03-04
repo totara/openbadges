@@ -67,10 +67,10 @@ navigation_node::override_active_url($navurl);
 $output = $PAGE->get_renderer('core', 'badges');
 
 echo $output->header();
-echo $output->heading($badge->name . ': ' . get_string('awards', 'badges'));
+echo $output->heading($badge->name);
 
-$output->print_badge_tabs($badgeid, $context, 'awards');
 echo $output->print_badge_status_box($badge);
+$output->print_badge_tabs($badgeid, $context, 'awards');
 
 // Add button for badge manual award.
 if ($badge->has_manual_award_criteria() && has_capability('moodle/badges:awardbadge', $context) && $badge->is_active()) {

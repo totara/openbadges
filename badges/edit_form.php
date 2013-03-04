@@ -174,7 +174,9 @@ class edit_details_form extends moodleform {
             $errors['expirydategr'] = get_string('error:invalidexpiredate', 'badges');
         }
 
-        if ($DB->record_exists('badge', array('name' => $data['name']))) {
+        $duplicate = $DB->record_exists_select('badge', 'name = :name AND id != :badgeid',
+                        array('name' => $data['name'], 'badgeid' => $data['id']));
+        if ($duplicate) {
             $errors['name'] = get_string('error:duplicatename', 'badges');
         }
 
@@ -193,6 +195,7 @@ class edit_message_form extends moodleform {
         $mform = $this->_form;
         $badge = $this->_customdata['badge'];
         $action = $this->_customdata['action'];
+        $editoroptions = $this->_customdata['editoroptions'];
 
         // Add hidden fields.
         $mform->addElement('hidden', 'id', $badge->id);
@@ -208,27 +211,23 @@ class edit_message_form extends moodleform {
         $mform->setType('messagesubject', PARAM_TEXT);
         $mform->addRule('messagesubject', null, 'required');
         $mform->addRule('messagesubject', get_string('maximumchars', '', 255), 'maxlength', 255);
-        $mform->setDefault('messagesubject', $badge->messagesubject);
 
-        $mform->addElement('textarea', 'message', get_string('message', 'badges'), 'wrap="virtual" rows="20" cols="70"');
-        $mform->setType('message', PARAM_CLEANHTML);
-        $mform->addRule('message', null, 'required');
-        $mform->setDefault('message', $badge->message);
+        $mform->addElement('editor', 'message_editor', get_string('message', 'badges'), null, $editoroptions);//'wrap="virtual" rows="15" cols="70"');
+        $mform->setType('message_editor', PARAM_RAW);
+        $mform->addRule('message_editor', null, 'required');
 
         $mform->addElement('advcheckbox', 'attachment', get_string('attachment', 'badges'), '', null, array(0, 1));
-        $mform->setDefault('attachment', $badge->attachment);
         $mform->addHelpButton('attachment', 'attachment', 'badges');
 
-        if ($badge->context == 2) {
-            $mform->addElement('advcheckbox', 'notification', get_string('notification', 'badges'), '', null, array(0, 1));
-            $mform->setDefault('notification', $badge->notification);
-            $mform->addHelpButton('notification', 'notification', 'badges');
-        } else {
-            $mform->addElement('hidden', 'notification', 0);
-            $mform->setType('notification', PARAM_INT);
+        $mform->addElement('advcheckbox', 'notification', get_string('notification', 'badges'), '', null, array(0, 1));
+        $mform->addHelpButton('notification', 'notification', 'badges');
+
+        if ($badge->context != 2) {
+            $mform->hardFreeze('notification');
         }
 
         $this->add_action_buttons();
+        $this->set_data($badge);
     }
 
     public function validation($data, $files) {

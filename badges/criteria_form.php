@@ -38,8 +38,6 @@ class edit_criteria_form extends moodleform {
         global $DB;
         $mform = $this->_form;
         $criteria = $this->_customdata['criteria'];
-        $add = $this->_customdata['add'];
-        $edit = $this->_customdata['edit'];
         $addcourse = $this->_customdata['addcourse'];
 
         // Get course selector first if it's a new courseset criteria.
@@ -50,20 +48,10 @@ class edit_criteria_form extends moodleform {
 
             if ($none) {
                 $mform->addElement('html', html_writer::tag('div', $message));
-                $mform->addElement('submit', 'back', get_string('continue'));
+                $mform->addElement('submit', 'cancel', get_string('continue'));
             } else {
-                $buttonarray = array();
-                if ($criteria->criteriatype == BADGE_CRITERIA_TYPE_COURSESET) {
-                    if ($courses = $DB->get_records('course', array('enablecompletion' => COMPLETION_ENABLED))) {
-                        $buttonarray[] =& $mform->createElement('submit', 'addcourse', get_string('addcourse', 'badges'));
-                    }
-                }
-                $str = $edit ? get_string('updatec', 'badges') : get_string('addc', 'badges');
-                $buttonarray[] =& $mform->createElement('submit', 'submitbutton', $str);
-                $buttonarray[] =& $mform->createElement('submit', 'back', get_string('cancel'));
-
                 $mform->closeHeaderBefore('buttonar');
-                $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
+                $this->add_action_buttons(true, get_string('save', 'badges'));
             }
         }
     }

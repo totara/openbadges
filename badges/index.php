@@ -61,6 +61,7 @@ if ($course = $DB->get_record('course', array('id' => $courseid))) {
     $urlparams['type'] = $type;
 }
 
+$hdr = get_string('managebadges', 'badges');
 $returnurl = new moodle_url('/badges/index.php', $urlparams);
 $PAGE->set_url($returnurl);
 
@@ -68,14 +69,14 @@ if ($type == BADGE_TYPE_SITE) {
     $title = get_string('sitebadges', 'badges');
     $PAGE->set_context(context_system::instance());
     $PAGE->set_pagelayout('admin');
-    $PAGE->set_heading($title);
+    $PAGE->set_heading($title . ': ' . $hdr);
     navigation_node::override_active_url(new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_SITE)));
 } else {
     require_login($course);
     $title = get_string('coursebadges', 'badges');
     $PAGE->set_context(context_course::instance($course->id));
     $PAGE->set_pagelayout('course');
-    $PAGE->set_heading($course->fullname . ": " . $title);
+    $PAGE->set_heading($course->fullname . ': ' . $hdr);
     navigation_node::override_active_url(
         new moodle_url('/badges/index.php', array('type' => BADGE_TYPE_COURSE, 'id' => $course->id))
     );
@@ -85,7 +86,7 @@ if (!has_capability('moodle/badges:awardbadge', $PAGE->context)) {
     redirect($CFG->wwwroot);
 }
 
-$PAGE->set_title($title);
+$PAGE->set_title($hdr);
 $output = $PAGE->get_renderer('core', 'badges');
 
 if ($delete && has_capability('moodle/badges:deletebadge', $PAGE->context)) {
@@ -130,7 +131,6 @@ if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('managebadges', 'badges'));
 
 $totalcount = count(get_badges($type, $courseid, '', '' , '', ''));
 $records = get_badges($type, $courseid, $sortby, $sorthow, $page, BADGE_PERPAGE);

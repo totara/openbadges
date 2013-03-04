@@ -70,7 +70,7 @@ if ((($update == 1) || ($update == 2)) && confirm_sesskey()) {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading($badge->name . ': ' . get_string('bcriteria', 'badges'));
+echo $OUTPUT->heading($badge->name);
 
 if ($emsg !== '') {
     echo $OUTPUT->notification($emsg);
@@ -78,8 +78,8 @@ if ($emsg !== '') {
     echo $OUTPUT->notification($msg, 'notifysuccess');
 }
 
-$output->print_badge_tabs($badgeid, $context, 'criteria');
 echo $output->print_badge_status_box($badge);
+$output->print_badge_tabs($badgeid, $context, 'criteria');
 
 if (!$badge->is_locked() && !$badge->is_active()) {
     echo $output->print_criteria_actions($badge);
@@ -91,6 +91,8 @@ if ($badge->has_criteria()) {
     foreach ($badge->criteria as $crit) {
         $crit->config_form_criteria($badge);
     }
+} else {
+    echo $OUTPUT->box(get_string('nocriteria', 'badges'));
 }
 
 echo $OUTPUT->footer();

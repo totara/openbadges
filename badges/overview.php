@@ -54,16 +54,16 @@ navigation_node::override_active_url($navurl);
 $PAGE->navbar->add($badge->name);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading($badge->name . ': ' . get_string('boverview', 'badges'));
+echo $OUTPUT->heading($badge->name);
 
 if ($awards) {
     echo $OUTPUT->notification(get_string('numawards', 'badges', $awards), 'notifysuccess');
 }
 
 $output = $PAGE->get_renderer('core', 'badges');
-$output->print_badge_tabs($badgeid, $context, 'overview');
 echo $output->print_badge_status_box($badge);
-echo $output->print_badge_overview($badge, $context);
+$output->print_badge_tabs($badgeid, $context, 'overview');
 echo $output->print_badge_overview_actions($badge, $context);
+echo $output->print_badge_overview($badge, $context);
 
 echo $OUTPUT->footer();

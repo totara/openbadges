@@ -149,6 +149,10 @@ class award_criteria_courseset extends award_criteria {
         $mform->addElement('header', 'first_header', $this->get_title());
         $mform->addHelpButton('first_header', 'criteria_' . $this->criteriatype, 'badges');
 
+        if ($courses = $DB->get_records('course', array('enablecompletion' => COMPLETION_ENABLED))) {
+            $mform->addElement('submit', 'addcourse', get_string('addcourse', 'badges'), array('class' => 'addcourse'));
+        }
+
         // In courseset, print out only the ones that were already selected.
         foreach ($this->params as $p) {
             if ($course = $DB->get_record('course', array('id' => $p['course']))) {
@@ -178,9 +182,8 @@ class award_criteria_courseset extends award_criteria {
             $mform->addElement('header', 'aggregation', get_string('method', 'badges'));
             $agg = array();
             $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethodcourseset', 'badges'), 1);
-            $agg[] =& $mform->createElement('static', 'none_break', null, '<br/><br/>');
             $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethodcourseset', 'badges'), 2);
-            $mform->addGroup($agg, 'methodgr', '', array(' '), false);
+            $mform->addGroup($agg, 'methodgr', '', array('<br/>'), false);
             if ($this->id !== 0) {
                 $mform->setDefault('agg', $this->method);
             } else {

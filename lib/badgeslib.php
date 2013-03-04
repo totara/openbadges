@@ -1149,7 +1149,7 @@ function download_badges($userid, $badges) {
  * @param int $courseid Course if we need to filter badges (optional).
  */
 function profile_display_badges($userid, $courseid = 0) {
-    global $CFG, $PAGE, $USER;
+    global $CFG, $PAGE, $USER, $SITE;
     require_once($CFG->dirroot . '/badges/renderer.php');
 
     if ($USER->id == $userid || has_capability('moodle/badges:viewotherbadges', context_user::instance($USER->id))) {
@@ -1158,14 +1158,14 @@ function profile_display_badges($userid, $courseid = 0) {
 
         // Print local badges.
         if ($records) {
-            print_row(get_string('localbadges', 'badges') . ":", $renderer->print_badges_list($records, $userid, true));
+            print_row(get_string('localbadgesp', 'badges', $SITE->fullname) . ":", $renderer->print_badges_list($records, $userid, true));
         }
 
         // Print external badges.
         if ($courseid == 0 && $CFG->badges_allowexternalbackpack) {
             $backpack = get_backpack_settings($userid);
             if (isset($backpack->totalbadges) && $backpack->totalbadges !== 0) {
-                print_row(get_string('externalbadges', 'badges') . ":", $renderer->print_badges_list($backpack->badges, $userid, true, true));
+                print_row(get_string('externalbadgesp', 'badges') . ":", $renderer->print_badges_list($backpack->badges, $userid, true, true));
             }
         }
     }

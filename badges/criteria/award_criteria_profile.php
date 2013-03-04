@@ -111,7 +111,7 @@ class award_criteria_profile extends award_criteria {
             $mform->addElement('header', 'aggregation', get_string('method', 'badges'));
             $agg = array();
             $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethodprofile', 'badges'), 1);
-            $agg[] =& $mform->createElement('static', 'none_break', null, '<br/><br/>');
+            $agg[] =& $mform->createElement('static', 'none_break', null, '<br/>');
             $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethodprofile', 'badges'), 2);
             $mform->addGroup($agg, 'methodgr', '', array(' '), false);
             if ($this->id !== 0) {

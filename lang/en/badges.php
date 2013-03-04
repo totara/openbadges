@@ -386,13 +386,16 @@ $string['clearsettings'] = 'Clear settings';
 $string['editsettings'] = 'Edit settings';
 $string['evidence'] = 'Evidence';
 $string['expired'] = 'Expired';
-$string['externalbadges'] = 'External Badges';
+$string['externalbadges'] = 'My badges from other web sites';
+$string['externalbadgesp'] = 'Badges from other web sites';
 $string['externalbadges_help'] = 'Connection setting and badges displayed from an external backpack provider';
 $string['hidden'] = 'Hidden';
 $string['hiddenbadge'] = 'Unfortunately, badge owner has not made this information available.';
 $string['issuedbadge'] = 'Issued badge information';
-$string['localbadges'] = 'Local Badges';
+$string['localbadges'] = 'My badges from {$a} web site';
+$string['localbadgesp'] = 'Badges from {$a}';
 $string['localbadges_help'] = 'Badges earned within this web site.';
+$string['makeprivate'] = 'Make private';
 $string['makepublic'] = 'Make public';
 $string['nobackpack'] = 'There is no backpack service connected to this account.<br/>';
 $string['nobackpackbadges'] = 'There are no badges displayed from your backpack at <a href="{$a->backpackurl}">{$a->backpackurl}</a>.<br/>';
@@ -441,8 +444,7 @@ $string['mingrade'] = 'Minimum grade required';
 $string['method'] = 'This criterion is complete when...';
 $string['noparamstoadd'] = 'There are no additional parameters available to add to this badge requirement.';
 $string['nothingtoadd'] = 'There are no available criteria to add.';
-$string['addc'] = 'Add criterion';
-$string['updatec'] = 'Update criterion';
+$string['save'] = 'Save';
 
 // Badge criteria description.
 $string['criteria_descr'] = '<p>Learners are awarded this badge when they complete the following requirement: ';
@@ -482,11 +484,11 @@ $string['after'] = 'after the date of issue.';
 $string['aggregationmethod'] = 'Aggregation method';
 $string['all'] = 'All';
 $string['any'] = 'Any';
-$string['awards'] = 'Awards';
+$string['awards'] = 'Recipients';
 $string['award'] = 'Award badge';
 $string['awardedtoyou'] = 'Issued to me';
 $string['attachment'] = 'Attach badge to message';
-$string['bawards'] = 'Awards ({$a})';
+$string['bawards'] = 'Recipients ({$a})';
 $string['badgeimage'] = 'Image';
 $string['badgeurl'] = 'Issued badge link';
 $string['badgestoearn'] = 'Number of badges available: {$a}';
@@ -520,7 +522,7 @@ $string['issuername'] = 'Issuer name';
 $string['issuerurl'] = 'Issuer URL';
 $string['message'] = 'Message body';
 $string['month'] = 'Month(s)';
-$string['never'] = 'Never (default)';
+$string['never'] = 'Never';
 $string['newbadge'] = 'Add a new badge';
 $string['newimage'] = 'New image';
 $string['noawards'] = 'This badge has not been earned yet.';
@@ -577,7 +579,7 @@ $string['issuerurl_help'] = 'Origin of the issuer.
 This setting should be in form &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;.';
 
 $string['issuername_help'] = 'Name of the issuing agent or authority.';
-$string['notification'] = 'Notify badge creator';
+$string['notification'] = 'Notify badge creator (course badges only)';
 $string['notification_help'] = 'If checked, the badge creator will also be sent a notification to let them know that the badge has been issued.';
 $string['status_help'] = 'Status of a badge determines its behaviour in the system:
 

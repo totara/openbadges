@@ -33,8 +33,7 @@ $type    = optional_param('type', 0, PARAM_INT); // Criteria type.
 $edit    = optional_param('edit', 0, PARAM_INT); // Edit criteria ID.
 $crit    = optional_param('crit', 0, PARAM_INT); // Criteria ID for managing params.
 $param   = optional_param('param', '', PARAM_TEXT); // Param name for managing params.
-$add     = optional_param('add', 0, PARAM_BOOL);
-$goback    = optional_param('back', '', PARAM_TEXT);
+$goback    = optional_param('cancel', '', PARAM_TEXT);
 $addcourse = optional_param('addcourse', '', PARAM_TEXT);
 $submitcourse = optional_param('submitcourse', '', PARAM_TEXT);
 
@@ -74,7 +73,7 @@ if ($edit) {
     $criteria = award_criteria::build($cparams);
 }
 
-$mform = new edit_criteria_form($FULLME, array('criteria' => $criteria, 'add' => $add, 'edit' => $edit, 'addcourse' => $addcourse));
+$mform = new edit_criteria_form($FULLME, array('criteria' => $criteria, 'addcourse' => $addcourse));
 
 if (!empty($addcourse)) {
     if ($data = $mform->get_data()) {

@@ -55,10 +55,11 @@ class core_badges_renderer extends plugin_renderer_base {
                        . html_writer::end_tag('span');
             }
             $name = html_writer::tag('span', $bname, array('class' => 'badge-name'));
-            $checkbox = $status = "";
+            $checkbox = $status = '';
 
             if (($userid == $USER->id) && !$profile) {
-                $checkbox = html_writer::checkbox('badges[]', $b->uniquehash, false, '', array('class' => 'badge-select'));
+                $name = '<br/>';
+                $checkbox = html_writer::checkbox('badges[]', $b->uniquehash, false, $bname);
                 if ($b->public) {
                     $url = new moodle_url('mybadges.php', array('hide' => $b->issuedid));
                     $status = $this->output->action_icon($url, new pix_icon('t/hide', get_string('hide'))) . " ";
@@ -77,12 +78,11 @@ class core_badges_renderer extends plugin_renderer_base {
                     $url = new moodle_url($CFG->wwwroot . '/badges/external.php', array('badge' => serialize($b)));
                 }
             }
-            $items[] = $checkbox .
-                        html_writer::link(
+            $items[] = html_writer::link(
                             $url,
                             $image . $status . $name,
                             array('title' => $bname)
-                        );
+                        ) . $checkbox;
         }
 
         return html_writer::alist($items, array('class' => 'badges'));
@@ -446,15 +446,15 @@ class core_badges_renderer extends plugin_renderer_base {
 
     // Outputs table of user badges.
     protected function render_badge_user_collection(badge_user_collection $badges) {
-        global $CFG, $USER;
+        global $CFG, $USER, $SITE;
         $paging = new paging_bar($badges->totalcount, $badges->page, $badges->perpage, $this->page->url, 'page');
         $htmlpagingbar = $this->render($paging);
-
 
         $searchform = $this->helper_search_form($badges->search);
         // Local badges.
         $localhtml = html_writer::start_tag('fieldset', array('class' => 'generalbox'));
-        $localhtml .= html_writer::tag('legend', $this->output->heading_with_help(get_string('localbadges', 'badges'), 'localbadges', 'badges'));
+        $localhtml .= html_writer::tag('legend', $this->output->heading_with_help(
+                get_string('localbadges', 'badges', $SITE->fullname), 'localbadges', 'badges'));
         if ($badges->badges) {
             $localhtml .= html_writer::tag('div', get_string('badgesearned', 'badges', $badges->totalcount));
             $htmllist = $this->print_badges_list($badges->badges, $USER->id);
@@ -465,8 +465,8 @@ class core_badges_renderer extends plugin_renderer_base {
                     'method' => 'post',
                     'class'  => 'boxaligncenter'
             );
-            $htmlform = html_writer::tag('form', $htmllist . $htmlactions, $attributes);
-            $localhtml .= $searchform . $htmlpagingbar . $htmlform . $htmlpagingbar;
+            $htmlform = html_writer::tag('form', $htmlactions . $htmllist, $attributes);
+            $localhtml .= $searchform . $htmlform . $htmlpagingbar;
         } else {
             $localhtml .= $this->output->notification(get_string('nobadges', 'badges'));
         }
@@ -693,7 +693,8 @@ class core_badges_renderer extends plugin_renderer_base {
     // Prints criteria actions for badge editing.
     public function print_criteria_actions(badge $badge) {
         $table = new html_table();
-        $table->attributes = array('class' => 'clearfix', 'id' => 'badgeactions');
+        $table->attributes = array('class' => 'boxaligncenter', 'id' => 'badgeactions');
+        $table->colclasses = array('activatebadge');
 
         $actions = array();
         if (!$badge->is_active() && !$badge->is_locked()) {
@@ -823,7 +824,7 @@ class core_badges_renderer extends plugin_renderer_base {
         $actions = array();
 
         if (has_capability('moodle/badges:manageownbadges', $this->page->context)) {
-            $actions['hide'] = get_string('hide');
+            $actions['hide'] = get_string('makeprivate', 'badges');
             $actions['show'] = get_string('makepublic', 'badges');
             $actions['download'] = get_string('download');
         }
