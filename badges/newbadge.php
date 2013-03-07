@@ -80,8 +80,8 @@ if ($form->is_cancelled()) {
     $fordb->message = get_string('messagebody', 'badges',
             html_writer::link($CFG->wwwroot . '/badges/mybadges.php', get_string('mybadges', 'badges')));
     $fordb->attachment = 1;
-    $fordb->notification = 0;
-    $fordb->status = 0;
+    $fordb->notification = BADGE_MESSAGE_NEVER;
+    $fordb->status = BADGE_STATUS_INACTIVE;
 
     $newid = $DB->insert_record('badge', $fordb, true);
 

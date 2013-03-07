@@ -221,11 +221,11 @@ class edit_message_form extends moodleform {
         $mform->addHelpButton('attachment', 'attachment', 'badges');
 
         $options = array(
-                0 => get_string('never'),
-                1 => get_string('notifyevery', 'badges'),
-                2 => get_string('notifydaily', 'badges'),
-                3 => get_string('notifyweekly', 'badges'),
-                4 => get_string('notifymonthly', 'badges'),
+                BADGE_MESSAGE_NEVER   => get_string('never'),
+                BADGE_MESSAGE_ALWAYS  => get_string('notifyevery', 'badges'),
+                BADGE_MESSAGE_DAILY   => get_string('notifydaily', 'badges'),
+                BADGE_MESSAGE_WEEKLY  => get_string('notifyweekly', 'badges'),
+                BADGE_MESSAGE_MONTHLY => get_string('notifymonthly', 'badges'),
                 );
         $mform->addElement('select', 'notification', get_string('notification', 'badges'), $options);
         $mform->addHelpButton('notification', 'notification', 'badges');

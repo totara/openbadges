@@ -84,6 +84,15 @@ define('BADGE_TYPE_SITE', 1);
  */
 define('BADGE_TYPE_COURSE', 2);
 
+/*
+ * Badge messaging schedule options.
+ */
+define('BADGE_MESSAGE_NEVER', 0);
+define('BADGE_MESSAGE_ALWAYS', 1);
+define('BADGE_MESSAGE_DAILY', 2);
+define('BADGE_MESSAGE_WEEKLY', 3);
+define('BADGE_MESSAGE_MONTHLY', 4);
+
 /**
  * Class that represents badge.
  *
