@@ -388,13 +388,22 @@ $string['evidence'] = 'Evidence';
 $string['expired'] = 'Expired';
 $string['externalbadges'] = 'My badges from other web sites';
 $string['externalbadgesp'] = 'Badges from other web sites';
-$string['externalbadges_help'] = 'Connection setting and badges displayed from an external backpack provider';
+$string['externalbadges_help'] = 'This area allows to set up connection to an external backpack provider.
+
+Currently, only <a href="http://beta.openbadges.com">Mozilla OpenBadges Backpack</a> is supported. You need to sign up for a backpack service before trying to set up backpack connection on this page.
+
+After such connection is successfully established, a number of badges from your backpack will be displayed on this page. A list of badges from a backpack along with their details and description can be found on a user profile page.';
 $string['hidden'] = 'Hidden';
 $string['hiddenbadge'] = 'Unfortunately, badge owner has not made this information available.';
 $string['issuedbadge'] = 'Issued badge information';
 $string['localbadges'] = 'My badges from {$a} web site';
 $string['localbadgesp'] = 'Badges from {$a}';
-$string['localbadges_help'] = 'Badges earned within this web site.';
+$string['localbadgesh'] = 'My badges from this web site';
+$string['localbadgesh_help'] = 'All badges earned within this web site by completing courses, course activities, and other requirements.
+
+You can manage your badges here by making them public or private for your profile page.
+
+You can download all of your badges or each badge separately and save them on your computer. Downloaded badges can be added to your external backpack service.';
 $string['makeprivate'] = 'Make private';
 $string['makepublic'] = 'Make public';
 $string['nobackpack'] = 'There is no backpack service connected to this account.<br/>';
@@ -412,10 +421,10 @@ $string['badgestatus_1'] = 'Available to users';
 $string['badgestatus_2'] = 'Not available to users';
 $string['badgestatus_3'] = 'Available to users';
 $string['badgestatus_4'] = 'Archived';
-$string['statusmessage_0'] = 'This badge is currently not available to users';
-$string['statusmessage_1'] = 'This badge is currently available to users';
-$string['statusmessage_2'] = 'This badge is currently not available to users, and its criteria are locked';
-$string['statusmessage_3'] = 'This badge is currently available to users, and its criteria are locked';
+$string['statusmessage_0'] = 'This badge is currently not available to users. Enable access if you want users to earn this badge. ';
+$string['statusmessage_1'] = 'This badge is currently available to users. Disable access to make any changes. ';
+$string['statusmessage_2'] = 'This badge is currently not available to users, and its criteria are locked. Enable access if you want users to earn this badge. ';
+$string['statusmessage_3'] = 'This badge is currently available to users, and its criteria are locked. ';
 $string['statusmessage_4'] = 'This badge is currently archived';
 
 // Badge criteria.
@@ -447,20 +456,33 @@ $string['nothingtoadd'] = 'There are no available criteria to add.';
 $string['save'] = 'Save';
 
 // Badge criteria description.
-$string['criteria_descr'] = '<p>Learners are awarded this badge when they complete the following requirement: ';
-$string['criteria_descr_0'] = '<p>Learners are awarded this badge when they complete <strong>{$a}</strong> of the listed requirements.</p>';
-$string['criteria_descr_1'] = '<p><strong>{$a}</strong> of the following activities are completed:</p>';
-$string['criteria_descr_single_1'] = '<p>The following activity has to be completed:</p>';
+$string['criteria_descr'] = 'Learners are awarded this badge when they complete the following requirement: ';
+$string['criteria_descr_0'] = 'Learners are awarded this badge when they complete <strong>{$a}</strong> of the listed requirements.';
+$string['criteria_descr_1'] = '<strong>{$a}</strong> of the following activities are completed:';
+$string['criteria_descr_single_1'] = 'The following activity has to be completed:';
 $string['criteria_descr_4'] = 'Learners must complete the course ';
 $string['criteria_descr_single_4'] = 'Learners must complete the course ';
-$string['criteria_descr_2'] = '<p>This badge has to be awarded by the users with <strong>{$a}</strong> of the following roles:</p>';
-$string['criteria_descr_single_2'] = '<p>This badge has to be awarded by a user with the following role:</p>';
-$string['criteria_descr_5'] = '<p><strong>{$a}</strong> of the following courses have to be completed:</p>';
-$string['criteria_descr_single_5'] = '<p>The following course has to be completed:</p>';
-$string['criteria_descr_6'] = '<p><strong>{$a}</strong> of the following user profile fields have to be completed:</p>';
-$string['criteria_descr_single_6'] = '<p>The following user profile field has to be completed:</p>';
+$string['criteria_descr_2'] = 'This badge has to be awarded by the users with <strong>{$a}</strong> of the following roles:';
+$string['criteria_descr_single_2'] = 'This badge has to be awarded by a user with the following role:';
+$string['criteria_descr_5'] = '<strong>{$a}</strong> of the following courses have to be completed:';
+$string['criteria_descr_single_5'] = 'The following course has to be completed:';
+$string['criteria_descr_6'] = '<strong>{$a}</strong> of the following user profile fields have to be completed:';
+$string['criteria_descr_single_6'] = 'The following user profile field has to be completed:';
 $string['criteria_descr_grade'] = ' with minimum grade of <em>{$a}</em> ';
 $string['criteria_descr_bydate'] = ' by <em>{$a}</em> ';
+
+// Short version of criteria.
+$string['criteria_descr_short0'] = 'Complete <strong>{$a}</strong> of: ';
+$string['criteria_descr_short1'] = 'Complete <strong>{$a}</strong> of: ';
+$string['criteria_descr_single_short1'] = 'Complete: ';
+$string['criteria_descr_short4'] = 'Complete the course ';
+$string['criteria_descr_single_short4'] = 'Complete the course ';
+$string['criteria_descr_short2'] = 'Awarded by <strong>{$a}</strong> of: ';
+$string['criteria_descr_single_short2'] = 'Awarded by: ';
+$string['criteria_descr_short5'] = 'Complete <strong>{$a}</strong> of: ';
+$string['criteria_descr_single_short5'] = 'Complete: ';
+$string['criteria_descr_short6'] = 'Complete <strong>{$a}</strong> of: ';
+$string['criteria_descr_single_short6'] = 'Complete: ';
 
 // Badge details.
 $string['addtobackpack'] = 'Add to backpack';
@@ -477,7 +499,9 @@ $string['expireperiods'] = 'This badge expires {$a} second(s) after being issued
 // Badge editing/creating strings.
 $string['actions'] = 'Actions';
 $string['activate'] = 'Enable access';
-$string['addcriteria'] = 'Add new criteria';
+$string['activatesuccess'] = 'Access to the badges was successfully enabled.';
+$string['addcriteria'] = 'Add criteria';
+$string['addbadgecriteria'] = 'Add badge criteria';
 $string['addcourse'] = 'Add courses';
 $string['adminaward'] = 'As a site administrator, you can select a role to award this badge.';
 $string['after'] = 'after the date of issue.';
@@ -508,6 +532,7 @@ $string['dateawarded'] = 'Date issued';
 $string['dateearned'] = 'Date: {$a}';
 $string['day'] = 'Day(s)';
 $string['deactivate'] = 'Disable access';
+$string['deactivatesuccess'] = 'Access to the badges was successfully disabled.';
 $string['delbadge'] = 'Delete badge';
 $string['delcritconfirm'] = 'Are you sure that you want to delete this criterion?';
 $string['delparamconfirm'] = 'Are you sure that you want to delete this parameter?';
@@ -532,6 +557,10 @@ $string['numawards'] = 'This badge has been issued to {$a} user(s).';
 $string['noexpiry'] = 'This badge does not have an expiry date.';
 $string['notacceptedrole'] = 'Your current role assignment is not among the roles that can manually issue this badge.<br/>
 If you would like to see users who have already earned this badge, you can visit {$a} page. ';
+$string['notifyevery'] = 'Every time';
+$string['notifydaily'] = 'Daily';
+$string['notifyweekly'] = 'Weekly';
+$string['notifymonthly'] = 'Monthly';
 $string['overallcrit'] = 'of the selected criteria are complete.';
 $string['potentialrecipients'] = 'Potential badge recipients';
 $string['recipients'] = 'Badge recipients';
@@ -579,8 +608,20 @@ $string['issuerurl_help'] = 'Origin of the issuer.
 This setting should be in form &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;.';
 
 $string['issuername_help'] = 'Name of the issuing agent or authority.';
-$string['notification'] = 'Notify badge creator (course badges only)';
-$string['notification_help'] = 'If checked, the badge creator will also be sent a notification to let them know that the badge has been issued.';
+$string['notification'] = 'Notify badge creator';
+$string['notification_help'] = 'This setting manages notifications sent to a badge creator to let them know that the badge has been issued.
+
+The following options are available:
+
+* **NEVER** – Do not send notifications.
+
+* **EVERY TIME** – Send a notification every time this badge is awarded.
+
+* **DAILY** – Send notifications once a day.
+
+* **WEEKLY** – Send notifications once a week.
+
+* **MONTHLY** – Send notifications once a month.';
 $string['status_help'] = 'Status of a badge determines its behaviour in the system:
 
 * **AVAILABLE** – Means that this badge can be earned by users. While a badge is available to users, its criteria cannot be modified.

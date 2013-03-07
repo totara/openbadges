@@ -67,7 +67,7 @@ navigation_node::override_active_url($navurl);
 $output = $PAGE->get_renderer('core', 'badges');
 
 echo $output->header();
-echo $output->heading($badge->name);
+echo $OUTPUT->heading(print_badge_image($badge, $context, 'small') . ' ' . $badge->name);
 
 echo $output->print_badge_status_box($badge);
 $output->print_badge_tabs($badgeid, $context, 'awards');

@@ -108,7 +108,7 @@ if ($form->is_cancelled()) {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading($badge->name);
+echo $OUTPUT->heading(print_badge_image($badge, $context, 'small') . ' ' . $badge->name);
 
 if ($errormsg !== '') {
     echo $OUTPUT->notification($errormsg);

@@ -3005,7 +3005,8 @@
         <FIELD NAME="uniquehash" TYPE="text" NOTNULL="true" SEQUENCE="false" PREVIOUS="userid" NEXT="dateissued"/>
         <FIELD NAME="dateissued" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" PREVIOUS="uniquehash" NEXT="dateexpire"/>
         <FIELD NAME="dateexpire" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" PREVIOUS="dateissued" NEXT="visible"/>
-        <FIELD NAME="visible" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" PREVIOUS="dateexpire"/>
+        <FIELD NAME="visible" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" PREVIOUS="dateexpire" NEXT="issuernotified"/>
+        <FIELD NAME="issuernotified" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" PREVIOUS="visible"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="fk_badgeid"/>

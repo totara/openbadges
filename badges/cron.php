@@ -27,6 +27,12 @@
 defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/badgeslib.php');
 
+function badge_cron() {
+    badge_review_cron();
+
+    //badge_message_cron();
+}
+
 /**
  * Awards badges
  *
@@ -48,6 +54,7 @@ function badge_review_cron() {
             'current' => time());
     $badges = $DB->get_fieldset_sql($sql, $params);
 
+    mtrace('Stared reviewing available badges.');
     foreach ($badges as $bid) {
         $badge = new badge($bid);
 
@@ -66,4 +73,53 @@ function badge_review_cron() {
     }
 
     mtrace('Badges were issued ' . $total . ' time(s).');
+}
+
+function badge_message_cron() {
+    global $CFG, $DB;
+
+    $admin = get_admin();
+    $userfrom = new stdClass();
+    $userfrom->id = $admin->id;
+    $userfrom->email = $CFG->badges_defaultissuercontact ? $CFG->badges_defaultissuercontact : $admin->email;
+    $userfrom->firstname = $CFG->badges_defaultissuername ? $CFG->badges_defaultissuername : $admin->firstname;
+    $userfrom->lastname = $CFG->badges_defaultissuername ? '' : $admin->lastname;
+    $userfrom->maildisplay = true;
+
+    mtrace('Sending scheduled badge notifications.');
+
+    $sql = 'SELECT  bi.badgeid, b.name, bi.uniquehash, bi.userid as recipient,
+                    b.usercreated as creator, b.notification, b.timecreated
+                FROM {badge_issued} bi INNER JOIN {badge} b
+                    ON bi.badgeid = b.id
+                WHERE bi.issuernotified IS NULL
+                    AND b.notification > 1';
+
+    if ($msgs = $DB->get_record_sql($sql)) {
+        foreach ($msgs as $msg) {
+            $issuedlink = html_writer::link(new moodle_url('/badges/badge.php', array('hash' => $msg->uniquehash)), $msg->name);
+            $userto = $DB->get_record('user', array('id' => $msg->recipient), '*', MUST_EXIST);
+
+            $creator = $DB->get_record('user', array('id' => $msg->creator), '*', MUST_EXIST);
+            $a = new stdClass();
+            $a->user = fullname($userto);
+            $a->link = $issuedlink;
+            $creatormessage = get_string('creatorbody', 'badges', $a);
+            $creatorsubject = get_string('creatorsubject', 'badges', $msg->name);
+
+            $eventdata = new stdClass();
+            $eventdata->component         = 'moodle';
+            $eventdata->name              = 'instantmessage';
+            $eventdata->userfrom          = $userfrom;
+            $eventdata->userto            = $creator;
+            $eventdata->subject           = $creatorsubject;
+            $eventdata->fullmessage       = $creatormessage;
+            $eventdata->fullmessageformat = FORMAT_PLAIN;
+            $eventdata->fullmessagehtml   = format_text($creatormessage, FORMAT_HTML);
+            $eventdata->smallmessage      = '';
+
+            message_send($eventdata);
+            $DB->set_field('badge_issued', 'issuernotified', time(), array('badgeid' => $msg->badgeid, 'userid' => $msg->recipient));
+        }
+    }
 }

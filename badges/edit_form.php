@@ -53,12 +53,13 @@ class edit_details_form extends moodleform {
         $mform->addRule('name', null, 'required');
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
-        $mform->addElement('textarea', 'description', get_string('description', 'badges'), 'wrap="virtual" rows="10" cols="70"');
+        $mform->addElement('textarea', 'description', get_string('description', 'badges'), 'wrap="virtual" rows="8" cols="70"');
         $mform->setType('description', PARAM_CLEANHTML);
         $mform->addRule('description', null, 'required');
 
+        $str = $action == 'new' ? get_string('badgeimage', 'badges') : get_string('newimage', 'badges');
         $imageoptions = array('maxbytes' => 262144, 'accepted_types' => array('web_image'));
-        $mform->addElement('filepicker', 'image', get_string('newimage', 'badges'), null, $imageoptions);
+        $mform->addElement('filepicker', 'image', $str, null, $imageoptions);
 
         if ($action == 'new') {
             $mform->addRule('image', null, 'required');
@@ -212,19 +213,22 @@ class edit_message_form extends moodleform {
         $mform->addRule('messagesubject', null, 'required');
         $mform->addRule('messagesubject', get_string('maximumchars', '', 255), 'maxlength', 255);
 
-        $mform->addElement('editor', 'message_editor', get_string('message', 'badges'), null, $editoroptions);//'wrap="virtual" rows="15" cols="70"');
+        $mform->addElement('editor', 'message_editor', get_string('message', 'badges'), null, $editoroptions);
         $mform->setType('message_editor', PARAM_RAW);
         $mform->addRule('message_editor', null, 'required');
 
         $mform->addElement('advcheckbox', 'attachment', get_string('attachment', 'badges'), '', null, array(0, 1));
         $mform->addHelpButton('attachment', 'attachment', 'badges');
 
-        $mform->addElement('advcheckbox', 'notification', get_string('notification', 'badges'), '', null, array(0, 1));
+        $options = array(
+                0 => get_string('never'),
+                1 => get_string('notifyevery', 'badges'),
+                2 => get_string('notifydaily', 'badges'),
+                3 => get_string('notifyweekly', 'badges'),
+                4 => get_string('notifymonthly', 'badges'),
+                );
+        $mform->addElement('select', 'notification', get_string('notification', 'badges'), $options);
         $mform->addHelpButton('notification', 'notification', 'badges');
-
-        if ($badge->context != 2) {
-            $mform->hardFreeze('notification');
-        }
 
         $this->add_action_buttons();
         $this->set_data($badge);

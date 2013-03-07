@@ -70,7 +70,7 @@ if ((($update == 1) || ($update == 2)) && confirm_sesskey()) {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading($badge->name);
+echo $OUTPUT->heading(print_badge_image($badge, $context, 'small') . ' ' . $badge->name);
 
 if ($emsg !== '') {
     echo $OUTPUT->notification($emsg);

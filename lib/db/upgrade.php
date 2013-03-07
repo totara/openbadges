@@ -1674,6 +1674,7 @@ function xmldb_main_upgrade($oldversion) {
         $table->add_field('dateissued', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'uniquehash');
         $table->add_field('dateexpire', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'dateissued');
         $table->add_field('visible', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'dateexpire');
+        $table->add_field('issuernotified', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'visible');
 
         // Adding keys to table 'badge_issued'
         $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));

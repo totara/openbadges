@@ -23,15 +23,8 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
-$string['pluginname'] = 'My badges';
-$string['numbadgestodisplay'] = 'Number of recent badges to display';
+$string['pluginname'] = 'My latest badges';
+$string['numbadgestodisplay'] = 'Number of latest badges to display';
 $string['nothingtodisplay'] = 'You have no badges to display';
-$string['badgesizetodisplay'] = 'Size of badges to display';
-
-// Badges size.
-$string['small'] = 'Small';
-$string['medium'] = 'Medium';
-$string['large'] = 'Large';
-
-$string['badges:addinstance'] = 'Add a new My badges block';
-$string['badges:myaddinstance'] = 'Add a new My badges block to the My Moodle page';
+$string['badges:addinstance'] = 'Add a new My latest badges block';
+$string['badges:myaddinstance'] = 'Add a new My latest badges block to the My Moodle page';

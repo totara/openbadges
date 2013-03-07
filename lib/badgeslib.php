@@ -625,8 +625,8 @@ function notify_badge_award(badge $badge, $userid, $issued, $filepathhash) {
         email_to_user($userto, $userfrom, $badge->messagesubject, $plaintext, $message);
     }
 
-    // Notify badge creator about the award.
-    if ($badge->notification) {
+    // Notify badge creator about the award if they receive notifications every time.
+    if ($badge->notification == 1) {
         $creator = $DB->get_record('user', array('id' => $badge->usercreated), '*', MUST_EXIST);
         $a = new stdClass();
         $a->user = fullname($userto);
@@ -646,6 +646,7 @@ function notify_badge_award(badge $badge, $userid, $issued, $filepathhash) {
         $eventdata->smallmessage      = '';
 
         message_send($eventdata);
+        $DB->set_field('badge_issued', 'issuernotified', time(), array('badgeid' => $badge->id, 'userid' => $userid));
     }
 }
 
@@ -1032,7 +1033,8 @@ function print_badge_image($badge, $context, $size = 'small') {
     }
 
     $imageurl = moodle_url::make_pluginfile_url($context->id, 'badges', 'badgeimage', $badge->id, '/', $fsize, false);
-    $attributes = array('src' => $imageurl, 'alt' => s($badge->name));
+    // Appending a random parameter to image link to forse browser reload the image.
+    $attributes = array('src' => $imageurl . '?' . rand(1, 10000), 'alt' => s($badge->name), 'class' => 'activatebadge');
 
     return html_writer::empty_tag('img', $attributes);
 }
@@ -1116,10 +1118,10 @@ function get_backpack_settings($userid) {
  * @param int $userid ID of badge owner.
  * @param array $badges List of issued badges to download.
  */
-function download_badges($userid, $badges) {
+function download_badges($userid) {
     global $CFG, $DB;
     $context = context_user::instance($userid);
-    $records = $DB->get_records_list('badge_issued', 'uniquehash', $badges);
+    $records = $DB->get_records('badge_issued', array('userid' => $userid));
 
     // Get list of files to download.
     $fs = get_file_storage();
@@ -1158,14 +1160,14 @@ function profile_display_badges($userid, $courseid = 0) {
 
         // Print local badges.
         if ($records) {
-            print_row(get_string('localbadgesp', 'badges', $SITE->fullname) . ":", $renderer->print_badges_list($records, $userid, true));
+            print_row(get_string('localbadgesp', 'badges', $SITE->fullname), $renderer->print_badges_list($records, $userid, true));
         }
 
         // Print external badges.
         if ($courseid == 0 && $CFG->badges_allowexternalbackpack) {
             $backpack = get_backpack_settings($userid);
             if (isset($backpack->totalbadges) && $backpack->totalbadges !== 0) {
-                print_row(get_string('externalbadgesp', 'badges') . ":", $renderer->print_badges_list($backpack->badges, $userid, true, true));
+                print_row(get_string('externalbadgesp', 'badges'), $renderer->print_badges_list($backpack->badges, $userid, true, true));
             }
         }
     }

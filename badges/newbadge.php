@@ -87,7 +87,7 @@ if ($form->is_cancelled()) {
 
     $newbadge = new badge($newid);
     badges_process_badge_image($newbadge, $form->save_temp_file('image'));
-    redirect(new moodle_url('/badges/overview.php', array('id' => $newid)));
+    redirect(new moodle_url('/badges/criteria.php', array('id' => $newid)));
 }
 
 echo $OUTPUT->header();

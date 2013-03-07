@@ -63,7 +63,7 @@ if ($type == BADGE_TYPE_SITE) {
     $title = get_string('coursebadges', 'badges');
     $PAGE->set_context(context_course::instance($course->id));
     $PAGE->set_pagelayout('course');
-    $PAGE->set_heading($course->fullname . ": " . $title);
+    $PAGE->set_heading($course->fullname . ': ' . $title);
 
     // Fix course navigation.
     $PAGE->navbar->ignore_active();
@@ -75,12 +75,13 @@ $PAGE->set_title($title);
 $output = $PAGE->get_renderer('core', 'badges');
 
 echo $output->header();
+echo $OUTPUT->heading($title);
 
 $totalcount = count(get_badges($type, $courseid, '', '', '', '', $USER->id));
 $records = get_badges($type, $courseid, $sortby, $sorthow, $page, BADGE_PERPAGE, $USER->id);
 
 if ($totalcount) {
-    echo $output->heading(get_string('badgestoearn', 'badges', $totalcount), 2);
+    echo $output->heading(get_string('badgestoearn', 'badges', $totalcount), 4);
 
     if ($course && $course->startdate > time()) {
         echo $OUTPUT->box(get_string('error:notifycoursedate', 'badges'), 'generalbox notifyproblem');

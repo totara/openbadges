@@ -138,9 +138,10 @@ abstract class award_criteria {
     /**
      * Get criteria details for displaying to users
      *
+     * @param string $short Print short version of criteria
      * @return string
      */
-    abstract public function get_details();
+    abstract public function get_details($short = '');
 
     /**
      * Add appropriate criteria options to the form
@@ -215,7 +216,7 @@ abstract class award_criteria {
         if (!$data->is_locked() && !$data->is_active()) {
             echo $OUTPUT->box($deleteaction . $editaction, array('criteria-header'));
         }
-        echo $OUTPUT->heading_with_help($this->get_title(), 'criteria_' . $this->criteriatype, 'badges');
+        echo $OUTPUT->heading($this->get_title() . $OUTPUT->help_icon('criteria_' . $this->criteriatype, 'badges'), 3, 'main help');
 
         if (!empty($this->params)) {
             if (count($this->params) > 1) {

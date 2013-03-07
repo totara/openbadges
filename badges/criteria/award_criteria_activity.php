@@ -72,7 +72,7 @@ class award_criteria_activity extends award_criteria {
      *
      * @return string
      */
-    public function get_details() {
+    public function get_details($short = '') {
         global $DB, $OUTPUT;
         $output = array();
         foreach ($this->params as $p) {
@@ -87,7 +87,12 @@ class award_criteria_activity extends award_criteria {
             }
             $output[] = $str;
         }
-        return html_writer::alist($output, array(), 'ul');
+
+        if ($short) {
+            return implode(', ', $output);
+        } else {
+            return html_writer::alist($output, array(), 'ul');
+        }
     }
 
     /**

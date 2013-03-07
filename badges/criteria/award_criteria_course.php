@@ -59,7 +59,7 @@ class award_criteria_course extends award_criteria {
         if (!$data->is_locked() && !$data->is_active()) {
             echo $OUTPUT->box($deleteaction . $editaction, array('criteria-header'));
         }
-        echo $OUTPUT->heading_with_help($this->get_title(), 'criteria_' . $this->criteriatype, 'badges');
+        echo $OUTPUT->heading($this->get_title() . $OUTPUT->help_icon('criteria_' . $this->criteriatype, 'badges'), 3, 'main help');
 
         if (!empty($this->params)) {
             echo $OUTPUT->box(get_string('criteria_descr_' . $this->criteriatype, 'badges') . $this->get_details(), array('clearfix'));
@@ -72,7 +72,7 @@ class award_criteria_course extends award_criteria {
      *
      * @return string
      */
-    public function get_details() {
+    public function get_details($short = '') {
         global $DB;
         $param = reset($this->params);
 

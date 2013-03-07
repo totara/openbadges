@@ -53,6 +53,7 @@ class award_criteria_overall extends award_criteria {
                 $url = new moodle_url('criteria.php', array('id' => $data->id, 'sesskey' => sesskey()));
                 $table = new html_table();
                 $table->attributes = array('class' => 'clearfix');
+                $table->colclasses = array('', 'activatebadge');
                 $table->data[] = array(
                         $OUTPUT->single_select($url, 'update', $agg, $data->get_aggregation_method($this->criteriatype), null),
                         get_string('overallcrit', 'badges')
@@ -78,7 +79,7 @@ class award_criteria_overall extends award_criteria {
      *
      * @return string
      */
-    public function get_details() {
+    public function get_details($short = '') {
     }
 
     /**

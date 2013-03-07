@@ -30,8 +30,9 @@ require_once($CFG->libdir . '/badgeslib.php');
 $page        = optional_param('page', 0, PARAM_INT);
 $search      = optional_param('search', '', PARAM_CLEAN);
 $clearsearch = optional_param('clearsearch', '', PARAM_TEXT);
-$action      = optional_param('action', '', PARAM_TEXT);
-$options     = optional_param_array('badges', array(), PARAM_TEXT);
+$download    = optional_param('download', 0, PARAM_INT);
+$hash        = optional_param('hash', '', PARAM_ALPHANUM);
+$downloadall = optional_param('downloadall', false, PARAM_BOOL);
 $hide        = optional_param('hide', 0, PARAM_INT);
 $show        = optional_param('show', 0, PARAM_INT);
 
@@ -52,17 +53,15 @@ if ($hide) {
     $DB->set_field('badge_issued', 'visible', 0, array('id' => $hide));
 } else if ($show) {
     $DB->set_field('badge_issued', 'visible', 1, array('id' => $show));
-} else if ($action && !empty($options)) {
-    list($sql, $params) = $DB->get_in_or_equal($options);
-    if ($action == 'hide') {
-        $DB->set_field_select('badge_issued', 'visible', 0, "uniquehash $sql", $params);
-    } else if ($action == 'show') {
-        $DB->set_field_select('badge_issued', 'visible', 1, "uniquehash $sql", $params);
-    } else if ($action == 'download') {
-        ob_start();
-        download_badges($USER->id, $options);
-        ob_flush();
-    }
+} else if ($download && $hash) {
+    ob_start();
+    $file = bake($hash, $download);
+    header('Location: ' . $file);
+    ob_flush();
+} else if ($downloadall) {
+    ob_start();
+    download_badges($USER->id);
+    ob_flush();
 }
 
 $context = context_user::instance($USER->id);
