@@ -575,9 +575,7 @@ $string['year'] = 'Year(s)';
 
 // Default badge message.
 $string['creatorsubject'] = '\'{$a}\' has been awarded!';
-$string['creatorbody'] = '{$a->user} has completed all badge requirements and has been awarded the badge.
-
-View issued badge at {$a->link}';
+$string['creatorbody'] = '<p>{$a->user} has completed all badge requirements and has been awarded the badge. View issued badge at {$a->link} </p>';
 $string['messagebody'] = '<p>You have been awarded a badge "%badgename%"!</p>
 
 <p>More information about this badge can be found at %badgelink%.</p>
@@ -621,7 +619,9 @@ The following options are available:
 
 * **WEEKLY** – Send notifications once a week.
 
-* **MONTHLY** – Send notifications once a month.';
+* **MONTHLY** – Send notifications once a month.
+
+Note: This notifications are calculated based on badge creation date.';
 $string['status_help'] = 'Status of a badge determines its behaviour in the system:
 
 * **AVAILABLE** – Means that this badge can be earned by users. While a badge is available to users, its criteria cannot be modified.
@@ -647,6 +647,7 @@ $string['variablesubstitution_help'] = 'In a badge message, certain variables ca
 
 // Error messages.
 $string['criterror'] = 'Current parameters issues';
+$string['warnexpired'] = ' (This badge has expired!)';
 $string['error:cannotact'] = 'Cannot activate the badge. ';
 $string['error:cannotawardbadge'] = 'Cannot award badge to a user.';
 $string['error:clone'] = 'Cannot clone the badge.';

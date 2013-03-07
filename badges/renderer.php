@@ -134,6 +134,7 @@ class core_badges_renderer extends plugin_renderer_base {
         $detailstable->attributes = array('class' => 'clearfix', 'id' => 'badgedetails');
         $detailstable->data[] = array(get_string('name') . ":", $badge->name);
         $detailstable->data[] = array(get_string('description', 'badges') . ":", $badge->description);
+        $detailstable->data[] = array(get_string('createdon', 'search') . ":", userdate($badge->timecreated));
         $detailstable->data[] = array(get_string('badgeimage', 'badges') . ":",
                 print_badge_image($badge, $context, 'large'));
         $display .= html_writer::table($detailstable);
@@ -318,7 +319,7 @@ class core_badges_renderer extends plugin_renderer_base {
                 $today = strtotime($today_date);
                 $expiration = strtotime($issued['expires']);
                 if ($expiration < $today) {
-                    $cell = new html_table_cell($issued['expires']);
+                    $cell = new html_table_cell($issued['expires'] . get_string('warnexpired', 'badges'));
                     $cell->attributes = array('class' => 'notifyproblem warning');
                     $datatable->data[] = array(get_string('expirydate', 'badges'), $cell);
 
@@ -402,7 +403,7 @@ class core_badges_renderer extends plugin_renderer_base {
             $today = strtotime($today_date);
             $expiration = strtotime($assertion->badge->expire);
             if ($expiration < $today) {
-                $cell = new html_table_cell($assertion->badge->expire);
+                $cell = new html_table_cell($assertion->badge->expire . get_string('warnexpired', 'badges'));
                 $cell->attributes = array('class' => 'notifyproblem warning');
                 $datatable->data[] = array(get_string('expirydate', 'badges'), $cell);
 
