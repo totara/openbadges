@@ -87,18 +87,29 @@ if ($form->is_cancelled()) {
         $badge->expireperiod = ($data->expiry == 2) ? $data->expireperiod : null;
 
         if ($badge->save()) {
-            badges_process_badge_image($badge, $form->save_temp_file('image')); // @TODO: image is not refreshed after submit.
+            badges_process_badge_image($badge, $form->save_temp_file('image'));
             $form->set_data($badge);
             $statusmsg = get_string('changessaved');
         } else {
             $errormsg = get_string('error:save', 'badges');
         }
     } else if ($action == 'message') {
+        // Calculate next message cron if form data is different from original badge data.
+        if ($data->notification != $badge->notification) {
+            if ($data->notification > BADGE_MESSAGE_ALWAYS) {
+                $badge->nextcron = calculate_message_schedule($data->notification);
+            } else {
+                $badge->nextcron = null;
+            }
+        }
+
         $badge->message = clean_text($data->message_editor['text'], FORMAT_HTML);
         $badge->messagesubject = $data->messagesubject;
         $badge->notification = $data->notification;
         $badge->attachment = $data->attachment;
 
+        unset($badge->messageformat);
+        unset($badge->message_editor);
         if ($badge->save()) {
             $statusmsg = get_string('changessaved');
         } else {

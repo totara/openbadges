@@ -84,29 +84,17 @@ function badge_message_cron() {
 
     mtrace('Sending scheduled badge notifications.');
 
-    $scheduled = $DB->get_records_select('badge', 'notification > ? AND (status != ?)',
-                            array(BADGE_MESSAGE_ALWAYS, BADGE_STATUS_ARCHIVED),
+    $scheduled = $DB->get_records_select('badge', 'notification > ? AND (status != ?) AND nextcron < ?',
+                            array(BADGE_MESSAGE_ALWAYS, BADGE_STATUS_ARCHIVED, time()),
                             'notification ASC', 'id, name, notification, usercreated as creator, timecreated');
 
     foreach ($scheduled as $sch) {
-        // Check if it is time to send messages based on notification settings and badge creation date.
-        switch ($sch->notification) {
-            case BADGE_MESSAGE_DAILY:
-                if ('send condition') { // TODO
-                    badge_assemble_notification($sch);
-                }
-                break;
-            case BADGE_MESSAGE_WEEKLY:
-                if ('send condition') { // TODO
-                    badge_assemble_notification($sch);
-                }
-                break;
-            case BADGE_MESSAGE_MONTHLY:
-                if ('send condition') { // TODO
-                    badge_assemble_notification($sch);
-                }
-                break;
-        }
+        // Send messages.
+        badge_assemble_notification($sch);
+
+        // Update next cron value.
+        $nextcron = calculate_message_schedule($sch->notification);
+        $DB->set_field('badge', 'nextcron', $nextcron, array('id' => $sch->id));
     }
 }
 

@@ -121,6 +121,7 @@ class badge {
     public $attachment;
     public $notification;
     public $status = 0;
+    public $nextcron;
 
     /** @var array Badge criteria */
     public $criteria = array();
@@ -217,7 +218,7 @@ class badge {
         unset($fordb->criteria);
 
         $fordb->timemodified = time();
-        if ($DB->update_record('badge', $fordb)) {
+        if ($DB->update_record_raw('badge', $fordb)) {
             return true;
         } else {
             print_error('error:save', 'badges');
@@ -247,6 +248,10 @@ class badge {
         $fordb->timecreated = time();
         $fordb->timemodified = time();
         unset($fordb->id);
+
+        if ($fordb->notification > 1) {
+            $fordb->nextcron = calculate_message_schedule($fordb->notification);
+        }
 
         $criteria = $fordb->criteria;
         unset($fordb->criteria);
@@ -657,6 +662,30 @@ function notify_badge_award(badge $badge, $userid, $issued, $filepathhash) {
         message_send($eventdata);
         $DB->set_field('badge_issued', 'issuernotified', time(), array('badgeid' => $badge->id, 'userid' => $userid));
     }
+}
+
+/**
+ * Caclulates date for the next message digest to badge creators.
+ *
+ * @param in $schedule Type of message schedule BADGE_MESSAGE_DAILY|BADGE_MESSAGE_WEEKLY|BADGE_MESSAGE_MONTHLY.
+ * @return int Timestamp for next cron
+ */
+function calculate_message_schedule($schedule) {
+    $nextcron = 0;
+
+    switch ($schedule) {
+        case BADGE_MESSAGE_DAILY:
+            $nextcron = time() + 60 * 60 * 24;
+            break;
+        case BADGE_MESSAGE_WEEKLY:
+            $nextcron = time() + 60 * 60 * 24 * 7;
+            break;
+        case BADGE_MESSAGE_MONTHLY:
+            $nextcron = time() + 60 * 60 * 24 * 7 * 30;
+            break;
+    }
+
+    return $nextcron;
 }
 
 /**

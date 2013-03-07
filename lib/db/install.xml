@@ -2953,7 +2953,8 @@
         <FIELD NAME="messagesubject" TYPE="text" NOTNULL="true" SEQUENCE="false" PREVIOUS="message" NEXT="attachment"/>
         <FIELD NAME="attachment" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Attach baked badge for download" PREVIOUS="messagesubject" NEXT="notification"/>
         <FIELD NAME="notification" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Message when badge is awarded" PREVIOUS="attachment" NEXT="status"/>
-        <FIELD NAME="status" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Badge status: 0 = inactive, 1 = active, 2 = active+locked, 3 = inactive+locked, 4 = archived" PREVIOUS="notification"/>
+        <FIELD NAME="status" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Badge status: 0 = inactive, 1 = active, 2 = active+locked, 3 = inactive+locked, 4 = archived" PREVIOUS="notification" NEXT="nextcron"/>
+        <FIELD NAME="nextcron" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" PREVIOUS="status"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="fk_courseid"/>

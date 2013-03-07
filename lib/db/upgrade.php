@@ -1604,6 +1604,7 @@ function xmldb_main_upgrade($oldversion) {
         $table->add_field('attachment', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'messagesubject');
         $table->add_field('notification', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'attachment');
         $table->add_field('status', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'notification');
+        $table->add_field('nextcron', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'status');
 
         // Adding keys to table 'badge'
         $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));

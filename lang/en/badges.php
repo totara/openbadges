@@ -619,9 +619,7 @@ The following options are available:
 
 * **WEEKLY** – Send notifications once a week.
 
-* **MONTHLY** – Send notifications once a month.
-
-Note: This notifications are calculated based on badge creation date.';
+* **MONTHLY** – Send notifications once a month.';
 $string['status_help'] = 'Status of a badge determines its behaviour in the system:
 
 * **AVAILABLE** – Means that this badge can be earned by users. While a badge is available to users, its criteria cannot be modified.
