@@ -1198,14 +1198,18 @@ function profile_display_badges($userid, $courseid = 0) {
 
         // Print local badges.
         if ($records) {
-            print_row(get_string('localbadgesp', 'badges', $SITE->fullname), $renderer->print_badges_list($records, $userid, true));
+            $left = get_string('localbadgesp', 'badges', $SITE->fullname);
+            $right = $renderer->print_badges_list($records, $userid, true);
+            echo "\n<tr><th class=\"label c0 badge-profile\">$left</th><td class=\"info c1\">$right</td></tr>\n";
         }
 
         // Print external badges.
         if ($courseid == 0 && $CFG->badges_allowexternalbackpack) {
             $backpack = get_backpack_settings($userid);
             if (isset($backpack->totalbadges) && $backpack->totalbadges !== 0) {
-                print_row(get_string('externalbadgesp', 'badges'), $renderer->print_badges_list($backpack->badges, $userid, true, true));
+                $left = get_string('externalbadgesp', 'badges');
+                $right = $renderer->print_badges_list($backpack->badges, $userid, true, true);
+                echo "\n<tr><th class=\"label c0 badge-profile\">$left</th><td class=\"info c1\">$right</td></tr>\n";
             }
         }
     }
