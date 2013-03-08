@@ -387,7 +387,7 @@ $string['editsettings'] = 'Edit settings';
 $string['evidence'] = 'Evidence';
 $string['expired'] = 'Expired';
 $string['externalbadges'] = 'My badges from other web sites';
-$string['externalbadgesp'] = 'Badges from other web sites';
+$string['externalbadgesp'] = 'Badges from other web sites:';
 $string['externalbadges_help'] = 'This area allows to set up connection to an external backpack provider.
 
 Currently, only <a href="http://beta.openbadges.com">Mozilla OpenBadges Backpack</a> is supported. You need to sign up for a backpack service before trying to set up backpack connection on this page.
@@ -397,7 +397,7 @@ $string['hidden'] = 'Hidden';
 $string['hiddenbadge'] = 'Unfortunately, badge owner has not made this information available.';
 $string['issuedbadge'] = 'Issued badge information';
 $string['localbadges'] = 'My badges from {$a} web site';
-$string['localbadgesp'] = 'Badges from {$a}';
+$string['localbadgesp'] = 'Badges from {$a}:';
 $string['localbadgesh'] = 'My badges from this web site';
 $string['localbadgesh_help'] = 'All badges earned within this web site by completing courses, course activities, and other requirements.
 
@@ -553,7 +553,7 @@ $string['newimage'] = 'New image';
 $string['noawards'] = 'This badge has not been earned yet.';
 $string['nobadges'] = 'There are no badges available.';
 $string['nocriteria'] = 'Criteria for this badge have not been set up yet.';
-$string['numawards'] = 'This badge has been issued to {$a} user(s).';
+$string['numawards'] = 'This badge has been issued to <a href="{$a->link}">{$a->count}</a> user(s).';
 $string['noexpiry'] = 'This badge does not have an expiry date.';
 $string['notacceptedrole'] = 'Your current role assignment is not among the roles that can manually issue this badge.<br/>
 If you would like to see users who have already earned this badge, you can visit {$a} page. ';

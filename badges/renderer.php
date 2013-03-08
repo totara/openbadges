@@ -196,7 +196,11 @@ class core_badges_renderer extends plugin_renderer_base {
             $display .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
             $display .= html_writer::tag('legend', get_string('awards', 'badges'), array('class' => 'bold'));
             if ($badge->has_awards()) {
-                $display .= get_string('numawards', 'badges', count($badge->get_awards()));
+                $url = new moodle_url('/badges/recipients.php', array('id' => $badge->id));
+                $a = new stdClass();
+                $a->link = $url->out();
+                $a->count = count($badge->get_awards());
+                $display .= get_string('numawards', 'badges', $a);
             } else {
                 $display .= get_string('noawards', 'badges');
             }
