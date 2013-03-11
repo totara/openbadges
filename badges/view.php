@@ -60,10 +60,10 @@ if ($type == BADGE_TYPE_SITE) {
     $PAGE->set_heading($title);
 } else {
     require_login($course);
-    $title = get_string('coursebadges', 'badges');
+    $title = $course->fullname . ': ' . get_string('coursebadges', 'badges');
     $PAGE->set_context(context_course::instance($course->id));
     $PAGE->set_pagelayout('course');
-    $PAGE->set_heading($course->fullname . ': ' . $title);
+    $PAGE->set_heading($title);
 
     // Fix course navigation.
     $PAGE->navbar->ignore_active();

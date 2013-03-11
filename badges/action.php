@@ -51,10 +51,11 @@ $PAGE->set_pagelayout('standard');
 navigation_node::override_active_url($navurl);
 
 if (!empty($_SERVER['HTTP_REFERER']) && $_SERVER['HTTP_REFERER'] !== "$CFG->wwwroot/badges/action.php") {
-    $returnurl = $_SERVER['HTTP_REFERER'];
+    $returnurl = new moodle_url($_SERVER['HTTP_REFERER']);
 } else {
     $returnurl = new moodle_url('/badges/overview.php', array('id' => $badge->id));
 }
+$returnurl->remove_params('awards');
 
 if ($delete) {
     require_capability('moodle/badges:deletebadge', $context);
@@ -100,8 +101,26 @@ if ($activate) {
     $status = ($badge->status == BADGE_STATUS_INACTIVE) ? BADGE_STATUS_ACTIVE : BADGE_STATUS_ACTIVE_LOCKED;
     if ($confirm == 1 && confirm_sesskey()) {
         $badge->set_status($status);
-        $awards = $badge->review_all_criteria();
-        $returnurl->param('awards', $awards);
+
+        if ($badge->context == BADGE_TYPE_SITE) {
+            // Review on cron if there are more than 1000 users who can earn a site-level badge
+            $sql = 'SELECT COUNT(u.id) as num
+                        FROM {user} u
+                        LEFT JOIN {badge_issued} bi
+                            ON u.id = bi.userid AND bi.badgeid = :badgeid
+                        WHERE bi.badgeid IS NULL AND u.id != :guestid AND u.deleted = 0';
+            $toearn = $DB->get_record_sql($sql, array('badgeid' => $badge->id, 'guestid' => $CFG->siteguest));
+
+            if ($toearn->num < 1000) {
+                $awards = $badge->review_all_criteria();
+                $returnurl->param('awards', $awards);
+            } else {
+                $returnurl->param('awards', 'cron');
+            }
+        } else {
+            $awards = $badge->review_all_criteria();
+            $returnurl->param('awards', $awards);
+         }
         redirect($returnurl);
     }
 

@@ -511,6 +511,7 @@ $string['any'] = 'Any';
 $string['awards'] = 'Recipients';
 $string['award'] = 'Award badge';
 $string['awardedtoyou'] = 'Issued to me';
+$string['awardoncron'] = 'Access to the badges was successfully enabled. Too many users can instantly earn this badge. To ensure site performance, this action will take some time to process.';
 $string['attachment'] = 'Attach badge to message';
 $string['bawards'] = 'Recipients ({$a})';
 $string['badgeimage'] = 'Image';
@@ -554,6 +555,7 @@ $string['noawards'] = 'This badge has not been earned yet.';
 $string['nobadges'] = 'There are no badges available.';
 $string['nocriteria'] = 'Criteria for this badge have not been set up yet.';
 $string['numawards'] = 'This badge has been issued to <a href="{$a->link}">{$a->count}</a> user(s).';
+$string['numawardstat'] = 'This badge has been issued {$a} user(s).';
 $string['noexpiry'] = 'This badge does not have an expiry date.';
 $string['notacceptedrole'] = 'Your current role assignment is not among the roles that can manually issue this badge.<br/>
 If you would like to see users who have already earned this badge, you can visit {$a} page. ';

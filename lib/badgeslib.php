@@ -352,7 +352,7 @@ class badge {
                 'SELECT b.userid, b.dateissued, b.uniquehash, u.firstname, u.lastname
                     FROM {badge_issued} b INNER JOIN {user} u
                         ON b.userid = u.id
-                    WHERE b.badgeid = ?', array('badgeid' => $this->id));
+                    WHERE b.badgeid = :badgeid', array('badgeid' => $this->id));
 
         return $awards;
     }
@@ -373,7 +373,7 @@ class badge {
      * @param bool $nobake Not baking actual badges (for testing purposes)
      */
     public function issue($userid, $nobake = false) {
-        global $DB;
+        global $DB, $CFG;
 
         $now = time();
         $issued = new stdClass();
@@ -412,8 +412,10 @@ class badge {
                 // Bake a badge image.
                 $pathhash = bake($issued->uniquehash, $this->id, $userid, true);
 
-                // Notify recipients.
-                notify_badge_award($this, $userid, $issued->uniquehash, $pathhash);
+                // Notify recipients and badge creators.
+                if (!$CFG->noemailever) {
+                    notify_badge_award($this, $userid, $issued->uniquehash, $pathhash);
+                }
             }
         }
     }
@@ -424,15 +426,23 @@ class badge {
      * @return int Number of awards
      */
     public function review_all_criteria() {
-        global $DB;
+        global $DB, $CFG;
         $awards = 0;
 
-        // Get users who can earn this badge.
-        $earned = $DB->get_fieldset_select('badge_issued', 'userid AS id', 'badgeid = :badgeid', array('badgeid' => $this->id));
+        // Raise timelimit as this could take a while for big web sites
+        set_time_limit(0);
+        raise_memory_limit(MEMORY_HUGE);
+
         if ($this->context == BADGE_TYPE_SITE) {
-            $users = get_users_by_capability($this->get_context(), 'moodle/badges:earnbadge', 'u.id', '', '', '', '', $earned);
-            $toearn = array_keys($users);
+            $sql = 'SELECT DISTINCT u.id, bi.badgeid
+                        FROM {user} u
+                        LEFT JOIN {badge_issued} bi
+                            ON u.id = bi.userid AND bi.badgeid = :badgeid
+                        WHERE bi.badgeid IS NULL AND u.id != :guestid AND u.deleted = 0';
+            $toearn = $DB->get_fieldset_sql($sql, array('badgeid' => $this->id, 'guestid' => $CFG->siteguest));
         } else {
+            // Get users who can earn this badge.
+            $earned = $DB->get_fieldset_select('badge_issued', 'userid AS id', 'badgeid = :badgeid', array('badgeid' => $this->id));
             $users = get_enrolled_users($this->get_context(), 'moodle/badges:earnbadge', 0, 'u.id');
             $toearn = array_diff(array_keys($users), $earned);
         }
@@ -723,7 +733,7 @@ function get_badges($type, $courseid = 0, $sort = '', $dir = '', $page = 0, $per
     $where = "b.status != :deleted AND b.context = :context ";
     $params['deleted'] = BADGE_STATUS_ARCHIVED;
 
-    $userfields = array('b.id');
+    $userfields = array('b.id, b.name, b.status');
     $usersql = "";
     if ($user != 0) {
         $userfields[] = 'bi.dateissued';
@@ -753,7 +763,7 @@ function get_badges($type, $courseid = 0, $sort = '', $dir = '', $page = 0, $per
             $badges[$r->id]->dateissued = $r->dateissued;
             $badges[$r->id]->uniquehash = $r->uniquehash;
         } else {
-            $badges[$r->id]->awards = count($badge->get_awards());
+            $badges[$r->id]->awards = $DB->count_records('badge_issued', array('badgeid' => $badge->id));
             $badges[$r->id]->statstring = $badge->get_status_name();
         }
     }
