@@ -55,7 +55,6 @@ if (isloggedin()) {
     navigation_node::override_active_url($url);
 }
 
-// TODO: Better way of pushing badges to Mozilla backpack?
 if (!empty($CFG->badges_allowexternalbackpack)) {
     $PAGE->requires->js(new moodle_url('http://backpack.openbadges.org/issuer.js'), true);
 }
