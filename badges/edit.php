@@ -86,6 +86,10 @@ if ($form->is_cancelled()) {
         $badge->expiredate = ($data->expiry == 1) ? $data->expiredate : null;
         $badge->expireperiod = ($data->expiry == 2) ? $data->expireperiod : null;
 
+        // Need to unset message_editor options to avoid errors on form edit.
+        unset($badge->messageformat);
+        unset($badge->message_editor);
+
         if ($badge->save()) {
             badges_process_badge_image($badge, $form->save_temp_file('image'));
             $form->set_data($badge);
