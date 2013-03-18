@@ -390,7 +390,7 @@ $string['externalbadges'] = 'My badges from other web sites';
 $string['externalbadgesp'] = 'Badges from other web sites:';
 $string['externalbadges_help'] = 'This area allows to set up connection to an external backpack provider.
 
-Currently, only <a href="http://backpack.openbadges.com">Mozilla OpenBadges Backpack</a> is supported. You need to sign up for a backpack service before trying to set up backpack connection on this page.
+Currently, only <a href="http://backpack.openbadges.org">Mozilla OpenBadges Backpack</a> is supported. You need to sign up for a backpack service before trying to set up backpack connection on this page.
 
 After such connection is successfully established, a number of badges from your backpack will be displayed on this page. A list of badges from a backpack along with their details and description can be found on a user profile page.';
 $string['hidden'] = 'Hidden';

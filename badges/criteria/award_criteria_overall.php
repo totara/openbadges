@@ -85,7 +85,7 @@ class award_criteria_overall extends award_criteria {
     /**
      * Review this criteria and decide if it has been completed
      * Overall criteria review should be called only from other criteria handlers.
-     *  
+     *
      * @param int $userid User whose criteria completion needs to be reviewed.
      * @return bool Whether criteria is complete
      */
