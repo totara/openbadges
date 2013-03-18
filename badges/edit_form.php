@@ -112,6 +112,9 @@ class edit_details_form extends moodleform {
 
         if ($action == 'new') {
             $this->add_action_buttons(true, get_string('createbutton', 'badges'));
+
+            $mform->addElement('hidden', 'action', $action);
+            $mform->setType('action', PARAM_TEXT);
         } else {
             // Add hidden fields.
             $mform->addElement('hidden', 'id', $badge->id);
@@ -175,8 +178,13 @@ class edit_details_form extends moodleform {
             $errors['expirydategr'] = get_string('error:invalidexpiredate', 'badges');
         }
 
-        $duplicate = $DB->record_exists_select('badge', 'name = :name AND id != :badgeid',
-                        array('name' => $data['name'], 'badgeid' => $data['id']));
+        if ($data['action'] == 'new') {
+            $duplicate = $DB->record_exists_select('badge', 'name = :name',
+                        array('name' => $data['name']));
+        } else {
+            $duplicate = $DB->record_exists_select('badge', 'name = :name AND id != :badgeid',
+                    array('name' => $data['name'], 'badgeid' => $data['id']));
+        }
         if ($duplicate) {
             $errors['name'] = get_string('error:duplicatename', 'badges');
         }

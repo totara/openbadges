@@ -1879,7 +1879,7 @@ $capabilities = array(
         )
     ),
 
-    //Badges
+    // Badges.
     'moodle/badges:manageglobalsettings' => array(
         'riskbitmask'  => RISK_DATALOSS | RISK_CONFIG,
         'captype'      => 'write',
@@ -1890,7 +1890,7 @@ $capabilities = array(
         )
     ),
 
-    // View available badges without earning them
+    // View available badges without earning them.
     'moodle/badges:viewbadges' => array(
         'captype'       => 'read',
         'contextlevel'  => CONTEXT_SYSTEM,
@@ -1901,7 +1901,7 @@ $capabilities = array(
         )
     ),
 
-    // Manage badges on own private badges page
+    // Manage badges on own private badges page.
     'moodle/badges:manageownbadges' => array(
         'riskbitmap'    => RISK_SPAM | RISK_PERSONAL,
         'captype'       => 'write',
@@ -1911,7 +1911,7 @@ $capabilities = array(
         )
     ),
 
-    //View public badges in other users' profiles
+    // View public badges in other users' profiles.
     'moodle/badges:viewotherbadges' => array(
         'riskbitmap'    => RISK_PERSONAL,
         'captype'       => 'read',
@@ -1921,7 +1921,7 @@ $capabilities = array(
         )
     ),
 
-    //Earn badge
+    // Earn badge.
     'moodle/badges:earnbadge' => array(
         'captype'       => 'write',
         'contextlevel'  => CONTEXT_SYSTEM,
@@ -1931,7 +1931,7 @@ $capabilities = array(
         )
     ),
 
-    //Create/duplicate badges
+    // Create/duplicate badges.
     'moodle/badges:createbadge' => array(
         'riskbitmask'  => RISK_CONFIG | RISK_SPAM,
         'captype'      => 'write',
@@ -1944,7 +1944,7 @@ $capabilities = array(
         )
     ),
 
-    //Delete badges
+    // Delete badges.
     'moodle/badges:deletebadge' => array(
         'riskbitmask'  => RISK_CONFIG | RISK_DATALOSS,
         'captype'      => 'write',
@@ -1957,7 +1957,7 @@ $capabilities = array(
         )
     ),
 
-    //Set up/edit badge details
+    // Set up/edit badge details.
     'moodle/badges:configuredetails' => array(
         'riskbitmask'  => RISK_CONFIG,
         'captype'      => 'write',
@@ -1970,7 +1970,7 @@ $capabilities = array(
         )
     ),
 
-    //Set up/edit criteria of earning a badge
+    // Set up/edit criteria of earning a badge.
     'moodle/badges:configurecriteria' => array(
         'riskbitmask'  => RISK_CONFIG,
         'captype'      => 'write',
@@ -1983,7 +1983,7 @@ $capabilities = array(
         )
     ),
 
-    //Configure badge messages
+    // Configure badge messages.
     'moodle/badges:configuremessages' => array(
         'riskbitmask'  => RISK_CONFIG,
         'captype'      => 'write',
@@ -1996,7 +1996,7 @@ $capabilities = array(
         )
     ),
 
-    //Award badge to a user
+    // Award badge to a user.
     'moodle/badges:awardbadge' => array(
         'riskbitmask'  => RISK_SPAM,
         'captype'      => 'write',
@@ -2010,7 +2010,7 @@ $capabilities = array(
         )
     ),
 
-    //View users who earned a specific badge without being able to award a badge
+    // View users who earned a specific badge without being able to award a badge.
     'moodle/badges:viewawarded' => array(
         'riskbitmask'  => RISK_PERSONAL,
         'captype'      => 'read',
