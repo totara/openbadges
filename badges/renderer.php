@@ -60,7 +60,14 @@ class core_badges_renderer extends plugin_renderer_base {
             $download = $status = '';
             if (($userid == $USER->id) && !$profile) {
                 $url = new moodle_url('mybadges.php', array('download' => $b->id, 'hash' => $b->uniquehash));
-                $download = $this->output->action_icon($url, new pix_icon('t/portfolioadd', get_string('download')));
+                $push = '';
+                if ($CFG->badges_allowexternalbackpack) {
+                    $assertion = new moodle_url('/badges/assertion.php', array('b' => $b->uniquehash));
+                    $action = new component_action('click', 'addtobackpack', array('assertion' => $assertion->out(false)));
+                    $push = $this->output->action_icon(new moodle_url('#'), new pix_icon('t/backpack', get_string('addtobackpack', 'badges')), $action);
+                }
+
+                $download = $this->output->action_icon($url, new pix_icon('t/download', get_string('download')));
                 if ($b->public) {
                     $url = new moodle_url('mybadges.php', array('hide' => $b->issuedid));
                     $status = $this->output->action_icon($url, new pix_icon('t/hide', get_string('makeprivate', 'badges')));
@@ -79,7 +86,7 @@ class core_badges_renderer extends plugin_renderer_base {
                     $url = new moodle_url($CFG->wwwroot . '/badges/external.php', array('badge' => serialize($b)));
                 }
             }
-            $actions = html_writer::start_tag('div', array('class' => 'badge-actions')) . $download . $status . html_writer::end_tag('div');
+            $actions = html_writer::tag('div', $push . $download . $status, array('class' => 'badge-actions'));
             $items[] = html_writer::link($url, $image . $actions . $name, array('title' => $bname));
         }
 
@@ -241,7 +248,7 @@ class core_badges_renderer extends plugin_renderer_base {
                 has_capability('moodle/badges:awardbadge', $context) &&
                 $badge->is_active()) {
             $url = new moodle_url('/badges/award.php', array('id' => $badge->id));
-            $actions .= $this->output->action_icon($url, new pix_icon('t/enrolusers', get_string('award', 'badges'))) . " ";
+            $actions .= $this->output->action_icon($url, new pix_icon('t/award', get_string('award', 'badges'))) . " ";
         }
 
         // Edit badge.
@@ -794,13 +801,13 @@ class core_badges_renderer extends plugin_renderer_base {
                 $url = new moodle_url($this->page->url);
                 $url->params(array('sort' => $sortid, 'dir' => 'ASC'));
                 $out .= $this->output->action_icon($url,
-                        new pix_icon('t/up', get_string('sortbyx', 'core', s($text)), null, array('class' => 'sort asc')));
+                        new pix_icon('t/sort_asc', get_string('sortbyx', 'core', s($text)), null, array('class' => 'iconsort')));
             }
             if ($sortby !== $sortid || $sorthow !== 'DESC') {
                 $url = new moodle_url($this->page->url);
                 $url->params(array('sort' => $sortid, 'dir' => 'DESC'));
                 $out .= $this->output->action_icon($url,
-                        new pix_icon('t/down', get_string('sortbyxreverse', 'core', s($text)), null, array('class' => 'sort desc')));
+                        new pix_icon('t/sort_desc', get_string('sortbyxreverse', 'core', s($text)), null, array('class' => 'iconsort')));
             }
         }
         return $out;
