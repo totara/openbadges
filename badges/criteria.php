@@ -92,7 +92,7 @@ if ($badge->has_criteria()) {
         $crit->config_form_criteria($badge);
     }
 } else {
-    echo $OUTPUT->box(get_string('nocriteria', 'badges'));
+    echo $OUTPUT->box(get_string('addcriteriatext', 'badges'));
 }
 
 echo $OUTPUT->footer();

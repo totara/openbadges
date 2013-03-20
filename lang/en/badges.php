@@ -358,7 +358,7 @@ $string['year'] = 'Year(s)';
 $string['adminonly'] = 'This page is restricted to Site Administrators only';
 $string['coursebadges'] = 'Badges';
 $string['badgesview'] = 'Course badges';
-$string['badgesettings'] = 'General settings';
+$string['badgesettings'] = 'Badges settings';
 $string['managebadges'] = 'Manage badges';
 $string['mybadges'] = 'My badges';
 $string['mybackpack'] = 'My backpack settings';
@@ -368,7 +368,9 @@ $string['sitebadges'] = 'Site badges';
 $string['allowcoursebadges'] = 'Enable course badges';
 $string['allowcoursebadges_desc'] = 'Allow badges to be created and awarded in course context.';
 $string['allowexternalbackpack'] = 'Enable external backpacks connections';
-$string['allowexternalbackpack_desc'] = 'Allow users to set up connections and display badges from their external backpack providers.';
+$string['allowexternalbackpack_desc'] = 'Allow users to set up connections and display badges from their external backpack providers.
+
+Note: It is recommended to leave this option disabled if the web site cannot be accesed from outside (e.g. because of the firewall).';
 $string['badgesalt'] = 'Salt for hashing the recepient\'s email address';
 $string['badgesalt_desc'] = 'Using a hash allows backpack services to confirm the badge earner without having to expose their email address. This setting should only use numbers and letters.';
 $string['defaultissuername'] = 'Default badge issuer name';
@@ -501,6 +503,7 @@ $string['actions'] = 'Actions';
 $string['activate'] = 'Enable access';
 $string['activatesuccess'] = 'Access to the badges was successfully enabled.';
 $string['addcriteria'] = 'Add criteria';
+$string['addcriteriatext'] = 'To start adding criteria, please select one of the options from the drop down menu.';
 $string['addbadgecriteria'] = 'Add badge criteria';
 $string['addcourse'] = 'Add courses';
 $string['adminaward'] = 'As a site administrator, you can select a role to award this badge.';
