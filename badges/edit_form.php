@@ -77,12 +77,6 @@ class edit_details_form extends moodleform {
         $mform->setDefault('issuername', $CFG->badges_defaultissuername);
         $mform->addHelpButton('issuername', 'issuername', 'badges');
 
-        $mform->addElement('text', 'issuerurl', get_string('url'), array('size' => '70'));
-        $mform->setType('issuerurl', PARAM_URL);
-        $mform->setDefault('issuerurl', $CFG->badges_defaultissuerurl);
-        $mform->addRule('issuerurl', null, 'required', '', 'client');
-        $mform->addHelpButton('issuerurl', 'issuerurl', 'badges');
-
         $mform->addElement('text', 'issuercontact', get_string('contact', 'badges'), array('size' => '70'));
         $mform->setDefault('issuercontact', $CFG->badges_defaultissuercontact);
         $mform->setType('issuercontact', PARAM_EMAIL);
@@ -109,6 +103,12 @@ class edit_details_form extends moodleform {
         $mform->disabledIf('expiredate[year]', 'expiry', 'neq', 1);
         $mform->disabledIf('expireperiod[number]', 'expiry', 'neq', 2);
         $mform->disabledIf('expireperiod[timeunit]', 'expiry', 'neq', 2);
+
+        // Set issuer URL.
+        // Have to parse URL because badge issuer origin cannot be a subfolder in wwwroot.
+        $url = parse_url($CFG->wwwroot);
+        $mform->addElement('hidden', 'issuerurl', $url['scheme'] . '://' . $url['host']);
+        $mform->setType('issuerurl', PARAM_URL);
 
         if ($action == 'new') {
             $this->add_action_buttons(true, get_string('createbutton', 'badges'));
@@ -161,15 +161,6 @@ class edit_details_form extends moodleform {
         global $DB;
         $errors = parent::validation($data, $files);
 
-        $url = parse_url($data['issuerurl']);
-        if (isset($url['path']) || isset($url['query']) || isset($url['pass']) || isset($url['user'])) {
-            $scheme   = isset($url['scheme']) ? $url['scheme'] . '://' : '';
-            $host     = isset($url['host']) ? $url['host'] : '';
-            $port     = isset($url['port']) ? ':' . $url['port'] : '';
-            $suggest = "$scheme$host$port";
-            $errors['issuerurl'] = get_string('error:invalidbadgeurl', 'badges');
-        }
-
         if ($data['expiry'] == 2 && $data['expireperiod'] <= 0) {
             $errors['expirydategr'] = get_string('error:invalidexpireperiod', 'badges');
         }
@@ -178,6 +169,7 @@ class edit_details_form extends moodleform {
             $errors['expirydategr'] = get_string('error:invalidexpiredate', 'badges');
         }
 
+        // Check for duplicate badge names.
         if ($data['action'] == 'new') {
             $duplicate = $DB->record_exists_select('badge', 'name = :name',
                         array('name' => $data['name']));
@@ -185,6 +177,7 @@ class edit_details_form extends moodleform {
             $duplicate = $DB->record_exists_select('badge', 'name = :name AND id != :badgeid',
                     array('name' => $data['name'], 'badgeid' => $data['id']));
         }
+
         if ($duplicate) {
             $errors['name'] = get_string('error:duplicatename', 'badges');
         }

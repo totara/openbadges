@@ -57,10 +57,9 @@ class core_badges_renderer extends plugin_renderer_base {
                 $name .= '(' . get_string('expired', 'badges') . ')';
             }
 
-            $download = $status = '';
+            $download = $status = $push = '';
             if (($userid == $USER->id) && !$profile) {
                 $url = new moodle_url('mybadges.php', array('download' => $b->id, 'hash' => $b->uniquehash));
-                $push = '';
                 if ($CFG->badges_allowexternalbackpack) {
                     $assertion = new moodle_url('/badges/assertion.php', array('b' => $b->uniquehash));
                     $action = new component_action('click', 'addtobackpack', array('assertion' => $assertion->out(false)));
@@ -154,8 +153,6 @@ class core_badges_renderer extends plugin_renderer_base {
         $issuertable = new html_table();
         $issuertable->attributes = array('class' => 'clearfix', 'id' => 'badgeissuer');
         $issuertable->data[] = array(get_string('issuername', 'badges') . ":", $badge->issuername);
-        $issuertable->data[] = array(get_string('issuerurl', 'badges') . ":",
-                html_writer::tag('a', $badge->issuerurl, array('href' => $badge->issuerurl)));
         $issuertable->data[] = array(get_string('contact', 'badges') . ":",
                 html_writer::tag('a', $badge->issuercontact, array('href' => 'mailto:' . $badge->issuercontact)));
         $display .= html_writer::table($issuertable);
@@ -307,8 +304,6 @@ class core_badges_renderer extends plugin_renderer_base {
             $datatable->colclasses = array('bfield', 'bvalue');
             $datatable->data[] = array($this->output->heading(get_string('issuerdetails', 'badges'), 3), '');
             $datatable->data[] = array(get_string('issuername', 'badges'), $badge->issuername);
-            $datatable->data[] = array(get_string('issuerurl', 'badges'),
-                    html_writer::tag('a', $badge->issuerurl, array('href' => $badge->issuerurl)));
             if (isset($badge->issuercontact) && !empty($badge->issuercontact)) {
                 $datatable->data[] = array(get_string('contact', 'badges'),
                     html_writer::tag('a', $badge->issuercontact, array('href' => 'mailto:' . $badge->issuercontact)));

@@ -46,12 +46,6 @@ if (($hassiteconfig || has_any_capability(array(
             new lang_string('defaultissuername_desc', 'badges'),
             $SITE->fullname ? $SITE->fullname : $SITE->shortname, PARAM_TEXT));
 
-    $url = parse_url($CFG->wwwroot);
-    $globalsettings->add(new admin_setting_configtext('badges_defaultissuerurl',
-            new lang_string('defaultissuerurl', 'badges'),
-            new lang_string('defaultissuerurl_desc', 'badges'),
-            $url['scheme'] . '://' . $url['host'], PARAM_URL));
-
     $globalsettings->add(new admin_setting_configtext('badges_defaultissuercontact',
             new lang_string('defaultissuercontact', 'badges'),
             new lang_string('defaultissuercontact_desc', 'badges'),
