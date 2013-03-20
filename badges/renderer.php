@@ -649,10 +649,15 @@ class core_badges_renderer extends plugin_renderer_base {
 
         if (has_capability('moodle/badges:configurecriteria', $badge->get_context())) {
             if (!$badge->has_criteria()) {
+                $criteriaurl = new moodle_url('/badges/criteria.php', array('id' => $badge->id));
                 $status = get_string('nocriteria', 'badges');
-                $action = $this->output->single_button(
-                        new moodle_url('/badges/criteria.php', array('id' => $badge->id)),
+                if ($this->page->url != $criteriaurl) {
+                    $action = $this->output->single_button(
+                        $criteriaurl,
                         get_string('addcriteria', 'badges'), 'GET', array('class' => 'activatebadge'));
+                } else {
+                    $action = '';
+                }
                 $row = array($status, $action);
             } else {
                 $status = get_string('statusmessage_' . $badge->status, 'badges');
