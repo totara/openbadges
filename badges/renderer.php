@@ -559,7 +559,6 @@ class core_badges_renderer extends plugin_renderer_base {
         $sortbystatus = $this->helper_sortable_heading(get_string('status', 'badges'),
                 'status', $badges->sort, $badges->dir);
         $table->head = array(
-                //get_string('badgeimage', 'badges'),
                 $sortbyname,
                 $sortbystatus,
                 get_string('bcriteria', 'badges'),

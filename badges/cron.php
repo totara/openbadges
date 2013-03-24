@@ -34,7 +34,7 @@ function badge_cron() {
 }
 
 /**
- * Reviewes criteria and awards badges
+ * Reviews criteria and awards badges
  *
  * First find all badges that can be earned, then reviews each badge.
  * (Not sure how efficient this is timewise).
@@ -54,7 +54,7 @@ function badge_review_cron() {
             'current' => time());
     $badges = $DB->get_fieldset_sql($sql, $params);
 
-    mtrace('Stared reviewing available badges.');
+    mtrace('Started reviewing available badges.');
     foreach ($badges as $bid) {
         $badge = new badge($bid);
 

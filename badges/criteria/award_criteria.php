@@ -321,7 +321,7 @@ abstract class award_criteria {
             $todelete = array_diff($existing, array_keys($params));
 
             if (!empty($todelete)) {
-                // A walkaround to add some disabled elements that are still being submitted from the form.
+                // A workaround to add some disabled elements that are still being submitted from the form.
                 foreach ($todelete as $del) {
                     $name = explode('_', $del);
                     if ($name[0] == $this->required_param) {

@@ -413,7 +413,7 @@ class badge {
                 $pathhash = bake($issued->uniquehash, $this->id, $userid, true);
 
                 // Notify recipients and badge creators.
-                if (!$CFG->noemailever) {
+                if (!empty($CFG->noemailever)) {
                     notify_badge_award($this, $userid, $issued->uniquehash, $pathhash);
                 }
             }
@@ -429,7 +429,7 @@ class badge {
         global $DB, $CFG;
         $awards = 0;
 
-        // Raise timelimit as this could take a while for big web sites
+        // Raise timelimit as this could take a while for big web sites.
         set_time_limit(0);
         raise_memory_limit(MEMORY_HUGE);
 

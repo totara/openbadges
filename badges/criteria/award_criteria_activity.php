@@ -102,7 +102,7 @@ class award_criteria_activity extends award_criteria {
      */
     private function get_course() {
         global $DB;
-        $courseid = $DB->get_field('badge', 'courseid', array('id' =>$this->badgeid));
+        $courseid = $DB->get_field('badge', 'courseid', array('id' => $this->badgeid));
         return $courseid;
     }
 

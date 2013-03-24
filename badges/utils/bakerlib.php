@@ -121,7 +121,7 @@ class PNG_MetaDataHandler
         }
 
         if ($type == 'iTXt') {
-            // iTXt International textual data
+            // iTXt International textual data.
             // Keyword:             1-79 bytes (character string)
             // Null separator:      1 byte
             // Compression flag:    1 byte
@@ -133,7 +133,7 @@ class PNG_MetaDataHandler
             // Text:                0 or more bytes
             $data = $key . "\000'json'\0''\0\"{'method': 'hosted', 'assertionUrl': '" . $value . "'}\"";
         } else {
-            // tEXt Textual data
+            // tEXt Textual data.
             // Keyword:        1-79 bytes (character string)
             // Null separator: 1 byte
             // Text:           n bytes (character string)

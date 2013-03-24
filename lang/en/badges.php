@@ -370,7 +370,7 @@ $string['allowcoursebadges_desc'] = 'Allow badges to be created and awarded in c
 $string['allowexternalbackpack'] = 'Enable external backpacks connections';
 $string['allowexternalbackpack_desc'] = 'Allow users to set up connections and display badges from their external backpack providers.
 
-Note: It is recommended to leave this option disabled if the web site cannot be accesed from outside (e.g. because of the firewall).';
+Note: It is recommended to leave this option disabled if the web site cannot be accesed from the internet (e.g. because of the firewall).';
 $string['badgesalt'] = 'Salt for hashing the recepient\'s email address';
 $string['badgesalt_desc'] = 'Using a hash allows backpack services to confirm the badge earner without having to expose their email address. This setting should only use numbers and letters.';
 $string['defaultissuername'] = 'Default badge issuer name';
@@ -625,6 +625,9 @@ The following options are available:
 * **WEEKLY** – Send notifications once a week.
 
 * **MONTHLY** – Send notifications once a month.';
+$string['sitebadges_help'] = 'Site badges can only be awarded to users for site related activities. These include completing a set of courses or parts of user profiles. Site badges can also be issued manually by one user to another.
+
+Badges for course related activities must be created at a course level. Course badges can be found under Course Administration > Badges';
 $string['status_help'] = 'Status of a badge determines its behaviour in the system:
 
 * **AVAILABLE** – Means that this badge can be earned by users. While a badge is available to users, its criteria cannot be modified.

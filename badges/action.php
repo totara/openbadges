@@ -103,7 +103,7 @@ if ($activate) {
         $badge->set_status($status);
 
         if ($badge->context == BADGE_TYPE_SITE) {
-            // Review on cron if there are more than 1000 users who can earn a site-level badge
+            // Review on cron if there are more than 1000 users who can earn a site-level badge.
             $sql = 'SELECT COUNT(u.id) as num
                         FROM {user} u
                         LEFT JOIN {badge_issued} bi
