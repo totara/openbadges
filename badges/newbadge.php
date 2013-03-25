@@ -53,6 +53,9 @@ if (($type == BADGE_TYPE_COURSE) && ($course = $DB->get_record('course', array('
     $PAGE->set_heading($title);
     $PAGE->set_title($title);
 }
+
+require_capability('moodle/badges:createbadge', $PAGE->context);
+
 $currenturl = qualified_me();
 $PAGE->requires->js('/badges/backpack.js');
 $PAGE->requires->js_init_call('check_site_access', null, false);

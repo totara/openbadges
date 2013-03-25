@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * DESCRIPTION
+ * My latest badges block capabilities.
  *
  * @package    core
  * @subpackage badges

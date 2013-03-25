@@ -64,8 +64,8 @@ define('BADGE_STATUS_INACTIVE_LOCKED', 2);
 
 /*
  * Active badge means that it can be earned and has already been awarded to users.
-* Its criteria cannot be changed any more.
-*/
+ * Its criteria cannot be changed any more.
+ */
 define('BADGE_STATUS_ACTIVE_LOCKED', 3);
 
 /*
@@ -221,7 +221,7 @@ class badge {
         if ($DB->update_record_raw('badge', $fordb)) {
             return true;
         } else {
-            print_error('error:save', 'badges');
+            throw new moodle_exception('error:save', 'badges');
             return false;
         }
     }
@@ -240,7 +240,7 @@ class badge {
             $fordb->{$k} = $v;
         }
 
-        $fordb->name = get_string('copyof', 'badges') . $this->name;
+        $fordb->name = get_string('copyof', 'badges', $this->name);
         $fordb->status = BADGE_STATUS_INACTIVE;
         $fordb->image = 0;
         $fordb->usercreated = $USER->id;
@@ -274,7 +274,7 @@ class badge {
 
             return $new;
         } else {
-            print_error('error:clone', 'badges');
+            throw new moodle_exception('error:clone', 'badges');
             return false;
         }
     }
@@ -1142,9 +1142,9 @@ function bake($hash, $badgeid, $userid = 0, $pathhash = false) {
 }
 
 /**
- * Bake issued badge.
+ * Returns backpack service settings.
  *
- * @param int $badgeid ID backpack user.
+ * @param int $userid Backpack user ID.
  * @return null|object Returns null is there is no backpack or object with backpack settings.
  */
 function get_backpack_settings($userid) {
