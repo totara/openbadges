@@ -1597,8 +1597,8 @@ function xmldb_main_upgrade($oldversion) {
         $table->add_field('issuercontact', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'issuerurl');
         $table->add_field('expiredate', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'issuercontact');
         $table->add_field('expireperiod', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'expiredate');
-        $table->add_field('context', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'expireperiod');
-        $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'context');
+        $table->add_field('type', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'expireperiod');
+        $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'type');
         $table->add_field('message', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null, 'courseid');
         $table->add_field('messagesubject', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null, 'message');
         $table->add_field('attachment', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'messagesubject');
@@ -1613,7 +1613,7 @@ function xmldb_main_upgrade($oldversion) {
         $table->add_key('fk_usercreated', XMLDB_KEY_FOREIGN, array('usercreated'), 'user', array('id'));
 
         // Adding indexes to table 'badge'
-        $table->add_index('context', XMLDB_INDEX_NOTUNIQUE, array('context'));
+        $table->add_index('type', XMLDB_INDEX_NOTUNIQUE, array('type'));
 
         // Conditionally launch create table for 'badge'
         if (!$dbman->table_exists($table)) {
