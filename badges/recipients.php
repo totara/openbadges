@@ -35,6 +35,10 @@ $updatepref = optional_param('updatepref', false, PARAM_BOOL);
 
 require_login();
 
+if (empty($CFG->enablebadges)) {
+    print_error('badgesdisabled', 'badges');
+}
+
 if (!in_array($sortby, array('firstname', 'lastname', 'dateissued'))) {
     $sortby = 'dateissued';
 }

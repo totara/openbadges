@@ -28,9 +28,12 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/badgeslib.php');
 
 function badge_cron() {
-    badge_review_cron();
+    global $CFG;
 
-    badge_message_cron();
+    if ($CFG->enablebadges) {
+        badge_review_cron();
+        badge_message_cron();
+    }
 }
 
 /**

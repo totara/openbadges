@@ -87,10 +87,10 @@ class edit_details_form extends moodleform {
 
         $issuancedetails = array();
         $issuancedetails[] =& $mform->createElement('radio', 'expiry', '', get_string('never', 'badges'), 0);
-        $issuancedetails[] =& $mform->createElement('static', 'none_break', null, '<br/><br/>');
+        $issuancedetails[] =& $mform->createElement('static', 'none_break', null, '<br/>');
         $issuancedetails[] =& $mform->createElement('radio', 'expiry', '', get_string('fixed', 'badges'), 1);
         $issuancedetails[] =& $mform->createElement('date_selector', 'expiredate', '');
-        $issuancedetails[] =& $mform->createElement('static', 'expirydate_break', null, '<br/><br/>');
+        $issuancedetails[] =& $mform->createElement('static', 'expirydate_break', null, '<br/>');
         $issuancedetails[] =& $mform->createElement('radio', 'expiry', '', get_string('relative', 'badges'), 2);
         $issuancedetails[] =& $mform->createElement('duration', 'expireperiod', '', array('defaultunit' => 86400, 'optional' => false));
         $issuancedetails[] =& $mform->createElement('static', 'expiryperiods_break', null, get_string('after', 'badges'));

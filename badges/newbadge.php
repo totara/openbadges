@@ -33,6 +33,10 @@ $courseid = optional_param('id', 0, PARAM_INT);
 
 require_login();
 
+if (empty($CFG->enablebadges)) {
+    print_error('badgesdisabled', 'badges');
+}
+
 $title = get_string('create', 'badges');
 
 if (($type == BADGE_TYPE_COURSE) && ($course = $DB->get_record('course', array('id' => $courseid)))) {
@@ -50,6 +54,8 @@ if (($type == BADGE_TYPE_COURSE) && ($course = $DB->get_record('course', array('
     $PAGE->set_title($title);
 }
 $currenturl = qualified_me();
+$PAGE->requires->js('/badges/backpack.js');
+$PAGE->requires->js_init_call('check_site_access', null, false);
 
 $fordb = new stdClass();
 $fordb->id = null;
@@ -91,6 +97,7 @@ if ($form->is_cancelled()) {
 }
 
 echo $OUTPUT->header();
+echo $OUTPUT->box('', 'notifyproblem', 'check_connection');
 
 $form->display();
 

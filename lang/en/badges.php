@@ -652,8 +652,11 @@ $string['variablesubstitution_help'] = 'In a badge message, certain variables ca
 :   This will be replaced by the public URL with information about the issued badge.';
 
 // Error messages.
+$string['badgesdisabled'] = 'Badges are not enabled on this site.';
 $string['criterror'] = 'Current parameters issues';
 $string['warnexpired'] = ' (This badge has expired!)';
+$string['error:backpacknotavailable'] = 'For badge verifications to work properly, any external backpack service should be able to access your web site and verify badges issued from it.
+<br/>If you see this message, it means that your web site cannot be accessed from the Internet, and badges that you have already issued or will issue in the future cannot be successfully verified.';
 $string['error:cannotact'] = 'Cannot activate the badge. ';
 $string['error:cannotawardbadge'] = 'Cannot award badge to a user.';
 $string['error:clone'] = 'Cannot clone the badge.';

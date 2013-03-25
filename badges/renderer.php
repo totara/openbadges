@@ -284,7 +284,7 @@ class core_badges_renderer extends plugin_renderer_base {
             $imagetable = new html_table();
             $imagetable->attributes = array('class' => 'clearfix badgeissuedimage');
             $imagetable->data[] = array(html_writer::empty_tag('img', array('src' => $issued['badge']['image'])));
-            if ($USER->id == $ibadge->recipient) {
+            if ($USER->id == $ibadge->recipient && !empty($CFG->enablebadges)) {
                 $imagetable->data[] = array($this->output->single_button(
                             new moodle_url('/badges/badge.php', array('hash' => $ibadge->hash, 'bake' => true)),
                             get_string('download'),

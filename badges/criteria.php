@@ -32,6 +32,10 @@ $update = optional_param('update', 0, PARAM_INT);
 
 require_login();
 
+if (empty($CFG->enablebadges)) {
+    print_error('badgesdisabled', 'badges');
+}
+
 $badge = new badge($badgeid);
 $context = $badge->get_context();
 $navurl = new moodle_url('/badges/index.php', array('type' => $badge->context));
@@ -57,7 +61,7 @@ $output = $PAGE->get_renderer('core', 'badges');
 $msg = optional_param('msg', '', PARAM_TEXT);
 $emsg = optional_param('emsg', '', PARAM_TEXT);
 
-if ((($update == 1) || ($update == 2)) && confirm_sesskey()) {
+if ((($update == BADGE_CRITERIA_AGGREGATION_ALL) || ($update == BADGE_CRITERIA_AGGREGATION_ANY)) && confirm_sesskey()) {
     require_capability('moodle/badges:configurecriteria', $context);
     $obj = new stdClass();
     $obj->id = $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->id;

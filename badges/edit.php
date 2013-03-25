@@ -33,6 +33,10 @@ $action = optional_param('action', 'details', PARAM_TEXT);
 
 require_login();
 
+if (empty($CFG->enablebadges)) {
+    print_error('badgesdisabled', 'badges');
+}
+
 $badge = new badge($badgeid);
 $context = $badge->get_context();
 $navurl = new moodle_url('/badges/index.php', array('type' => $badge->context));

@@ -52,6 +52,10 @@ if ($page < 0) {
 
 require_login();
 
+if (empty($CFG->enablebadges)) {
+    print_error('badgesdisabled', 'badges');
+}
+
 $err = '';
 $urlparams = array('sort' => $sortby, 'dir' => $sorthow, 'page' => $page);
 
@@ -88,6 +92,8 @@ if (!has_capability('moodle/badges:awardbadge', $PAGE->context)) {
 }
 
 $PAGE->set_title($hdr);
+$PAGE->requires->js('/badges/backpack.js');
+$PAGE->requires->js_init_call('check_site_access', null, false);
 $output = $PAGE->get_renderer('core', 'badges');
 
 if ($delete && has_capability('moodle/badges:deletebadge', $PAGE->context)) {
@@ -139,6 +145,7 @@ if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading_with_help($PAGE->heading, 'sitebadges', 'badges');
+echo $OUTPUT->box('', 'notifyproblem', 'check_connection');
 
 $totalcount = count(get_badges($type, $courseid, '', '' , '', ''));
 $records = get_badges($type, $courseid, $sortby, $sorthow, $page, BADGE_PERPAGE);

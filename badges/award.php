@@ -33,6 +33,10 @@ $role = optional_param('role', 0, PARAM_INT);
 
 require_login();
 
+if (empty($CFG->enablebadges)) {
+    print_error('badgesdisabled', 'badges');
+}
+
 $badge = new badge($badgeid);
 $context = $badge->get_context();
 $isadmin = is_siteadmin($USER);
