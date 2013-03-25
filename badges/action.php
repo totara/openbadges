@@ -38,11 +38,11 @@ require_login();
 
 $badge = new badge($badgeid);
 $context = $badge->get_context();
-$navurl = new moodle_url('/badges/index.php', array('type' => $badge->context));
+$navurl = new moodle_url('/badges/index.php', array('type' => $badge->type));
 
-if ($badge->context == BADGE_TYPE_COURSE) {
+if ($badge->type == BADGE_TYPE_COURSE) {
     require_login($badge->courseid);
-    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->context, 'id' => $badge->courseid));
+    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->type, 'id' => $badge->courseid));
 }
 
 $PAGE->set_context($context);
@@ -63,7 +63,7 @@ if ($delete) {
     $PAGE->url->param('delete', 1);
     if ($confirm && confirm_sesskey()) {
         $badge->delete();
-        redirect(new moodle_url('/badges/index.php', array('type' => $badge->context, 'id' => $badge->courseid)));
+        redirect(new moodle_url('/badges/index.php', array('type' => $badge->type, 'id' => $badge->courseid)));
     }
 
     $strheading = get_string('delbadge', 'badges');
@@ -102,7 +102,7 @@ if ($activate) {
     if ($confirm == 1 && confirm_sesskey()) {
         $badge->set_status($status);
 
-        if ($badge->context == BADGE_TYPE_SITE) {
+        if ($badge->type == BADGE_TYPE_SITE) {
             // Review on cron if there are more than 1000 users who can earn a site-level badge.
             $sql = 'SELECT COUNT(u.id) as num
                         FROM {user} u

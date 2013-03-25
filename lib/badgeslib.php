@@ -114,7 +114,7 @@ class badge {
     public $issuercontact;
     public $expiredate;
     public $expireperiod;
-    public $context;
+    public $type;
     public $courseid;
     public $message;
     public $messagesubject;
@@ -155,9 +155,9 @@ class badge {
      * @return context instance.
      */
     public function get_context() {
-        if ($this->context == BADGE_TYPE_SITE) {
+        if ($this->type == BADGE_TYPE_SITE) {
             return context_system::instance();
-        } else if ($this->context == BADGE_TYPE_COURSE) {
+        } else if ($this->type == BADGE_TYPE_COURSE) {
             return context_course::instance($this->courseid);
         } else {
             debugging('Something is wrong...');
@@ -182,14 +182,14 @@ class badge {
     public function get_accepted_criteria() {
         $criteriatypes = array();
 
-        if ($this->context == BADGE_TYPE_COURSE) {
+        if ($this->type == BADGE_TYPE_COURSE) {
             $criteriatypes = array(
                     BADGE_CRITERIA_TYPE_OVERALL,
                     BADGE_CRITERIA_TYPE_MANUAL,
                     BADGE_CRITERIA_TYPE_COURSE,
                     BADGE_CRITERIA_TYPE_ACTIVITY
             );
-        } else if ($this->context == BADGE_TYPE_SITE) {
+        } else if ($this->type == BADGE_TYPE_SITE) {
             $criteriatypes = array(
                     BADGE_CRITERIA_TYPE_OVERALL,
                     BADGE_CRITERIA_TYPE_MANUAL,
@@ -433,7 +433,7 @@ class badge {
         set_time_limit(0);
         raise_memory_limit(MEMORY_HUGE);
 
-        if ($this->context == BADGE_TYPE_SITE) {
+        if ($this->type == BADGE_TYPE_SITE) {
             $sql = 'SELECT DISTINCT u.id, bi.badgeid
                         FROM {user} u
                         LEFT JOIN {badge_issued} bi
@@ -730,7 +730,7 @@ function get_badges($type, $courseid = 0, $sort = '', $dir = '', $page = 0, $per
     global $DB;
     $records = array();
     $params = array();
-    $where = "b.status != :deleted AND b.context = :context ";
+    $where = "b.status != :deleted AND b.type = :type ";
     $params['deleted'] = BADGE_STATUS_ARCHIVED;
 
     $userfields = array('b.id, b.name, b.status');
@@ -750,7 +750,7 @@ function get_badges($type, $courseid = 0, $sort = '', $dir = '', $page = 0, $per
     }
 
     $sorting = (($sort != '' && $dir != '') ? 'ORDER BY ' . $sort . ' ' . $dir : '');
-    $params['context'] = $type;
+    $params['type'] = $type;
 
     $sql = "SELECT $fields FROM {badge} b $usersql WHERE $where $sorting";
     $records = $DB->get_records_sql($sql, $params, $page * $perpage, $perpage);
@@ -842,7 +842,7 @@ function get_issued_badge_info($hash) {
             array($hash), IGNORE_MISSING);
 
     if ($record) {
-        if ($record->context == BADGE_TYPE_SITE) {
+        if ($record->type == BADGE_TYPE_SITE) {
             $context = context_system::instance();
         } else {
             $context = context_course::instance($record->courseid);

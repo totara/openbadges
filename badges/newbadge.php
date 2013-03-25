@@ -80,7 +80,7 @@ if ($form->is_cancelled()) {
     $fordb->issuercontact = $data->issuercontact;
     $fordb->expiredate = ($data->expiry == 1) ? $data->expiredate : null;
     $fordb->expireperiod = ($data->expiry == 2) ? $data->expireperiod : null;
-    $fordb->context = $type;
+    $fordb->type = $type;
     $fordb->courseid = ($type == BADGE_TYPE_COURSE) ? $courseid : null;
     $fordb->messagesubject = get_string('messagesubject', 'badges');
     $fordb->message = get_string('messagebody', 'badges',

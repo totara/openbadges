@@ -38,16 +38,16 @@ require_login();
 $return = new moodle_url('/badges/criteria.php', array('id' => $badgeid));
 $badge = new badge($badgeid);
 $context = $badge->get_context();
-$navurl = new moodle_url('/badges/index.php', array('type' => $badge->context));
+$navurl = new moodle_url('/badges/index.php', array('type' => $badge->type));
 
 // Make sure that no actions available for locked or active badges.
 if ($badge->is_active() || $badge->is_locked()) {
     redirect($return);
 }
 
-if ($badge->context == BADGE_TYPE_COURSE) {
+if ($badge->type == BADGE_TYPE_COURSE) {
     require_login($badge->courseid);
-    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->context, 'id' => $badge->courseid));
+    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->type, 'id' => $badge->courseid));
 }
 
 $PAGE->set_context($context);

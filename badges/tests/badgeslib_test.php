@@ -51,7 +51,7 @@ class badges_testcase extends advanced_testcase {
         $fordb->issuerurl = "http://issuer-url.domain.co.nz";
         $fordb->expiredate = null;
         $fordb->expireperiod = null;
-        $fordb->context = BADGE_TYPE_SITE;
+        $fordb->type = BADGE_TYPE_SITE;
         $fordb->courseid = null;
         $fordb->messagesubject = "Test message subject";
         $fordb->message = "Test message body";
@@ -81,7 +81,7 @@ class badges_testcase extends advanced_testcase {
         $this->assertEquals($badge->issuerurl, $cloned_badge->issuerurl);
         $this->assertEquals($badge->expiredate, $cloned_badge->expiredate);
         $this->assertEquals($badge->expireperiod, $cloned_badge->expireperiod);
-        $this->assertEquals($badge->context, $cloned_badge->context);
+        $this->assertEquals($badge->type, $cloned_badge->type);
         $this->assertEquals($badge->courseid, $cloned_badge->courseid);
         $this->assertEquals($badge->message, $cloned_badge->message);
         $this->assertEquals($badge->messagesubject, $cloned_badge->messagesubject);

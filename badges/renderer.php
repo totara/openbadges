@@ -38,7 +38,7 @@ class core_badges_renderer extends plugin_renderer_base {
         global $USER, $CFG;
         foreach ($badges as $b) {
             if (!$external) {
-                $context = ($b->context == BADGE_TYPE_SITE) ? context_system::instance() : context_course::instance($b->courseid);
+                $context = ($b->type == BADGE_TYPE_SITE) ? context_system::instance() : context_course::instance($b->courseid);
                 $bname = $b->name;
                 $imageurl = moodle_url::make_pluginfile_url($context->id, 'badges', 'badgeimage', $b->id, '/', 'f1', false);
             } else {
@@ -312,7 +312,7 @@ class core_badges_renderer extends plugin_renderer_base {
             $datatable->data[] = array(get_string('name'), $badge->name);
             $datatable->data[] = array(get_string('description', 'badges'), $badge->description);
 
-            if ($badge->context == BADGE_TYPE_COURSE && isset($badge->courseid)) {
+            if ($badge->type == BADGE_TYPE_COURSE && isset($badge->courseid)) {
                 $coursename = $DB->get_field('course', 'fullname', array('id' => $badge->courseid));
                 $datatable->data[] = array(get_string('course'), $coursename);
             }

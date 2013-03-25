@@ -110,18 +110,15 @@ class edit_details_form extends moodleform {
         $mform->addElement('hidden', 'issuerurl', $url['scheme'] . '://' . $url['host']);
         $mform->setType('issuerurl', PARAM_URL);
 
+        $mform->addElement('hidden', 'action', $action);
+        $mform->setType('action', PARAM_TEXT);
+
         if ($action == 'new') {
             $this->add_action_buttons(true, get_string('createbutton', 'badges'));
-
-            $mform->addElement('hidden', 'action', $action);
-            $mform->setType('action', PARAM_TEXT);
         } else {
             // Add hidden fields.
             $mform->addElement('hidden', 'id', $badge->id);
             $mform->setType('id', PARAM_INT);
-
-            $mform->addElement('hidden', 'action', $action);
-            $mform->setType('action', PARAM_TEXT);
 
             $this->add_action_buttons();
             $this->set_data($badge);
