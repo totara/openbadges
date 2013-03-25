@@ -147,8 +147,8 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading_with_help($PAGE->heading, 'sitebadges', 'badges');
 echo $OUTPUT->box('', 'notifyproblem', 'check_connection');
 
-$totalcount = count(get_badges($type, $courseid, '', '' , '', ''));
-$records = get_badges($type, $courseid, $sortby, $sorthow, $page, BADGE_PERPAGE);
+$totalcount = count(badges_get_badges($type, $courseid, '', '' , '', ''));
+$records = badges_get_badges($type, $courseid, $sortby, $sorthow, $page, BADGE_PERPAGE);
 
 if ($totalcount) {
     echo $output->heading(get_string('badgestoearn', 'badges', $totalcount), 4);

@@ -42,6 +42,7 @@ if ($bake && ($badge->recipient == $USER->id)) {
     header('Content-Type: image/png');
     header('Content-Disposition: attachment; filename="'. $name .'"');
     readfile($file);
+    ob_flush();
 }
 
 $PAGE->set_url('/badges/badge.php', array('hash' => $id));

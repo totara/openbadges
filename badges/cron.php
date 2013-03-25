@@ -49,11 +49,12 @@ function badge_review_cron() {
     $sql = 'SELECT id
                 FROM {badge}
                 WHERE (status = :active OR status = :activelocked)
-                    AND (context = 1 OR courseid IN
-                        (SELECT id FROM {course} WHERE visible = 1 AND startdate < :current))';
+                    AND (type = :site OR EXISTS (SELECT id FROM {course} WHERE visible = :visible AND startdate < :current))';
     $params = array(
             'active' => BADGE_STATUS_ACTIVE,
             'activelocked' => BADGE_STATUS_ACTIVE_LOCKED,
+            'site' => BADGE_TYPE_SITE,
+            'visible' => true,
             'current' => time());
     $badges = $DB->get_fieldset_sql($sql, $params);
 
@@ -96,7 +97,7 @@ function badge_message_cron() {
         badge_assemble_notification($sch);
 
         // Update next cron value.
-        $nextcron = calculate_message_schedule($sch->notification);
+        $nextcron = badges_calculate_message_schedule($sch->notification);
         $DB->set_field('badge', 'nextcron', $nextcron, array('id' => $sch->id));
     }
 }

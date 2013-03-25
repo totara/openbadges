@@ -881,7 +881,7 @@ class issued_badge implements renderable {
      */
     public function __construct($hash) {
         global $DB;
-        $this->issued = get_issued_badge_info($hash);
+        $this->issued = badges_get_issued_badge_info($hash);
         $this->hash = $hash;
 
         $rec = $DB->get_record_select('badge_issued', $DB->sql_compare_text('uniquehash') . ' = ? ', array($hash), 'userid, visible, badgeid');

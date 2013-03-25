@@ -29,7 +29,7 @@ require_once($CFG->libdir . '/badgeslib.php');
 
 $hash = required_param('b', PARAM_ALPHANUM);
 
-$badge = get_issued_badge_info($hash);
+$badge = badges_get_issued_badge_info($hash);
 
 header('Content-type: application/json; charset=utf-8');
 

@@ -250,7 +250,7 @@ class badge {
         unset($fordb->id);
 
         if ($fordb->notification > 1) {
-            $fordb->nextcron = calculate_message_schedule($fordb->notification);
+            $fordb->nextcron = badges_calculate_message_schedule($fordb->notification);
         }
 
         $criteria = $fordb->criteria;
@@ -410,11 +410,11 @@ class badge {
 
             if (!$nobake) {
                 // Bake a badge image.
-                $pathhash = bake($issued->uniquehash, $this->id, $userid, true);
+                $pathhash = badges_bake($issued->uniquehash, $this->id, $userid, true);
 
                 // Notify recipients and badge creators.
                 if (!empty($CFG->noemailever)) {
-                    notify_badge_award($this, $userid, $issued->uniquehash, $pathhash);
+                    badges_notify_badge_award($this, $userid, $issued->uniquehash, $pathhash);
                 }
             }
         }
@@ -433,6 +433,7 @@ class badge {
         set_time_limit(0);
         raise_memory_limit(MEMORY_HUGE);
 
+        // For site level badges, get all active site users who can earn this badge and haven't got it yet.
         if ($this->type == BADGE_TYPE_SITE) {
             $sql = 'SELECT DISTINCT u.id, bi.badgeid
                         FROM {user} u
@@ -441,7 +442,8 @@ class badge {
                         WHERE bi.badgeid IS NULL AND u.id != :guestid AND u.deleted = 0';
             $toearn = $DB->get_fieldset_sql($sql, array('badgeid' => $this->id, 'guestid' => $CFG->siteguest));
         } else {
-            // Get users who can earn this badge.
+            // For course level badges, get users who can earn this badge in the course.
+            // These are all enrolled users with capability moodle/badges:earnbadge.
             $earned = $DB->get_fieldset_select('badge_issued', 'userid AS id', 'badgeid = :badgeid', array('badgeid' => $this->id));
             $users = get_enrolled_users($this->get_context(), 'moodle/badges:earnbadge', 0, 'u.id');
             $toearn = array_diff(array_keys($users), $earned);
@@ -611,7 +613,7 @@ class badge {
  * @param string $issued Unique hash of an issued badge
  * @param string $filepathhash File path hash of an issued badge for attachments
  */
-function notify_badge_award(badge $badge, $userid, $issued, $filepathhash) {
+function badges_notify_badge_award(badge $badge, $userid, $issued, $filepathhash) {
     global $CFG, $DB;
 
     $admin = get_admin();
@@ -680,7 +682,7 @@ function notify_badge_award(badge $badge, $userid, $issued, $filepathhash) {
  * @param in $schedule Type of message schedule BADGE_MESSAGE_DAILY|BADGE_MESSAGE_WEEKLY|BADGE_MESSAGE_MONTHLY.
  * @return int Timestamp for next cron
  */
-function calculate_message_schedule($schedule) {
+function badges_calculate_message_schedule($schedule) {
     $nextcron = 0;
 
     switch ($schedule) {
@@ -726,7 +728,7 @@ function badge_message_from_template($message, $params) {
  * @param int $user User specific search
  * @return array $badge Array of records matching criteria
  */
-function get_badges($type, $courseid = 0, $sort = '', $dir = '', $page = 0, $perpage = BADGE_PERPAGE, $user = 0) {
+function badges_get_badges($type, $courseid = 0, $sort = '', $dir = '', $page = 0, $perpage = BADGE_PERPAGE, $user = 0) {
     global $DB;
     $records = array();
     $params = array();
@@ -781,7 +783,7 @@ function get_badges($type, $courseid = 0, $sort = '', $dir = '', $page = 0, $per
  * @param bool $onlypublic Return only public badges
  * @return array of badges ordered by decreasing date of issue
  */
-function get_user_badges($userid, $courseid = 0, $page = 0, $perpage = 0, $search = '', $onlypublic = false) {
+function badges_get_user_badges($userid, $courseid = 0, $page = 0, $perpage = 0, $search = '', $onlypublic = false) {
     global $DB;
     $badges = array();
 
@@ -821,7 +823,7 @@ function get_user_badges($userid, $courseid = 0, $page = 0, $perpage = 0, $searc
  *
  * @param string $hash
  */
-function get_issued_badge_info($hash) {
+function badges_get_issued_badge_info($hash) {
     global $DB, $CFG;
 
     $a = array();
@@ -1101,7 +1103,7 @@ function print_badge_image($badge, $context, $size = 'small') {
  * @param boolean $pathhash Return file pathhash instead of image url (optional).
  * @return string|url Returns either new file path hash or new file URL
  */
-function bake($hash, $badgeid, $userid = 0, $pathhash = false) {
+function badges_bake($hash, $badgeid, $userid = 0, $pathhash = false) {
     global $CFG, $USER;
     require_once(dirname(dirname(__FILE__)) . '/badges/utils/bakerlib.php');
 
@@ -1171,7 +1173,7 @@ function get_backpack_settings($userid) {
  * @param int $userid ID of badge owner.
  * @param array $badges List of issued badges to download.
  */
-function download_badges($userid) {
+function badges_download($userid) {
     global $CFG, $DB;
     $context = context_user::instance($userid);
     $records = $DB->get_records('badge_issued', array('userid' => $userid));
@@ -1208,7 +1210,7 @@ function profile_display_badges($userid, $courseid = 0) {
     require_once($CFG->dirroot . '/badges/renderer.php');
 
     if ($USER->id == $userid || has_capability('moodle/badges:viewotherbadges', context_user::instance($USER->id))) {
-        $records = get_user_badges($userid, $courseid, null, null, null, true);
+        $records = badges_get_user_badges($userid, $courseid, null, null, null, true);
         $renderer = new core_badges_renderer($PAGE, '');
 
         // Print local badges.
@@ -1236,7 +1238,7 @@ function profile_display_badges($userid, $courseid = 0) {
  * @param bool $run Check for non-admin settings
  * @return bool True|False True if backpack can access assertions on this web site.
  */
-function check_backpack_accessibility($run = false) {
+function badges_check_backpack_accessibility($run = false) {
     global $PAGE;
 
     // Making sure that this check is performed only on Badge settings page.

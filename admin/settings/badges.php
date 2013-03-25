@@ -41,7 +41,7 @@ if (($hassiteconfig || has_any_capability(array(
     $globalsettings = new admin_settingpage('badgesettings', new lang_string('badgesettings', 'badges'),
             array('moodle/badges:manageglobalsettings'), empty($CFG->enablebadges));
 
-    if (!check_backpack_accessibility()) {
+    if (!badges_check_backpack_accessibility()) {
         $globalsettings->add(new admin_setting_heading('checkheading', '',
                 '<div class="notifyproblem">' . new lang_string('error:backpacknotavailable', 'badges') . '</div>'));
     }

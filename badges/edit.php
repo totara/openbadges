@@ -107,7 +107,7 @@ if ($form->is_cancelled()) {
         // Calculate next message cron if form data is different from original badge data.
         if ($data->notification != $badge->notification) {
             if ($data->notification > BADGE_MESSAGE_ALWAYS) {
-                $badge->nextcron = calculate_message_schedule($data->notification);
+                $badge->nextcron = badges_calculate_message_schedule($data->notification);
             } else {
                 $badge->nextcron = null;
             }

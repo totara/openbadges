@@ -29,7 +29,7 @@ define('AJAX_SCRIPT', true);
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
-$result = check_backpack_accessibility(true);
+$result = badges_check_backpack_accessibility(true);
 
 $outcome = new stdClass();
 $outcome->available = $result;

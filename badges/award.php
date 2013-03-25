@@ -48,9 +48,7 @@ if ($badge->type == BADGE_TYPE_COURSE) {
     $navurl = new moodle_url('/badges/index.php', array('type' => $badge->type, 'id' => $badge->courseid));
 }
 
-if (!has_capability('moodle/badges:viewawarded', $context)) {
-    echo $OUTPUT->error_text(get_string('error:nopermissiontoview', 'badges'));
-}
+require_capability('moodle/badges:awardbadge', $context);
 
 $url = new moodle_url('/badges/award.php', array('id' => $badgeid, 'role' => $role));
 $PAGE->set_url($url);

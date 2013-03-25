@@ -2963,7 +2963,7 @@
         <KEY NAME="fk_usercreated" TYPE="foreign" FIELDS="usercreated" REFTABLE="user" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
-        <INDEX NAME="context" UNIQUE="false" FIELDS="context"/>
+        <INDEX NAME="type" UNIQUE="false" FIELDS="type"/>
       </INDEXES>
     </TABLE>
     <TABLE NAME="badge_criteria" COMMENT="Defines criteria for issuing badges">

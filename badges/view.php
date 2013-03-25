@@ -81,8 +81,8 @@ $output = $PAGE->get_renderer('core', 'badges');
 echo $output->header();
 echo $OUTPUT->heading($title);
 
-$totalcount = count(get_badges($type, $courseid, '', '', '', '', $USER->id));
-$records = get_badges($type, $courseid, $sortby, $sorthow, $page, BADGE_PERPAGE, $USER->id);
+$totalcount = count(badges_get_badges($type, $courseid, '', '', '', '', $USER->id));
+$records = badges_get_badges($type, $courseid, $sortby, $sorthow, $page, BADGE_PERPAGE, $USER->id);
 
 if ($totalcount) {
     echo $output->heading(get_string('badgestoearn', 'badges', $totalcount), 4);

@@ -55,12 +55,12 @@ if ($hide) {
     $DB->set_field('badge_issued', 'visible', 1, array('id' => $show));
 } else if ($download && $hash) {
     ob_start();
-    $file = bake($hash, $download);
+    $file = badges_bake($hash, $download);
     header('Location: ' . $file);
     ob_flush();
 } else if ($downloadall) {
     ob_start();
-    download_badges($USER->id);
+    badges_download($USER->id);
     ob_flush();
 }
 
@@ -88,7 +88,7 @@ $badges = badges_get_user_badges($USER->id);
 
 echo $OUTPUT->header();
 $totalcount = count($badges);
-$records = get_user_badges($USER->id, null, $page, BADGE_PERPAGE, $search);
+$records = badges_get_user_badges($USER->id, null, $page, BADGE_PERPAGE, $search);
 
 $userbadges             = new badge_user_collection($records, $USER->id);
 $userbadges->sort       = 'dateissued';
