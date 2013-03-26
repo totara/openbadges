@@ -1757,12 +1757,42 @@ function xmldb_main_upgrade($oldversion) {
     }
 
     if ($oldversion < 2013032200.01) {
+        // GD is now always available
+        set_config('gdversion', 2);
+
+        upgrade_main_savepoint(true, 2013032200.01);
+    }
+
+    if ($oldversion < 2013032600.03) {
+        // Fixing possible wrong MIME type for MIME HTML (MHTML) files.
+        $extensions = array('%.mht', '%.mhtml');
+        $select = $DB->sql_like('filename', '?', false);
+        foreach ($extensions as $extension) {
+            $DB->set_field_select(
+                'files',
+                'mimetype',
+                'message/rfc822',
+                $select,
+                array($extension)
+            );
+        }
+        upgrade_main_savepoint(true, 2013032600.03);
+    }
+
+    if ($oldversion < 2013032600.04) {
+        // MDL-31983 broke the quiz version number. Fix it.
+        $DB->set_field('modules', 'version', '2013021500',
+                array('name' => 'quiz', 'version' => '2013310100'));
+        upgrade_main_savepoint(true, 2013032600.04);
+    }
+
+    if ($oldversion < 2013040200.00) {
         // Add openbadges tables.
 
-        // Define table 'badge' to be created
+        // Define table 'badge' to be created.
         $table = new xmldb_table('badge');
 
-        // Adding fields to table 'badge'
+        // Adding fields to table 'badge'.
         $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
         $table->add_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, 'id');
         $table->add_field('description', XMLDB_TYPE_TEXT, null, null, null, null, null, 'name');
@@ -1785,68 +1815,68 @@ function xmldb_main_upgrade($oldversion) {
         $table->add_field('status', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'notification');
         $table->add_field('nextcron', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'status');
 
-        // Adding keys to table 'badge'
+        // Adding keys to table 'badge'.
         $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
         $table->add_key('fk_courseid', XMLDB_KEY_FOREIGN, array('courseid'), 'course', array('id'));
         $table->add_key('fk_usermodified', XMLDB_KEY_FOREIGN, array('usermodified'), 'user', array('id'));
         $table->add_key('fk_usercreated', XMLDB_KEY_FOREIGN, array('usercreated'), 'user', array('id'));
 
-        // Adding indexes to table 'badge'
+        // Adding indexes to table 'badge'.
         $table->add_index('type', XMLDB_INDEX_NOTUNIQUE, array('type'));
 
-        // Conditionally launch create table for 'badge'
+        // Conditionally launch create table for 'badge'.
         if (!$dbman->table_exists($table)) {
             $dbman->create_table($table);
         }
 
-        // Define table 'badge_criteria' to be created
+        // Define table 'badge_criteria' to be created.
         $table = new xmldb_table('badge_criteria');
 
-        // Adding fields to table 'badge_criteria'
+        // Adding fields to table 'badge_criteria'.
         $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
         $table->add_field('badgeid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'id');
         $table->add_field('criteriatype', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'badgeid');
         $table->add_field('method', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'criteriatype');
 
-        // Adding keys to table 'badge_criteria'
+        // Adding keys to table 'badge_criteria'.
         $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
         $table->add_key('fk_badgeid', XMLDB_KEY_FOREIGN, array('badgeid'), 'badge', array('id'));
 
-        // Adding indexes to table 'badge_criteria'
+        // Adding indexes to table 'badge_criteria'.
         $table->add_index('badgeid', XMLDB_INDEX_NOTUNIQUE, array('badgeid'));
         $table->add_index('criteriatype', XMLDB_INDEX_NOTUNIQUE, array('criteriatype'));
         $table->add_index('badgecriteriatype', XMLDB_INDEX_UNIQUE, array('badgeid', 'criteriatype'));
 
-        // Conditionally launch create table for 'badge_criteria'
+        // Conditionally launch create table for 'badge_criteria'.
         if (!$dbman->table_exists($table)) {
             $dbman->create_table($table);
         }
 
-        // Define table 'badge_criteria_param' to be created
+        // Define table 'badge_criteria_param' to be created.
         $table = new xmldb_table('badge_criteria_param');
 
-        // Adding fields to table 'badge_criteria_param'
+        // Adding fields to table 'badge_criteria_param'.
         $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
         $table->add_field('critid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, 'id');
         $table->add_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, 'critid');
         $table->add_field('value', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'name');
 
-        // Adding keys to table 'badge_criteria_param'
+        // Adding keys to table 'badge_criteria_param'.
         $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
         $table->add_key('fk_critid', XMLDB_KEY_FOREIGN, array('critid'), 'badge_criteria', array('id'));
 
-        // Adding indexes to table 'badge_criteria_param'
+        // Adding indexes to table 'badge_criteria_param'.
         $table->add_index('critid', XMLDB_INDEX_NOTUNIQUE, array('critid'));
 
-        // Conditionally launch create table for 'badge_criteria_param'
+        // Conditionally launch create table for 'badge_criteria_param'.
         if (!$dbman->table_exists($table)) {
             $dbman->create_table($table);
         }
 
-        // Define table 'badge_issued' to be created
+        // Define table 'badge_issued' to be created.
         $table = new xmldb_table('badge_issued');
 
-        // Adding fields to table 'badge_issued'
+        // Adding fields to table 'badge_issued'.
         $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
         $table->add_field('badgeid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'id');
         $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'badgeid');
@@ -1856,25 +1886,25 @@ function xmldb_main_upgrade($oldversion) {
         $table->add_field('visible', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'dateexpire');
         $table->add_field('issuernotified', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'visible');
 
-        // Adding keys to table 'badge_issued'
+        // Adding keys to table 'badge_issued'.
         $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
         $table->add_key('fk_badgeid', XMLDB_KEY_FOREIGN, array('badgeid'), 'badge', array('id'));
         $table->add_key('fk_userid', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
 
-        // Adding indexes to table 'badge_issued'
+        // Adding indexes to table 'badge_issued'.
         $table->add_index('badgeid', XMLDB_INDEX_NOTUNIQUE, array('badgeid'));
         $table->add_index('userid', XMLDB_INDEX_NOTUNIQUE, array('userid'));
         $table->add_index('badgeuser', XMLDB_INDEX_UNIQUE, array('badgeid', 'userid'));
 
-        // Conditionally launch create table for 'badge_issued'
+        // Conditionally launch create table for 'badge_issued'.
         if (!$dbman->table_exists($table)) {
             $dbman->create_table($table);
         }
 
-        // Define table 'badge_criteria_met' to be created
+        // Define table 'badge_criteria_met' to be created.
         $table = new xmldb_table('badge_criteria_met');
 
-        // Adding fields to table 'badge_criteria_met'
+        // Adding fields to table 'badge_criteria_met'.
         $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
         $table->add_field('issuedid', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'id');
         $table->add_field('critid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, 'issuedid');
@@ -1887,15 +1917,15 @@ function xmldb_main_upgrade($oldversion) {
         $table->add_key('fk_userid', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
         $table->add_key('fk_issuedid', XMLDB_KEY_FOREIGN, array('issuedid'), 'badge_issued', array('id'));
 
-        // Conditionally launch create table for 'badge_criteria_met'
+        // Conditionally launch create table for 'badge_criteria_met'.
         if (!$dbman->table_exists($table)) {
             $dbman->create_table($table);
         }
 
-        // Define table 'badge_manual_award' to be created
+        // Define table 'badge_manual_award' to be created.
         $table = new xmldb_table('badge_manual_award');
 
-        // Adding fields to table 'badge_manual_award'
+        // Adding fields to table 'badge_manual_award'.
         $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
         $table->add_field('badgeid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, 'id');
         $table->add_field('recipientid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, 'badgeid');
@@ -1903,22 +1933,22 @@ function xmldb_main_upgrade($oldversion) {
         $table->add_field('issuerrole', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, 'issuerid');
         $table->add_field('datemet', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, 'issuerrole');
 
-        // Adding keys to table 'badge_manual_award'
+        // Adding keys to table 'badge_manual_award'.
         $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
         $table->add_key('fk_badgeid', XMLDB_KEY_FOREIGN, array('id'), 'badge', array('id'));
         $table->add_key('fk_recipientid', XMLDB_KEY_FOREIGN, array('recipientid'), 'user', array('id'));
         $table->add_key('fk_issuerid', XMLDB_KEY_FOREIGN, array('issuerid'), 'user', array('id'));
         $table->add_key('fk_issuerrole', XMLDB_KEY_FOREIGN, array('issuerrole'), 'role', array('id'));
 
-        // Conditionally launch create table for 'badge_manual_award'
+        // Conditionally launch create table for 'badge_manual_award'.
         if (!$dbman->table_exists($table)) {
             $dbman->create_table($table);
         }
 
-        // Define table 'badge_backpack' to be created
+        // Define table 'badge_backpack' to be created.
         $table = new xmldb_table('badge_backpack');
 
-        // Adding fields to table 'badge_backpack'
+        // Adding fields to table 'badge_backpack'.
         $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
         $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'id');
         $table->add_field('email', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null, 'userid');
@@ -1928,14 +1958,14 @@ function xmldb_main_upgrade($oldversion) {
         $table->add_field('autosync', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'backpackgid');
         $table->add_field('password', XMLDB_TYPE_CHAR, '50', null, null, null, null, 'autosync');
 
-        // Adding keys to table 'badge_backpack'
+        // Adding keys to table 'badge_backpack'.
         $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
         $table->add_key('fk_userid', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
 
-        // Adding indexes to table 'badge_backpack'
+        // Adding indexes to table 'badge_backpack'.
         $table->add_index('userid', XMLDB_INDEX_NOTUNIQUE, array('userid'));
 
-        // Conditionally launch create table for 'badge_backpack'
+        // Conditionally launch create table for 'badge_backpack'.
         if (!$dbman->table_exists($table)) {
             $dbman->create_table($table);
         }
