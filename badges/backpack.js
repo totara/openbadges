@@ -13,7 +13,7 @@ function check_site_access() {
     var callback = {
         success: function(o) {
             var data = Y.JSON.parse(o.responseText);
-            if (!data.available) {
+            if (data.code == 'http-unreachable') {
                 add.setHTML(data.response);
             }
         },

@@ -103,7 +103,7 @@ function badge_message_cron() {
 }
 
 /**
- * Creates single message for all notification and send it out
+ * Creates single message for all notification and sends it out
  *
  * @param object $badge A badge which is notified about.
  */
@@ -113,9 +113,9 @@ function badge_assemble_notification($badge) {
     $admin = get_admin();
     $userfrom = new stdClass();
     $userfrom->id = $admin->id;
-    $userfrom->email = $CFG->badges_defaultissuercontact ? $CFG->badges_defaultissuercontact : $admin->email;
-    $userfrom->firstname = $CFG->badges_defaultissuername ? $CFG->badges_defaultissuername : $admin->firstname;
-    $userfrom->lastname = $CFG->badges_defaultissuername ? '' : $admin->lastname;
+    $userfrom->email = !empty($CFG->badges_defaultissuercontact) ? $CFG->badges_defaultissuercontact : $admin->email;
+    $userfrom->firstname = !empty($CFG->badges_defaultissuername) ? $CFG->badges_defaultissuername : $admin->firstname;
+    $userfrom->lastname = !empty($CFG->badges_defaultissuername) ? '' : $admin->lastname;
     $userfrom->maildisplay = true;
 
     if ($msgs = $DB->get_records_select('badge_issued', 'issuernotified IS NULL AND badgeid = ?', array($badge->id))) {
@@ -142,6 +142,7 @@ function badge_assemble_notification($badge) {
         $eventdata->name              = 'instantmessage';
         $eventdata->userfrom          = $userfrom;
         $eventdata->userto            = $creator;
+        $eventdata->notification      = 1;
         $eventdata->subject           = $creatorsubject;
         $eventdata->fullmessage       = $creatormessage;
         $eventdata->fullmessageformat = FORMAT_PLAIN;

@@ -59,9 +59,13 @@ if ($hide) {
 } else if ($show) {
     $DB->set_field('badge_issued', 'visible', 1, array('id' => $show));
 } else if ($download && $hash) {
+    $badge = new badge($download);
+    $name = str_replace(' ', '_', $badge->name) . '.png';
     ob_start();
     $file = badges_bake($hash, $download);
-    header('Location: ' . $file);
+    header('Content-Type: image/png');
+    header('Content-Disposition: attachment; filename="'. $name .'"');
+    readfile($file);
     ob_flush();
 } else if ($downloadall) {
     ob_start();

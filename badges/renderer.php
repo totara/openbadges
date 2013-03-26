@@ -60,7 +60,7 @@ class core_badges_renderer extends plugin_renderer_base {
             $download = $status = $push = '';
             if (($userid == $USER->id) && !$profile) {
                 $url = new moodle_url('mybadges.php', array('download' => $badge->id, 'hash' => $badge->uniquehash));
-                if ($CFG->badges_allowexternalbackpack) {
+                if ($CFG->badges_allowexternalbackpack && (empty($badge->dateexpire) || $badge->dateexpire > time())) {
                     $assertion = new moodle_url('/badges/assertion.php', array('b' => $badge->uniquehash));
                     $action = new component_action('click', 'addtobackpack', array('assertion' => $assertion->out(false)));
                     $push = $this->output->action_icon(new moodle_url('#'), new pix_icon('t/backpack', get_string('addtobackpack', 'badges')), $action);
@@ -275,6 +275,8 @@ class core_badges_renderer extends plugin_renderer_base {
         global $USER, $CFG, $DB;
         $issued = $ibadge->issued;
         $badge = new badge($ibadge->badgeid);
+        $today_date = date('Y-m-d');
+        $today = strtotime($today_date);
 
         if ($ibadge->visible
             || ($USER->id == $ibadge->recipient)
@@ -289,7 +291,8 @@ class core_badges_renderer extends plugin_renderer_base {
                             new moodle_url('/badges/badge.php', array('hash' => $ibadge->hash, 'bake' => true)),
                             get_string('download'),
                             'POST'));
-                if ($CFG->badges_allowexternalbackpack) {
+                $expiration = isset($issued['expires']) ? strtotime($issued['expires']) : $today + 1;
+                if ($CFG->badges_allowexternalbackpack && ($expiration > $today)) {
                     $assertion = new moodle_url('/badges/assertion.php', array('b' => $ibadge->hash));
                     $attributes = array(
                             'type' => 'button',
@@ -321,8 +324,6 @@ class core_badges_renderer extends plugin_renderer_base {
             $datatable->data[] = array($this->output->heading(get_string('issuancedetails', 'badges'), 3), '');
             $datatable->data[] = array(get_string('dateawarded', 'badges'), $issued['issued_on']);
             if (isset($issued['expires'])) {
-                $today_date = date('Y-m-d');
-                $today = strtotime($today_date);
                 $expiration = strtotime($issued['expires']);
                 if ($expiration < $today) {
                     $cell = new html_table_cell($issued['expires'] . get_string('warnexpired', 'badges'));
@@ -465,7 +466,7 @@ class core_badges_renderer extends plugin_renderer_base {
             $htmllist = $this->print_badges_list($badges->badges, $USER->id);
             $localhtml .= $downloadbutton . $searchform . $htmlpagingbar . $htmllist . $htmlpagingbar;
         } else {
-            $localhtml .= $this->output->notification(get_string('nobadges', 'badges'));
+            $localhtml .= $searchform . $this->output->notification(get_string('nobadges', 'badges'));
         }
         $localhtml .= html_writer::end_tag('fieldset');
 
@@ -492,6 +493,10 @@ class core_badges_renderer extends plugin_renderer_base {
                 $label = get_string('setup', 'badges');
             }
             $externalhtml .= $this->output->single_button('mybackpack.php', $label, 'POST', array('class' => 'backpackform'));
+
+            if (isset($backpack->totalbadges) && $backpack->totalbadges !== 0) {
+                $externalhtml .= '<br/><br/>' . $this->print_badges_list($backpack->badges, $USER->id, true, true);
+            }
             $externalhtml .= html_writer::end_tag('fieldset');
         }
 

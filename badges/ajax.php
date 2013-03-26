@@ -33,10 +33,10 @@ require_login();
 $PAGE->set_url('/badges/ajax.php');
 $PAGE->set_context(context_system::instance());
 
-$result = badges_check_backpack_accessibility(true);
+$result = badges_check_backpack_accessibility();
 
 $outcome = new stdClass();
-$outcome->available = $result;
+$outcome->code = $result;
 $outcome->response = get_string('error:backpacknotavailable', 'badges') . $OUTPUT->help_icon('backpackavailability', 'badges');
 echo json_encode($outcome);
 

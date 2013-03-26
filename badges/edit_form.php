@@ -98,6 +98,7 @@ class edit_details_form extends moodleform {
         $mform->addGroup($issuancedetails, 'expirydategr', get_string('expirydate', 'badges'), array(' '), false);
         $mform->addHelpButton('expirydategr', 'expirydate', 'badges');
         $mform->setDefault('expiry', 0);
+        $mform->setDefault('expiredate', strtotime('+1 year'));
         $mform->disabledIf('expiredate[day]', 'expiry', 'neq', 1);
         $mform->disabledIf('expiredate[month]', 'expiry', 'neq', 1);
         $mform->disabledIf('expiredate[year]', 'expiry', 'neq', 1);

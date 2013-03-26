@@ -84,19 +84,25 @@ class OpenBadgesBackpackHandler {
 
     public function get_groups() {
         $json = $this->curl_request('user', $this->email);
-        if ($json->status != 'okay') {
-            return $this->check_status($json->status);
+        if (isset($json->status)) {
+            if ($json->status != 'okay') {
+                return $this->check_status($json->status);
+            } else {
+                $this->backpackuid = $json->userId;
+                return $this->curl_request('groups');
+            }
         }
-        $this->backpackuid = $json->userId;
-        return $this->curl_request('groups');
     }
 
     public function get_badges() {
         $json = $this->curl_request('user', $this->email);
-        if ($json->status != 'okay') {
-            return $this->check_status($json->status);
+        if (isset($json->status)) {
+            if ($json->status != 'okay') {
+                return $this->check_status($json->status);
+            } else {
+                return $this->curl_request('badges');
+            }
         }
-        return $this->curl_request('badges');
     }
 
     public function get_url() {

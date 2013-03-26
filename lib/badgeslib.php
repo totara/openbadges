@@ -413,7 +413,7 @@ class badge {
                 $pathhash = badges_bake($issued->uniquehash, $this->id, $userid, true);
 
                 // Notify recipients and badge creators.
-                if (!empty($CFG->noemailever)) {
+                if (empty($CFG->noemailever)) {
                     badges_notify_badge_award($this, $userid, $issued->uniquehash, $pathhash);
                 }
             }
@@ -619,9 +619,9 @@ function badges_notify_badge_award(badge $badge, $userid, $issued, $filepathhash
     $admin = get_admin();
     $userfrom = new stdClass();
     $userfrom->id = $admin->id;
-    $userfrom->email = $CFG->badges_defaultissuercontact ? $CFG->badges_defaultissuercontact : $admin->email;
-    $userfrom->firstname = $CFG->badges_defaultissuername ? $CFG->badges_defaultissuername : $admin->firstname;
-    $userfrom->lastname = $CFG->badges_defaultissuername ? '' : $admin->lastname;
+    $userfrom->email = !empty($CFG->badges_defaultissuercontact) ? $CFG->badges_defaultissuercontact : $admin->email;
+    $userfrom->firstname = !empty($CFG->badges_defaultissuername) ? $CFG->badges_defaultissuername : $admin->firstname;
+    $userfrom->lastname = !empty($CFG->badges_defaultissuername) ? '' : $admin->lastname;
     $userfrom->maildisplay = true;
 
     $issuedlink = html_writer::link(new moodle_url('/badges/badge.php', array('hash' => $issued)), $badge->name);
@@ -665,6 +665,7 @@ function badges_notify_badge_award(badge $badge, $userid, $issued, $filepathhash
         $eventdata->name              = 'instantmessage';
         $eventdata->userfrom          = $userfrom;
         $eventdata->userto            = $creator;
+        $eventdata->notification      = 1;
         $eventdata->subject           = $creatorsubject;
         $eventdata->fullmessage       = $creatormessage;
         $eventdata->fullmessageformat = FORMAT_PLAIN;
@@ -1117,28 +1118,31 @@ function badges_bake($hash, $badgeid, $userid = 0, $pathhash = false) {
 
     $fs = get_file_storage();
     if (!$fs->file_exists($user_context->id, 'badges', 'userbadge', $badge->id, '/', $hash . '.png')) {
-        $file = $fs->get_file($badge_context->id, 'badges', 'badgeimage', $badge->id, '/', 'f1.png');
-        $contents = $file->get_content();
+        if ($file = $fs->get_file($badge_context->id, 'badges', 'badgeimage', $badge->id, '/', 'f1.png')) {
+            $contents = $file->get_content();
 
-        $filehandler = new PNG_MetaDataHandler($contents);
-        $assertion = new moodle_url('/badges/assertion.php', array('b' => $hash));
-        if ($filehandler->check_chunks("tEXt", "openbadges")) {
-            // Add assertion URL tExt chunk.
-            $newcontents = $filehandler->add_chunks("tEXt", "openbadges", $assertion->out(false));
-            $fileinfo = array(
-                    'contextid' => $user_context->id,
-                    'component' => 'badges',
-                    'filearea' => 'userbadge',
-                    'itemid' => $badge->id,
-                    'filepath' => '/',
-                    'filename' => $hash . '.png',
-            );
+            $filehandler = new PNG_MetaDataHandler($contents);
+            $assertion = new moodle_url('/badges/assertion.php', array('b' => $hash));
+            if ($filehandler->check_chunks("tEXt", "openbadges")) {
+                // Add assertion URL tExt chunk.
+                $newcontents = $filehandler->add_chunks("tEXt", "openbadges", $assertion->out(false));
+                $fileinfo = array(
+                        'contextid' => $user_context->id,
+                        'component' => 'badges',
+                        'filearea' => 'userbadge',
+                        'itemid' => $badge->id,
+                        'filepath' => '/',
+                        'filename' => $hash . '.png',
+                );
 
-            // Create a file with added contents.
-            $newfile = $fs->create_file_from_string($fileinfo, $newcontents);
-            if ($pathhash) {
-                return $newfile->get_pathnamehash();
+                // Create a file with added contents.
+                $newfile = $fs->create_file_from_string($fileinfo, $newcontents);
+                if ($pathhash) {
+                    return $newfile->get_pathnamehash();
+                }
             }
+        } else {
+            debugging('Error baking badge image!');
         }
     }
 
@@ -1189,7 +1193,9 @@ function badges_download($userid) {
         // Need to make image name user-readable and unique using filename safe characters.
         $name =  $badge->name . ' ' . userdate($issued->dateissued, '%d %b %Y') . ' ' . hash('crc32', $badge->id);
         $name = str_replace(' ', '_', $name);
-        $filelist[$name . '.png'] = $fs->get_file($context->id, 'badges', 'userbadge', $issued->badgeid, '/', $issued->uniquehash . '.png');
+        if ($file = $fs->get_file($context->id, 'badges', 'userbadge', $issued->badgeid, '/', $issued->uniquehash . '.png')) {
+            $filelist[$name . '.png'] = $file;
+        }
     }
 
     // Zip files and sent them to a user.
@@ -1238,37 +1244,35 @@ function profile_display_badges($userid, $courseid = 0) {
 /**
  * Checks if badges can be pushed to external backpack.
  *
- * @param bool $run Check for non-admin settings
- * @return bool True|False True if backpack can access assertions on this web site.
+ * @return string Code of backpack accessibility status.
  */
-function badges_check_backpack_accessibility($run = false) {
-    global $PAGE;
+function badges_check_backpack_accessibility() {
+    // Using fake assertion url to check whether backpack can access the web site.
+    $fakeassertion = new moodle_url('/badges/assertion.php', array('b' => 'abcd1234567890'));
 
-    // Making sure that this check is performed only on Badge settings page.
-    // Otherwise it will run all the time for an admin user.
-    if ((!empty($PAGE->url) && $PAGE->url->get_param('section') == 'badgesettings') || $run) {
-        // Using fake assertion url to check whether backpack can access the web site.
-        $fakeassertion = new moodle_url('/badges/assertion.php', array('b' => 'abcd1234567890'));
+    // Curl request to http://backpack.openbadges.org/baker.
+    $curl = curl_init('http://backpack.openbadges.org/baker?assertion=' . $fakeassertion->out(false));
+    $options = array(
+        CURLOPT_FRESH_CONNECT => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FORBID_REUSE => true,
+        CURLOPT_HEADER => 0,
+        CURLOPT_CONNECTTIMEOUT_MS => 1000,
+    );
+    curl_setopt_array($curl, $options);
+    $out = curl_exec($curl);
+    curl_close($curl);
 
-        // Curl request to http://backpack.openbadges.org/baker.
-        $curl = curl_init('http://backpack.openbadges.org/baker?assertion=' . $fakeassertion->out(false));
-        $options = array(
-            CURLOPT_FRESH_CONNECT => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FORBID_REUSE => true,
-            CURLOPT_HEADER => 0,
-            CURLOPT_CONNECTTIMEOUT_MS => 1000,
-        );
-        curl_setopt_array($curl, $options);
-        $out = curl_exec($curl);
-        curl_close($curl);
-
-        $data = json_decode($out);
-        if (empty($out) || (isset($data->code) && $data->code == 'http-unreachable')) {
-            return false;
+    $data = json_decode($out);
+    if (empty($out)) {
+        return 'curl-request-timeout';
+    } else {
+        if (isset($data->code) && $data->code == 'http-unreachable') {
+            return 'http-unreachable';
         } else {
-            return true;
+            return 'available';
         }
     }
+
     return false;
 }
