@@ -36,22 +36,22 @@ class core_badges_renderer extends plugin_renderer_base {
     // Outputs badges list.
     public function print_badges_list($badges, $userid, $profile = false, $external = false) {
         global $USER, $CFG;
-        foreach ($badges as $b) {
+        foreach ($badges as $badge) {
             if (!$external) {
-                $context = ($b->type == BADGE_TYPE_SITE) ? context_system::instance() : context_course::instance($b->courseid);
-                $bname = $b->name;
-                $imageurl = moodle_url::make_pluginfile_url($context->id, 'badges', 'badgeimage', $b->id, '/', 'f1', false);
+                $context = ($badge->type == BADGE_TYPE_SITE) ? context_system::instance() : context_course::instance($badge->courseid);
+                $bname = $badge->name;
+                $imageurl = moodle_url::make_pluginfile_url($context->id, 'badges', 'badgeimage', $badge->id, '/', 'f1', false);
             } else {
-                $bname = $b->assertion->badge->name;
-                $imageurl = $b->imageUrl;
+                $bname = $badge->assertion->badge->name;
+                $imageurl = $badge->imageUrl;
             }
 
             $name = html_writer::tag('span', $bname, array('class' => 'badge-name'));
 
             $image = html_writer::empty_tag('img', array('src' => $imageurl, 'class' => 'badge-image'));
-            if (!empty($b->dateexpire) && $b->dateexpire < time()) {
+            if (!empty($badge->dateexpire) && $badge->dateexpire < time()) {
                 $image .= $this->output->pix_icon('i/expired',
-                        get_string('expireddate', 'badges', userdate($b->dateexpire)),
+                        get_string('expireddate', 'badges', userdate($badge->dateexpire)),
                         'moodle',
                         array('class' => 'expireimage'));
                 $name .= '(' . get_string('expired', 'badges') . ')';
@@ -59,30 +59,30 @@ class core_badges_renderer extends plugin_renderer_base {
 
             $download = $status = $push = '';
             if (($userid == $USER->id) && !$profile) {
-                $url = new moodle_url('mybadges.php', array('download' => $b->id, 'hash' => $b->uniquehash));
+                $url = new moodle_url('mybadges.php', array('download' => $badge->id, 'hash' => $badge->uniquehash));
                 if ($CFG->badges_allowexternalbackpack) {
-                    $assertion = new moodle_url('/badges/assertion.php', array('b' => $b->uniquehash));
+                    $assertion = new moodle_url('/badges/assertion.php', array('b' => $badge->uniquehash));
                     $action = new component_action('click', 'addtobackpack', array('assertion' => $assertion->out(false)));
                     $push = $this->output->action_icon(new moodle_url('#'), new pix_icon('t/backpack', get_string('addtobackpack', 'badges')), $action);
                 }
 
                 $download = $this->output->action_icon($url, new pix_icon('t/download', get_string('download')));
-                if ($b->public) {
-                    $url = new moodle_url('mybadges.php', array('hide' => $b->issuedid));
+                if ($badge->public) {
+                    $url = new moodle_url('mybadges.php', array('hide' => $badge->issuedid));
                     $status = $this->output->action_icon($url, new pix_icon('t/hide', get_string('makeprivate', 'badges')));
                 } else {
-                    $url = new moodle_url('mybadges.php', array('show' => $b->issuedid));
+                    $url = new moodle_url('mybadges.php', array('show' => $badge->issuedid));
                     $status = $this->output->action_icon($url, new pix_icon('t/show', get_string('makepublic', 'badges')));
                 }
             }
 
             if (!$profile) {
-                $url = new moodle_url('badge.php', array('hash' => $b->uniquehash));
+                $url = new moodle_url('badge.php', array('hash' => $badge->uniquehash));
             } else {
                 if (!$external) {
-                    $url = new moodle_url($CFG->wwwroot . '/badges/badge.php', array('hash' => $b->uniquehash));
+                    $url = new moodle_url($CFG->wwwroot . '/badges/badge.php', array('hash' => $badge->uniquehash));
                 } else {
-                    $url = new moodle_url($CFG->wwwroot . '/badges/external.php', array('badge' => serialize($b)));
+                    $url = new moodle_url($CFG->wwwroot . '/badges/external.php', array('badge' => serialize($badge)));
                 }
             }
             $actions = html_writer::tag('div', $push . $download . $status, array('class' => 'badge-actions'));
@@ -190,7 +190,7 @@ class core_badges_renderer extends plugin_renderer_base {
             if (has_capability('moodle/badges:configurecriteria', $context)) {
                 $display .= $this->output->single_button(
                     new moodle_url('/badges/criteria.php', array('id' => $badge->id)),
-                    get_string('addcriteria', 'badges'), 'GET', array('class' => 'activatebadge'));
+                    get_string('addcriteria', 'badges'), 'POST', array('class' => 'activatebadge'));
             }
         }
         $display .= html_writer::end_tag('fieldset');
@@ -214,7 +214,7 @@ class core_badges_renderer extends plugin_renderer_base {
                 $badge->is_active()) {
                 $display .= $this->output->single_button(
                         new moodle_url('/badges/award.php', array('id' => $badge->id)),
-                        get_string('award', 'badges'), 'GET', array('class' => 'activatebadge'));
+                        get_string('award', 'badges'), 'POST', array('class' => 'activatebadge'));
             }
             $display .= html_writer::end_tag('fieldset');
         }
@@ -450,7 +450,7 @@ class core_badges_renderer extends plugin_renderer_base {
         // Download all button.
         $downloadall = $this->output->single_button(
                     new moodle_url('/badges/mybadges.php', array('downloadall' => true)),
-                    get_string('downloadall'), 'GET', array('class' => 'activatebadge'));
+                    get_string('downloadall'), 'POST', array('class' => 'activatebadge'));
 
         // Local badges.
         $localhtml = html_writer::start_tag('fieldset', array('class' => 'generalbox'));
@@ -648,7 +648,7 @@ class core_badges_renderer extends plugin_renderer_base {
                 if ($this->page->url != $criteriaurl) {
                     $action = $this->output->single_button(
                         $criteriaurl,
-                        get_string('addcriteria', 'badges'), 'GET', array('class' => 'activatebadge'));
+                        get_string('addcriteria', 'badges'), 'POST', array('class' => 'activatebadge'));
                 } else {
                     $action = '';
                 }

@@ -1153,7 +1153,7 @@ function badges_bake($hash, $badgeid, $userid = 0, $pathhash = false) {
  * @return null|object Returns null is there is no backpack or object with backpack settings.
  */
 function get_backpack_settings($userid) {
-    global $DB; global $SESSION;
+    global $DB;
     require_once(dirname(dirname(__FILE__)) . '/badges/utils/backpacklib.php');
 
     $record = $DB->get_record('badge_backpack', array('userid' => $userid), '*', IGNORE_MISSING);
