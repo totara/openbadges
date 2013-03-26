@@ -1257,7 +1257,7 @@ function badges_check_backpack_accessibility($run = false) {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FORBID_REUSE => true,
             CURLOPT_HEADER => 0,
-            CURLOPT_CONNECTTIMEOUT_MS => 100,
+            CURLOPT_CONNECTTIMEOUT_MS => 1000,
         );
         curl_setopt_array($curl, $options);
         $out = curl_exec($curl);
