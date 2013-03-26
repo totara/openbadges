@@ -33,6 +33,7 @@ $delete    = optional_param('delete', 0, PARAM_BOOL);
 $activate = optional_param('activate', 0, PARAM_BOOL);
 $deactivate = optional_param('lock', 0, PARAM_BOOL);
 $confirm   = optional_param('confirm', 0, PARAM_BOOL);
+$return = optional_param('return', 0, PARAM_LOCALURL);
 
 require_login();
 
@@ -50,8 +51,8 @@ $PAGE->set_url('/badges/action.php', array('id' => $badge->id));
 $PAGE->set_pagelayout('standard');
 navigation_node::override_active_url($navurl);
 
-if (!empty($_SERVER['HTTP_REFERER']) && $_SERVER['HTTP_REFERER'] !== "$CFG->wwwroot/badges/action.php") {
-    $returnurl = new moodle_url($_SERVER['HTTP_REFERER']);
+if ($return !== 0) {
+    $returnurl = new moodle_url($return);
 } else {
     $returnurl = new moodle_url('/badges/overview.php', array('id' => $badge->id));
 }
@@ -81,9 +82,10 @@ if ($delete) {
         'sesskey' => sesskey()
     );
     $continue = new moodle_url('/badges/action.php', $urlparams);
+    $cancel = new moodle_url('/badges/index.php', array('type' => $badge->type, 'id' => $badge->courseid));
 
     $message = get_string('delconfirm', 'badges', $badge->name);
-    echo $OUTPUT->confirm($message, $continue, $returnurl);
+    echo $OUTPUT->confirm($message, $continue, $cancel);
     echo $OUTPUT->footer();
     die;
 }
@@ -133,7 +135,7 @@ if ($activate) {
     echo $OUTPUT->header();
     echo $OUTPUT->heading($strheading);
 
-    $params = array('id' => $badge->id, 'activate' => 1, 'sesskey' => sesskey(), 'confirm' => 1);
+    $params = array('id' => $badge->id, 'activate' => 1, 'sesskey' => sesskey(), 'confirm' => 1, 'return' => $return);
     $url = new moodle_url('/badges/action.php', $params);
 
     if (!$badge->has_criteria()) {

@@ -48,7 +48,7 @@ if ($badge->type == BADGE_TYPE_COURSE) {
     $navurl = new moodle_url('/badges/index.php', array('type' => $badge->type, 'id' => $badge->courseid));
 }
 
-$currenturl = qualified_me();
+$currenturl = new moodle_url('/badges/edit.php', array('id' => $badge->id, 'action' => $action));
 
 $PAGE->set_context($context);
 $PAGE->set_url($currenturl);

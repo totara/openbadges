@@ -144,7 +144,11 @@ if ($activate && has_capability('moodle/badges:configuredetails', $PAGE->context
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading_with_help($PAGE->heading, 'sitebadges', 'badges');
+if ($type == BADGE_TYPE_SITE) {
+    echo $OUTPUT->heading_with_help($PAGE->heading, 'sitebadges', 'badges');
+} else {
+    echo $OUTPUT->heading($PAGE->heading);
+}
 echo $OUTPUT->box('', 'notifyproblem', 'check_connection');
 
 $totalcount = count(badges_get_badges($type, $courseid, '', '' , '', ''));
