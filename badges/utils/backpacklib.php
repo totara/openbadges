@@ -62,7 +62,7 @@ class OpenBadgesBackpackHandler {
                 CURLOPT_URL => $url,
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_FORBID_REUSE => true,
-                CURLOPT_CONNECTTIMEOUT => 15,
+                CURLOPT_CONNECTTIMEOUT_MS => 500,
                 );
         curl_setopt_array($curl, $options);
         $out = curl_exec($curl);

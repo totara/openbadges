@@ -58,7 +58,7 @@ $PAGE->set_title($badge->name);
 navigation_node::override_active_url($navurl);
 
 if ($delete && has_capability('moodle/badges:configurecriteria', $context)) {
-    if (!$confirm || !confirm_sesskey()) {
+    if (!$confirm) {
         $optionsyes = array('confirm' => 1, 'sesskey' => sesskey(), 'badgeid' => $badgeid, 'delete' => true, 'type' => $type);
 
         $strdeletecheckfull = get_string('delcritconfirm', 'badges');
@@ -72,6 +72,7 @@ if ($delete && has_capability('moodle/badges:configurecriteria', $context)) {
         die();
     }
 
+    require_sesskey();
     if (count($badge->criteria) == 2) {
         // Remove overall criterion as well.
         $badge->criteria[$type]->delete();

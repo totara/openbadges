@@ -72,7 +72,7 @@ function badge_review_cron() {
             if (debugging()) {
                 mtrace('...badge was issued to ' . $issued . ' users.');
             }
-            $total =+ $issued;
+            $total += $issued;
         }
     }
 

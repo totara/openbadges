@@ -61,7 +61,8 @@ if ($delete) {
     require_capability('moodle/badges:deletebadge', $context);
 
     $PAGE->url->param('delete', 1);
-    if ($confirm && confirm_sesskey()) {
+    if ($confirm) {
+        require_sesskey();
         $badge->delete();
         redirect(new moodle_url('/badges/index.php', array('type' => $badge->type, 'id' => $badge->courseid)));
     }
@@ -87,7 +88,7 @@ if ($delete) {
     die;
 }
 
-if ($copy && confirm_sesskey()) {
+if ($copy) {
     require_capability('moodle/badges:createbadge', $context);
 
     $cloneid = $badge->make_clone();
@@ -99,7 +100,8 @@ if ($activate) {
 
     $PAGE->url->param('activate', 1);
     $status = ($badge->status == BADGE_STATUS_INACTIVE) ? BADGE_STATUS_ACTIVE : BADGE_STATUS_ACTIVE_LOCKED;
-    if ($confirm == 1 && confirm_sesskey()) {
+    if ($confirm == 1) {
+        require_sesskey();
         $badge->set_status($status);
 
         if ($badge->type == BADGE_TYPE_SITE) {
@@ -145,7 +147,8 @@ if ($activate) {
     die;
 }
 
-if ($deactivate && confirm_sesskey()) {
+if ($deactivate) {
+    require_sesskey();
     require_capability('moodle/badges:configurecriteria', $context);
 
     $status = ($badge->status == BADGE_STATUS_ACTIVE) ? BADGE_STATUS_INACTIVE : BADGE_STATUS_INACTIVE_LOCKED;

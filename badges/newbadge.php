@@ -56,14 +56,13 @@ if (($type == BADGE_TYPE_COURSE) && ($course = $DB->get_record('course', array('
 
 require_capability('moodle/badges:createbadge', $PAGE->context);
 
-$currenturl = qualified_me();
 $PAGE->requires->js('/badges/backpack.js');
 $PAGE->requires->js_init_call('check_site_access', null, false);
 
 $fordb = new stdClass();
 $fordb->id = null;
 
-$form = new edit_details_form($currenturl, array('action' => 'new'));
+$form = new edit_details_form($PAGE->url, array('action' => 'new'));
 
 if ($form->is_cancelled()) {
     redirect(new moodle_url('/badges/index.php', array('type' => $type, 'id' => $courseid)));
