@@ -37,6 +37,11 @@ $hide        = optional_param('hide', 0, PARAM_INT);
 $show        = optional_param('show', 0, PARAM_INT);
 
 require_login();
+
+if (empty($CFG->enablebadges)) {
+    print_error('badgesdisabled', 'badges');
+}
+
 if (isguestuser()) {
     die();
 }
