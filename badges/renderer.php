@@ -59,7 +59,7 @@ class core_badges_renderer extends plugin_renderer_base {
 
             $download = $status = $push = '';
             if (($userid == $USER->id) && !$profile) {
-                $url = new moodle_url('mybadges.php', array('download' => $badge->id, 'hash' => $badge->uniquehash));
+                $url = new moodle_url('mybadges.php', array('download' => $badge->id, 'hash' => $badge->uniquehash, 'sesskey' => sesskey()));
                 if ($CFG->badges_allowexternalbackpack && (empty($badge->dateexpire) || $badge->dateexpire > time())) {
                     $assertion = new moodle_url('/badges/assertion.php', array('b' => $badge->uniquehash));
                     $action = new component_action('click', 'addtobackpack', array('assertion' => $assertion->out(false)));
@@ -68,10 +68,10 @@ class core_badges_renderer extends plugin_renderer_base {
 
                 $download = $this->output->action_icon($url, new pix_icon('t/download', get_string('download')));
                 if ($badge->public) {
-                    $url = new moodle_url('mybadges.php', array('hide' => $badge->issuedid));
+                    $url = new moodle_url('mybadges.php', array('hide' => $badge->issuedid, 'sesskey' => sesskey()));
                     $status = $this->output->action_icon($url, new pix_icon('t/hide', get_string('makeprivate', 'badges')));
                 } else {
-                    $url = new moodle_url('mybadges.php', array('show' => $badge->issuedid));
+                    $url = new moodle_url('mybadges.php', array('show' => $badge->issuedid, 'sesskey' => sesskey()));
                     $status = $this->output->action_icon($url, new pix_icon('t/show', get_string('makepublic', 'badges')));
                 }
             }
@@ -450,7 +450,7 @@ class core_badges_renderer extends plugin_renderer_base {
 
         // Download all button.
         $downloadall = $this->output->single_button(
-                    new moodle_url('/badges/mybadges.php', array('downloadall' => true)),
+                    new moodle_url('/badges/mybadges.php', array('downloadall' => true, 'sesskey' => sesskey())),
                     get_string('downloadall'), 'POST', array('class' => 'activatebadge'));
 
         // Local badges.

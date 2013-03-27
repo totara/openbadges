@@ -55,10 +55,13 @@ if ($clearsearch) {
 }
 
 if ($hide) {
+    require_sesskey();
     $DB->set_field('badge_issued', 'visible', 0, array('id' => $hide));
 } else if ($show) {
+    require_sesskey();
     $DB->set_field('badge_issued', 'visible', 1, array('id' => $show));
 } else if ($download && $hash) {
+    require_sesskey();
     $badge = new badge($download);
     $name = str_replace(' ', '_', $badge->name) . '.png';
     ob_start();
@@ -68,6 +71,7 @@ if ($hide) {
     readfile($file);
     ob_flush();
 } else if ($downloadall) {
+    require_sesskey();
     ob_start();
     badges_download($USER->id);
     ob_flush();

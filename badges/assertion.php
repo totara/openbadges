@@ -27,6 +27,10 @@
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
 
+if (empty($CFG->enablebadges)) {
+    print_error('badgesdisabled', 'badges');
+}
+
 $hash = required_param('b', PARAM_ALPHANUM);
 
 $badge = badges_get_issued_badge_info($hash);

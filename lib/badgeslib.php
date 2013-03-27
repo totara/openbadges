@@ -195,7 +195,6 @@ class badge {
                     BADGE_CRITERIA_TYPE_MANUAL,
                     BADGE_CRITERIA_TYPE_COURSESET,
                     BADGE_CRITERIA_TYPE_PROFILE,
-                    //BADGE_CRITERIA_TYPE_SOCIAL
             );
         }
 
@@ -725,7 +724,6 @@ function badge_message_from_template($message, $params) {
  * @param string $dir The sort direction ASC|DESC
  * @param int $page The page or records to return
  * @param int $perpage The number of records to return per page
- * @param string $search A simple string to search for
  * @param int $user User specific search
  * @return array $badge Array of records matching criteria
  */
@@ -1247,24 +1245,26 @@ function profile_display_badges($userid, $courseid = 0) {
  * @return string Code of backpack accessibility status.
  */
 function badges_check_backpack_accessibility() {
+    global $CFG;
+    include_once $CFG->libdir . '/filelib.php';
+
     // Using fake assertion url to check whether backpack can access the web site.
     $fakeassertion = new moodle_url('/badges/assertion.php', array('b' => 'abcd1234567890'));
 
     // Curl request to http://backpack.openbadges.org/baker.
-    $curl = curl_init('http://backpack.openbadges.org/baker?assertion=' . $fakeassertion->out(false));
+    $curl = new curl();
     $options = array(
-        CURLOPT_FRESH_CONNECT => true,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FORBID_REUSE => true,
-        CURLOPT_HEADER => 0,
-        CURLOPT_CONNECTTIMEOUT_MS => 1000,
+        'FRESH_CONNECT' => true,
+        'RETURNTRANSFER' => true,
+        'FORBID_REUSE' => true,
+        'HEADER' => 0,
+        'CONNECTTIMEOUT_MS' => 1000,
     );
-    curl_setopt_array($curl, $options);
-    $out = curl_exec($curl);
-    curl_close($curl);
+    $location = 'http://backpack.openbadges.org/baker';
+    $out = $curl->get($location, array('assertion' => $fakeassertion->out(false)), $options);
 
     $data = json_decode($out);
-    if (empty($out)) {
+    if (!empty($curl->error)) {
         return 'curl-request-timeout';
     } else {
         if (isset($data->code) && $data->code == 'http-unreachable') {

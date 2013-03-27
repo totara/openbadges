@@ -26,6 +26,9 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+global $CFG;
+require_once($CFG->libdir . '/filelib.php');
+
 // Adopted from https://github.com/jbkc85/openbadges-class-php.
 // Author Jason Cameron <jbkc85@gmail.com>.
 
@@ -43,12 +46,12 @@ class OpenBadgesBackpackHandler {
     }
 
     public function curl_request($action) {
-        $curl = curl_init();
+        $curl = new curl();
+
         switch($action) {
             case 'user':
                 $url = $this->backpack."/displayer/convert/email";
-                curl_setopt($curl, CURLOPT_POST, 1);
-                curl_setopt($curl, CURLOPT_POSTFIELDS, array('email' => $this->email));
+                $param = array('email' => $this->email);
                 break;
             case 'groups':
                 $url = $this->backpack . '/displayer/' . $this->backpackuid . '/groups.json';
@@ -57,16 +60,21 @@ class OpenBadgesBackpackHandler {
                 $url = $this->backpack . '/displayer/' . $this->backpackuid . '/group/'. $this->backpackgid . '.json';
                 break;
         }
+
         $options = array(
-                CURLOPT_FRESH_CONNECT => true,
-                CURLOPT_URL => $url,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_FORBID_REUSE => true,
-                CURLOPT_CONNECTTIMEOUT_MS => 3000,
-                );
-        curl_setopt_array($curl, $options);
-        $out = curl_exec($curl);
-        curl_close($curl);
+            'FRESH_CONNECT' => true,
+            'RETURNTRANSFER' => true,
+            'FORBID_REUSE' => true,
+            'HEADER' => 0,
+            'CONNECTTIMEOUT_MS' => 3000,
+        );
+
+        if ($action == 'user') {
+            $out = $curl->post($url, $param, $options);
+        } else {
+            $out = $curl->get($url, array(), $options);
+        }
+
         return json_decode($out);
     }
 
