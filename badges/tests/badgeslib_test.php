@@ -142,4 +142,47 @@ class badges_testcase extends advanced_testcase {
 
         $this->assertCount(2, $badge->get_awards());
     }
+
+    public function data_for_message_from_template() {
+        return array(
+            array(
+                'This is a message with no variables',
+                array(), // no params
+                'This is a message with no variables'
+            ),
+            array(
+                'This is a message with %amissing% variables',
+                array(), // no params
+                'This is a message with %amissing% variables'
+            ),
+            array(
+                'This is a message with %one% variable',
+                array('one' => 'a single'),
+                'This is a message with a single variable'
+            ),
+            array(
+                'This is a message with %one% %two% %three% variables',
+                array('one' => 'more', 'two' => 'than', 'three' => 'one'),
+                'This is a message with more than one variables'
+            ),
+            array(
+                'This is a message with %three% %two% %one%',
+                array('one' => 'variables', 'two' => 'ordered', 'three' => 'randomly'),
+                'This is a message with randomly ordered variables'
+            ),
+            array(
+                'This is a message with %repeated% %one% %repeated% of variables',
+                array('one' => 'and', 'repeated' => 'lots'),
+                'This is a message with lots and lots of variables'
+            ),
+        );
+    }
+
+    /**
+     * @dataProvider data_for_message_from_template
+     */
+    public function test_badge_message_from_template($message, $params, $result) {
+        $this->assertEquals(badge_message_from_template($message, $params), $result);
+    }
+
 }
