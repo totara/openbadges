@@ -26,7 +26,7 @@
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
-require_once($CFG->dirroot . '/badges/utils/awardlib.php');
+require_once($CFG->dirroot . '/badges/lib/awardlib.php');
 
 $badgeid = required_param('id', PARAM_INT);
 $role = optional_param('role', 0, PARAM_INT);

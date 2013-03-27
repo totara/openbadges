@@ -58,7 +58,7 @@ abstract class badge_award_selector_base extends user_selector_base {
      * @param string $name
      * @param array $options
      */
-    public function __construct($name, $options) {
+    public function __construct($name, array $options) {
         $options['accesscontext'] = $options['context'];
         parent::__construct($name, $options);
         if (isset($options['context'])) {
@@ -88,7 +88,7 @@ abstract class badge_award_selector_base extends user_selector_base {
     protected function get_options() {
         global $CFG;
         $options = parent::get_options();
-        $options['file'] =  'badges/utils/awardlib.php';
+        $options['file'] =  'badges/lib/awardlib.php';
         $options['context'] = $this->context;
         $options['badgeid'] = $this->badgeid;
         $options['issuerid'] = $this->issuerid;

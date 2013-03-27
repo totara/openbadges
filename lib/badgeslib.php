@@ -1107,7 +1107,7 @@ function print_badge_image($badge, $context, $size = 'small') {
  */
 function badges_bake($hash, $badgeid, $userid = 0, $pathhash = false) {
     global $CFG, $USER;
-    require_once(dirname(dirname(__FILE__)) . '/badges/utils/bakerlib.php');
+    require_once(dirname(dirname(__FILE__)) . '/badges/lib/bakerlib.php');
 
     $badge = new badge($badgeid);
     $badge_context = $badge->get_context();
@@ -1156,7 +1156,7 @@ function badges_bake($hash, $badgeid, $userid = 0, $pathhash = false) {
  */
 function get_backpack_settings($userid) {
     global $DB;
-    require_once(dirname(dirname(__FILE__)) . '/badges/utils/backpacklib.php');
+    require_once(dirname(dirname(__FILE__)) . '/badges/lib/backpacklib.php');
 
     $record = $DB->get_record('badge_backpack', array('userid' => $userid), '*', IGNORE_MISSING);
     if ($record) {

@@ -58,7 +58,7 @@ abstract class badge_award_selector_base extends user_selector_base {
      * @param string $name
      * @param array $options
      */
-    public function __construct($name, array $options) {
+    public function __construct($name, $options) {
         $options['accesscontext'] = $options['context'];
         parent::__construct($name, $options);
         if (isset($options['context'])) {
