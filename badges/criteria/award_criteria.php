@@ -200,8 +200,9 @@ abstract class award_criteria {
     /**
      * Add appropriate criteria elements
      *
+     * @param stdClass $data details of various criteria
      */
-    public function config_form_criteria($data) {
+    public function config_form_criteria(stdClass $data) {
         global $OUTPUT;
         $agg = $data->get_aggregation_methods();
 

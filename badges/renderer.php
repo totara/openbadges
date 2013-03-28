@@ -67,7 +67,7 @@ class core_badges_renderer extends plugin_renderer_base {
                 }
 
                 $download = $this->output->action_icon($url, new pix_icon('t/download', get_string('download')));
-                if ($badge->public) {
+                if ($badge->visible) {
                     $url = new moodle_url('mybadges.php', array('hide' => $badge->issuedid, 'sesskey' => sesskey()));
                     $status = $this->output->action_icon($url, new pix_icon('t/hide', get_string('makeprivate', 'badges')));
                 } else {

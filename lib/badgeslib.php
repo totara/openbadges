@@ -792,7 +792,7 @@ function badges_get_user_badges($userid, $courseid = 0, $page = 0, $perpage = 0,
                 bi.dateissued,
                 bi.dateexpire,
                 bi.id as issuedid,
-                bi.visible as public,
+                bi.visible,
                 u.email,
                 b.*
             FROM
@@ -842,8 +842,8 @@ function badges_get_issued_badge_info($hash) {
                 {user} u
             WHERE b.id = bi.badgeid
                 AND u.id = bi.userid
-                AND bi.uniquehash = ?',
-            array($hash), IGNORE_MISSING);
+                AND ' . $DB->sql_compare_text('bi.uniquehash') . ' = ' . $DB->sql_compare_text(':hash'),
+            array('hash' => $hash), IGNORE_MISSING);
 
     if ($record) {
         if ($record->type == BADGE_TYPE_SITE) {
@@ -885,7 +885,7 @@ function badges_get_issued_badge_info($hash) {
  * @param navigation_node $coursenode
  * @param object $course
  */
-function badges_add_course_navigation(navigation_node $coursenode, $course) {
+function badges_add_course_navigation(navigation_node $coursenode, stdClass $course) {
     global $CFG, $SITE;
 
     $coursecontext = context_course::instance($course->id);
@@ -922,7 +922,7 @@ function badges_add_course_navigation(navigation_node $coursenode, $course) {
  * @param   object $eventdata
  * @return  boolean
  */
-function badges_award_handle_course_criteria_review($eventdata) {
+function badges_award_handle_course_criteria_review(stdClass $eventdata) {
     global $DB, $CFG;
 
     if (!empty($CFG->enablebadges)) {
@@ -959,7 +959,7 @@ function badges_award_handle_course_criteria_review($eventdata) {
  * @param   object $eventdata
  * @return  boolean
  */
-function badges_award_handle_activity_criteria_review($eventdata) {
+function badges_award_handle_activity_criteria_review(stdClass $eventdata) {
     global $DB, $CFG;
 
     if (!empty($CFG->enablebadges)) {
@@ -1000,7 +1000,7 @@ function badges_award_handle_activity_criteria_review($eventdata) {
  * @param   object $eventdata Holds all information about a user.
  * @return  boolean
  */
-function badges_award_handle_profile_criteria_review($eventdata) {
+function badges_award_handle_profile_criteria_review(stdClass $eventdata) {
     global $DB, $CFG;
 
     if (!empty($CFG->enablebadges)) {
@@ -1034,7 +1034,7 @@ function badges_award_handle_profile_criteria_review($eventdata) {
  * @param   object      $data
  * @return  boolean
  */
-function badges_award_handle_manual_criteria_review($data) {
+function badges_award_handle_manual_criteria_review(stdClass $data) {
     $criteria = $data->crit;
     $userid = $data->userid;
     $badge = new badge($criteria->badgeid);
@@ -1062,7 +1062,7 @@ function badges_award_handle_manual_criteria_review($data) {
  * @param string $iconfile Original file
  */
 function badges_process_badge_image(badge $badge, $iconfile) {
-    global $CFG, $DB, $USER;
+    global $CFG, $USER;
     require_once($CFG->libdir. '/gdlib.php');
 
     if (!empty($CFG->gdversion)) {
@@ -1086,7 +1086,7 @@ function badges_process_badge_image(badge $badge, $iconfile) {
  * @param stdClass $context
  * @param string $size
  */
-function print_badge_image($badge, $context, $size = 'small') {
+function print_badge_image(badge $badge, stdClass $context, $size = 'small') {
     $fsize = ($size == 'small') ? 'f2' : 'f1';
 
     $imageurl = moodle_url::make_pluginfile_url($context->id, 'badges', 'badgeimage', $badge->id, '/', $fsize, false);
@@ -1173,10 +1173,9 @@ function get_backpack_settings($userid) {
 }
 
 /**
- * Download badges in zip archive.
+ * Download all user badges in zip archive.
  *
  * @param int $userid ID of badge owner.
- * @param array $badges List of issued badges to download.
  */
 function badges_download($userid) {
     global $CFG, $DB;

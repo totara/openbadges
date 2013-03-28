@@ -107,7 +107,7 @@ function badge_message_cron() {
  *
  * @param object $badge A badge which is notified about.
  */
-function badge_assemble_notification($badge) {
+function badge_assemble_notification(stdClass $badge) {
     global $CFG, $DB;
 
     $admin = get_admin();

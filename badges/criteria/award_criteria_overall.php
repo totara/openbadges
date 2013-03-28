@@ -38,10 +38,9 @@ class award_criteria_overall extends award_criteria {
     /**
      * Add appropriate form elements to the criteria form
      *
-     * @param moodleform $mform  Moodle forms object
-     * @param stdClass $data details of various modules
+     * @param stdClass $data details of overall criterion
      */
-    public function config_form_criteria($data) {
+    public function config_form_criteria(stdClass $data) {
         global $OUTPUT;
         $prefix = 'criteria-' . $this->id;
         if (count($data->criteria) > 2) {
