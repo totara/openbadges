@@ -149,7 +149,7 @@ if ($type == BADGE_TYPE_SITE) {
 } else {
     echo $OUTPUT->heading($PAGE->heading);
 }
-echo $OUTPUT->box('', 'notifyproblem', 'check_connection');
+echo $OUTPUT->box('', 'notifyproblem hide', 'check_connection');
 
 $totalcount = count(badges_get_badges($type, $courseid, '', '' , '', ''));
 $records = badges_get_badges($type, $courseid, $sortby, $sorthow, $page, BADGE_PERPAGE);

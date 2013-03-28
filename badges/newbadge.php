@@ -99,7 +99,7 @@ if ($form->is_cancelled()) {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->box('', 'notifyproblem', 'check_connection');
+echo $OUTPUT->box('', 'notifyproblem hide', 'check_connection');
 
 $form->display();
 

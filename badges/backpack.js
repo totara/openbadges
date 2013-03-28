@@ -15,6 +15,7 @@ function check_site_access() {
             var data = Y.JSON.parse(o.responseText);
             if (data.code == 'http-unreachable') {
                 add.setHTML(data.response);
+                add.removeClass('hide');
             }
         },
         failure: function(o) { }
