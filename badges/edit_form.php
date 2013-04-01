@@ -126,7 +126,7 @@ class edit_details_form extends moodleform {
 
             // Freeze all elements if badge is active or locked.
             if ($badge->is_active() || $badge->is_locked()) {
-                $mform->hardFreeze();
+                $mform->hardFreezeAllVisibleExcept(array());
             }
         }
     }
