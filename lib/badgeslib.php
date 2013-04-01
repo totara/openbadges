@@ -1223,7 +1223,8 @@ function profile_display_badges($userid, $courseid = 0) {
         if ($records) {
             $left = get_string('localbadgesp', 'badges', $SITE->fullname);
             $right = $renderer->print_badges_list($records, $userid, true);
-            echo "\n<tr><th class=\"label c0 badge-profile\">$left</th><td class=\"info c1\">$right</td></tr>\n";
+            echo html_writer::tag('dt', $left);
+            echo html_writer::tag('dd', $right);
         }
 
         // Print external badges.
@@ -1232,7 +1233,8 @@ function profile_display_badges($userid, $courseid = 0) {
             if (isset($backpack->totalbadges) && $backpack->totalbadges !== 0) {
                 $left = get_string('externalbadgesp', 'badges');
                 $right = $renderer->print_badges_list($backpack->badges, $userid, true, true);
-                echo "\n<tr><th class=\"label c0 badge-profile\">$left</th><td class=\"info c1\">$right</td></tr>\n";
+                echo html_writer::tag('dt', $left);
+                echo html_writer::tag('dd', $right);
             }
         }
     }
