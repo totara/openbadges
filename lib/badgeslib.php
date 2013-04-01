@@ -842,7 +842,7 @@ function badges_get_issued_badge_info($hash) {
                 {user} u
             WHERE b.id = bi.badgeid
                 AND u.id = bi.userid
-                AND ' . $DB->sql_compare_text('bi.uniquehash') . ' = ' . $DB->sql_compare_text(':hash'),
+                AND ' . $DB->sql_compare_text('bi.uniquehash', 40) . ' = ' . $DB->sql_compare_text(':hash', 40),
             array('hash' => $hash), IGNORE_MISSING);
 
     if ($record) {

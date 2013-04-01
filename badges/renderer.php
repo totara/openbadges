@@ -891,7 +891,10 @@ class issued_badge implements renderable {
         $this->issued = badges_get_issued_badge_info($hash);
         $this->hash = $hash;
 
-        $rec = $DB->get_record_select('badge_issued', $DB->sql_compare_text('uniquehash') . ' = ? ', array($hash), 'userid, visible, badgeid');
+        $rec = $DB->get_record_sql('SELECT userid, visible, badgeid
+                FROM {badge_issued}
+                WHERE ' . $DB->sql_compare_text('uniquehash', 40) . ' = ' . $DB->sql_compare_text(':hash', 40),
+                array('hash' => $hash), IGNORE_MISSING);
         if ($rec) {
             $this->recipient = $rec->userid;
             $this->visible = $rec->visible;

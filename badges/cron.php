@@ -43,19 +43,27 @@ function badge_cron() {
  * (Not sure how efficient this is timewise).
  */
 function badge_review_cron() {
-    global $DB;
+    global $DB, $CFG;
     $total = 0;
+
+    $courseparams = array();
+    if (empty($CFG->badges_allowcoursebadges)) {
+        $coursesql = '';
+    } else {
+        $coursesql = ' OR EXISTS (SELECT id FROM {course} WHERE visible = :visible AND startdate < :current) ';
+        $courseparams = array('visible' => true, 'current' => time());
+    }
 
     $sql = 'SELECT id
                 FROM {badge}
                 WHERE (status = :active OR status = :activelocked)
-                    AND (type = :site OR EXISTS (SELECT id FROM {course} WHERE visible = :visible AND startdate < :current))';
-    $params = array(
-            'active' => BADGE_STATUS_ACTIVE,
-            'activelocked' => BADGE_STATUS_ACTIVE_LOCKED,
-            'site' => BADGE_TYPE_SITE,
-            'visible' => true,
-            'current' => time());
+                    AND (type = :site ' . $coursesql . ')';
+    $badgeparams = array(
+                    'active' => BADGE_STATUS_ACTIVE,
+                    'activelocked' => BADGE_STATUS_ACTIVE_LOCKED,
+                    'site' => BADGE_TYPE_SITE
+                    );
+    $params = array_merge($badgeparams, $courseparams);
     $badges = $DB->get_fieldset_sql($sql, $params);
 
     mtrace('Started reviewing available badges.');
