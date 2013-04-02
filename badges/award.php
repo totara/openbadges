@@ -113,14 +113,8 @@ $existingselector = new badge_existing_users_selector('existingrecipients', $opt
 $recipientselector = new badge_potential_users_selector('potentialrecipients', $options);
 $recipientselector->set_existing_recipients($existingselector->find_users(''));
 
-if (data_submitted() && has_capability('moodle/badges:awardbadge', $context)) {
+if (optional_param('award', false, PARAM_BOOL) && data_submitted() && has_capability('moodle/badges:awardbadge', $context)) {
     require_sesskey();
-    $award = (bool)optional_param('award', false, PARAM_RAW);
-
-    if (!$award) {
-        print_error('invalidaction');
-    }
-
     $users = $recipientselector->get_selected_users();
     foreach ($users as $user) {
         if (process_manual_award($user->id, $USER->id, $issuerrole->roleid, $badgeid)) {
