@@ -25,13 +25,18 @@
  */
 
 define('AJAX_SCRIPT', true);
+define('NO_DEBUG_DISPLAY', true);
 
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 require_once($CFG->libdir . '/badgeslib.php');
+require_once($CFG->libdir . '/sessionlib.php');
 
 require_login();
 $PAGE->set_url('/badges/ajax.php');
 $PAGE->set_context(context_system::instance());
+
+// Close session.
+session_get_instance()->write_close();
 
 $result = badges_check_backpack_accessibility();
 
