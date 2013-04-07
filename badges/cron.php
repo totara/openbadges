@@ -30,7 +30,7 @@ require_once($CFG->libdir . '/badgeslib.php');
 function badge_cron() {
     global $CFG;
 
-    if (!empty($CFG->enablebadges)) {
+    if ($CFG->enablebadges) {
         badge_review_cron();
         badge_message_cron();
     }
