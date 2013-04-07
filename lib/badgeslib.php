@@ -1260,11 +1260,10 @@ function badges_check_backpack_accessibility() {
         'HEADER' => 0,
         'CONNECTTIMEOUT_MS' => 2000,
     );
-    $location = 'https://backpack.openbadges.org/baker';
+    $location = 'http://backpack.openbadges.org/baker';
     $out = $curl->get($location, array('assertion' => $fakeassertion->out(false)), $options);
 
     $data = json_decode($out);
-
     if (!empty($curl->error)) {
         return 'curl-request-timeout';
     } else {
