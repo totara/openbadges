@@ -1,8 +1,7 @@
-THIS IS WORK IN PROGRESS!!!
------------------------------------------------------------------------------
 Open Badges Integration for Moodle
+-----------------------------------------------------------------------------
 
-Copyright (C) 2011-2012 Totara LMS (http://www.totaralms.com)
+Copyright (C) 2011-2013 Totara LMS (http://www.totaralms.com)
 
 This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the Free
@@ -21,7 +20,7 @@ this program.  If not, see <http://www.gnu.org/licenses/>.
 Description
 -----------
 
-The OpenBadges feature allows to integrate Mozilla "OpenBadges" to issue, assign,
+The OpenBadges feature allows to integrate Mozilla "Open Badges" to issue, assign,
 manage and display digital badges in Moodle LMS. Functionality for OpenBadges will
 be implemented in the following components:
 
