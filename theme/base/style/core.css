@@ -107,7 +107,6 @@ img.iconkbhelp {height:17px;width:49px;}
 img.icon-pre, .dir-rtl img.icon-post { padding-right: 3px; padding-left: 0; }
 img.icon-post, .dir-rtl img.icon-pre { padding-left: 3px; padding-right: 0; }
 
-.categorybox .category {font-size:1.2em;font-weight:bold;}
 .generalbox {border:1px solid;}
 .boxaligncenter {margin-left:auto;margin-right:auto;}
 .boxalignright {margin-left:auto;margin-right:0;}
@@ -242,6 +241,11 @@ a.skip:active {position: static;display: block;}
 .mform .collapsible-actions {display: none;}
 .jsenabled .mform .collapsible-actions {text-align: right; display: block;}
 .dir-rtl .mform .collapsible-actions {text-align: left;}
+.mform .collapseexpand {background: url([[pix:t/collapsed]]) left center no-repeat; padding-left: 18px;}
+.dir-rtl .mform .collapseexpand {background-image: url([[pix:t/collapsed_rtl]]); background-position: right center; padding-left: 0; padding-right: 18px;}
+.mform .collapse-all,
+.dir-rtl .mform .collapse-all {background-image: url([[pix:t/expanded]]);}
+.mform fieldset legend {padding: 0 0.35em;}
 .mform fieldset.collapsible legend a.fheader {padding-left: 18px; background: url([[pix:t/expanded]]) left center no-repeat;}
 .mform fieldset.collapsed legend a.fheader {background-image: url([[pix:t/collapsed]]);}
 .jsenabled .mform fieldset.collapsed {border-width: 1px 0 0 1px; padding: 0; border-color: transparent;}
@@ -265,12 +269,23 @@ a.skip:active {position: static;display: block;}
 .mform label .req,
 .mform label .adv {cursor: help;}
 .mform .fcheckbox input {margin-left: 0;}
+.mform .fcheckbox label,
+.mform .fduration label,
 .mform .fitem fieldset.fgroup label,
 .mform .fradio label,
-.mform .fcheckbox label,
-.mform fieldset.fdate_selector label {display:inline;float: none;width: auto;}
+.mform fieldset.fdate_selector label,
+.mform fieldset.fdate_time_selector label {display:inline;float: none; margin-left: .3em; vertical-align: text-bottom;}
+.dir-rtl .mform .fcheckbox label,
+.dir-rtl .mform .fduration label,
+.dir-rtl .mform .fitem fieldset.fgroup label,
+.dir-rtl .mform .fradio label,
+.dir-rtl .mform fieldset.fdate_selector label,
+.dir-rtl .mform fieldset.fdate_time_selector label {margin-right: .3em; margin-left: 0;}
 .mform .ftags label.accesshide {display: block;position: static;}
 .mform .ftags select {margin-bottom: 0.7em;min-width: 22em;}
+.mform .moreless-toggler {background: url([[pix:t/more]]) left center no-repeat; padding-left: 16px;}
+.dir-rtl .moreless-toggler {padding-left: 0; padding-right: 16px; background-position: right center; }
+.mform .moreless-less {background-image: url([[pix:t/less]]);}
 .mform .helplink img { margin: 0 0 0 .45em; padding: 0;}
 .dir-rtl .mform .helplink img { margin: 0 .45em 0 0; padding: 0;}
 .mform legend .helplink img { margin-right: .2em; }
@@ -285,6 +300,11 @@ a.skip:active {position: static;display: block;}
 .dir-rtl .mform fieldset.collapsed legend a.fheader {background-image: url([[pix:t/collapsed_rtl]]); }
 .dir-rtl.jsenabled .mform fieldset.collapsed {border-width: 1px 1px 0 0; }
 .dir-rtl .mform .fitem fieldset.felement {padding-right: 1%;margin-right: 15%;}
+
+.mform .btn-cancel, .mform .btn-cancel:active, .mform .btn-cancel[disabled] { background-color: transparent; background-image: none; box-shadow: none; -moz-box-shadow: none; -webkit-box-shadow: none; -o-box-shadow: none; -ms-box-shadow: none; margin-left: .5em;}
+.mform .btn-cancel { border-color: transparent; border-radius: 0 0 0 0; -moz-border-radius: 0 0 0 0; -webkit-border-radius: 0 0 0 0; -o-border-radius: 0 0 0 0; -ms-border-radius: 0 0 0 0; color: #0088CC; cursor: pointer; }
+.mform .btn-cancel:hover, .mform .btn-cancel:focus { background-color: transparent; color: #005580; text-decoration: underline; }
+.mform .btn-cancel[disabled]:hover, .mform .btn-cancel[disabled]:focus { color: #333333; text-decoration: none; }
 
 input#id_externalurl {direction:ltr;}
 
@@ -615,11 +635,22 @@ body.tag .managelink {padding: 5px;}
 .userenrolment .col_enrol .enrolment {float:left;padding:3px;margin:3px;}
 .userenrolment .col_enrol .enrolment a {float:right;margin-left:3px;}
 #page-enrol-users .enrol_user_buttons {float:right;}
+#page-enrol-users .enrol_user_buttons .singlebutton {margin-top: 2px; line-height: 2;}
 #page-enrol-users .enrol_user_buttons .enrolusersbutton {margin-left:1em;display:inline;}
 #page-enrol-users .enrol_user_buttons .enrolusersbutton div,
 #page-enrol-users .enrol_user_buttons .enrolusersbutton form {display:inline;}
 #page-enrol-users .enrol_user_buttons .enrolusersbutton input {padding-left:6px;padding-right:6px;}
 #page-enrol-users.dir-rtl .col_userdetails .subfield_picture {float: right;}
+#page-enrol-users #filterform div,
+#page-enrol-users #filterform fieldset {display:inline;float:none;clear:none;width:auto;margin:0;line-height:2;}
+#page-enrol-users #filterform .fitem {white-space:nowrap;}
+#page-enrol-users #filterform fieldset > div {display:block;float:left;background:#f2f2f2;padding:2px;}
+#page-enrol-users #filterform select,
+#page-enrol-users #filterform .ftext input {width:8em;}
+#page-enrol-users #filterform #fitem_id_role,
+#page-enrol-users #filterform #fitem_id_ifilter,
+#page-enrol-users #filterform #fgroup_id_buttons {margin-left:0.5em;}
+#page-enrol-users .paging { clear: right; }
 
 /**
 * Overide for RTL layout
@@ -1323,8 +1354,8 @@ div.badge .expireimage { width: 100px; height: 100px; left: 20px; top: 0px; }
 .expireimage { width: 90px; height: 90px; left: 30px; top: 0px; position: absolute; z-index:10; filter: alpha(opacity = 85); -moz-opacity: 0.85; -khtml-opacity: 0.85; opacity: 0.85;}
 
 .badge-profile { vertical-align: top; }
-.connected { color:#006600; }
-.notconnected { color:#660000; }
+.connected { color: #006600; }
+.notconnected { color: #660000; }
 
 #page-badges-award .recipienttable { background-color: #EEEEEE; border: 1px solid #BBBBBB; width: 100%; vertical-align: top; }
 #page-badges-award .recipienttable tr td { vertical-align: top; }
