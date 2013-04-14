@@ -1173,11 +1173,9 @@ function get_backpack_settings($userid) {
                 $badges = $backpack->get_badges($collection->collectionid);
                 if (isset($badges->badges)) {
                     $out->badges = array_merge($out->badges, $badges->badges);
-                    $out->totalbadges += count($out->badges);
-                } else {
-                    $out->badges = array_merge($out->badges, array());
                 }
             }
+            $out->totalbadges = count($out->badges);
         } else {
             $out->totalbadges = 0;
             $out->totalcollections = 0;
