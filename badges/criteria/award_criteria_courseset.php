@@ -75,6 +75,7 @@ class award_criteria_courseset extends award_criteria {
 
     public function get_courses(&$mform) {
         global $DB, $CFG, $PAGE;
+        require_once($CFG->libdir . '/coursecatlib.php');
         require_once($CFG->dirroot . '/course/lib.php');
         $buttonarray = array();
 
@@ -82,8 +83,7 @@ class award_criteria_courseset extends award_criteria {
         $courses = $DB->get_records('course', array('enablecompletion' => COMPLETION_ENABLED));
         if (!empty($courses)) {
             $list = array();
-            $parents = array();
-            make_categories_list($list, $parents);
+            $list = coursecat::make_categories_list();
 
             $select = array();
             $selected = array();
