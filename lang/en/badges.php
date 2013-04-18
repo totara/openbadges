@@ -312,7 +312,7 @@ $string['reviewconfirm'] = '<p>This action will perform a check if any of the us
 <p>Would you like to proceed?</p>';
 $string['save'] = 'Save';
 $string['searchname'] = 'Search by name';
-$string['selectaward'] = 'Please can select a role to award this badge: ';
+$string['selectaward'] = 'Please select a role to award this badge: ';
 $string['selectgroup_end'] = 'Only public collections are shown, <a href="http://backpack.openbadges.org">visit your backpack</a> to create more public collections.';
 $string['selectgroup_start'] = 'Select collections from your backpack to display on this site:';
 $string['selecting'] = 'With selected badges...';

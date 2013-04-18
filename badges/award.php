@@ -30,6 +30,7 @@ require_once($CFG->dirroot . '/badges/lib/awardlib.php');
 
 $badgeid = required_param('id', PARAM_INT);
 $role = optional_param('role', 0, PARAM_INT);
+$award = optional_param('award', false, PARAM_BOOL);
 
 require_login();
 
@@ -132,7 +133,7 @@ $existingselector = new badge_existing_users_selector('existingrecipients', $opt
 $recipientselector = new badge_potential_users_selector('potentialrecipients', $options);
 $recipientselector->set_existing_recipients($existingselector->find_users(''));
 
-if (optional_param('award', false, PARAM_BOOL) && data_submitted() && has_capability('moodle/badges:awardbadge', $context)) {
+if ($award && data_submitted() && has_capability('moodle/badges:awardbadge', $context)) {
     require_sesskey();
     $users = $recipientselector->get_selected_users();
     foreach ($users as $user) {
