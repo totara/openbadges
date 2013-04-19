@@ -98,14 +98,14 @@ if (count($accepted_roles) > 1) {
     if (!$role) {
         $pageurl = new moodle_url('/badges/award.php', array('id' => $badgeid));
         echo $OUTPUT->header();
-        echo $OUTPUT->box(get_string('selectaward', 'badges') . $OUTPUT->single_select(new moodle_url($pageurl), 'role', $select));
+        echo $OUTPUT->box(get_string('selectaward', 'badges') . $OUTPUT->single_select($pageurl, 'role', $select));
         echo $OUTPUT->footer();
         die();
     } else {
         $pageurl = new moodle_url('/badges/award.php', array('id' => $badgeid));
         $issuerrole = new stdClass();
         $issuerrole->roleid = $role;
-        $roleselect = get_string('selectaward', 'badges') . $OUTPUT->single_select(new moodle_url($pageurl), 'role', $select, $role);
+        $roleselect = get_string('selectaward', 'badges') . $OUTPUT->single_select($pageurl, 'role', $select, $role);
     }
 } else {
     // User has to be an admin or the one with the required role.
