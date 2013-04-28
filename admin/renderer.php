@@ -279,10 +279,10 @@ class core_admin_renderer extends plugin_renderer_base {
             $output .= $this->output->container(get_string('updatepluginconfirmexternal', 'core_plugin', $repotype), 'updatepluginconfirmexternal');
         }
 
-        $widget = $deployer->make_execution_widget($data['updateinfo']);
+        $widget = $deployer->make_execution_widget($data['updateinfo'], $data['returnurl']);
         $output .= $this->output->render($widget);
 
-        $output .= $this->output->single_button($data['returnurl'], get_string('cancel', 'core'), 'get');
+        $output .= $this->output->single_button($data['callerurl'], get_string('cancel', 'core'), 'get');
 
         $output .= $this->container_end();
         $output .= $this->footer();
@@ -896,7 +896,7 @@ class core_admin_renderer extends plugin_renderer_base {
                         continue;
                     }
 
-                } else if ($isstandard and $statusisboring and $dependenciesok and empty($availableupdates)) {
+                } else if ($statusisboring and $dependenciesok and empty($availableupdates)) {
                     // no change is going to happen to the plugin - display it only
                     // if the user wants to see the full list
                     if (empty($options['full'])) {
@@ -1179,9 +1179,12 @@ class core_admin_renderer extends plugin_renderer_base {
                 } else {
                     $icon = $this->output->pix_icon('spacer', '', 'moodle', array('class' => 'icon pluginicon noicon'));
                 }
-                if ($plugin->get_status() === plugin_manager::PLUGIN_STATUS_MISSING) {
-                    $msg = html_writer::tag('span', get_string('status_missing', 'core_plugin'), array('class' => 'notifyproblem'));
-                    $row->attributes['class'] .= ' missingfromdisk';
+                $status = $plugin->get_status();
+                $row->attributes['class'] .= ' status-'.$status;
+                if ($status === plugin_manager::PLUGIN_STATUS_MISSING) {
+                    $msg = html_writer::tag('span', get_string('status_missing', 'core_plugin'), array('class' => 'statusmsg'));
+                } else if ($status === plugin_manager::PLUGIN_STATUS_NEW) {
+                    $msg = html_writer::tag('span', get_string('status_new', 'core_plugin'), array('class' => 'statusmsg'));
                 } else {
                     $msg = '';
                 }

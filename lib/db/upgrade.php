@@ -2117,5 +2117,27 @@ function xmldb_main_upgrade($oldversion) {
         upgrade_main_savepoint(true, 2013041601.01);
     }
 
+    if ($oldversion < 2013041900.00) {
+        require_once($CFG->dirroot . '/cache/locallib.php');
+        // The features bin needs updating.
+        cache_config_writer::update_default_config_stores();
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2013041900.00);
+    }
+
+    if ($oldversion < 2013042300.00) {
+        // Adding index to unreadmessageid field of message_working table (MDL-34933)
+        $table = new xmldb_table('message_working');
+        $index = new xmldb_index('unreadmessageid_idx', XMLDB_INDEX_NOTUNIQUE, array('unreadmessageid'));
+
+        // Conditionally launch add index unreadmessageid
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2013042300.00);
+    }
+
     return true;
 }

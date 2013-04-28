@@ -809,10 +809,10 @@ class plugin_manager {
             ),
 
             'theme' => array(
-                'afterburner', 'anomaly', 'arialist', 'base', 'binarius', 'bootstrap',
-                'boxxie', 'brick', 'canvas', 'formal_white', 'formfactor',
+                'afterburner', 'anomaly', 'arialist', 'base', 'binarius', 'bootstrapbase',
+                'boxxie', 'brick', 'canvas', 'clean', 'formal_white', 'formfactor',
                 'fusion', 'leatherbound', 'magazine', 'mymobile', 'nimble',
-                'nonzero', 'overlay', 'serenity', 'simple', 'sky_high', 'splash',
+                'nonzero', 'overlay', 'serenity', 'sky_high', 'splash',
                 'standard', 'standardold'
             ),
 
@@ -945,6 +945,12 @@ class plugin_manager {
 
         if (!$pluginfo->is_uninstall_allowed()) {
             // The plugin's plugininfo class declares it should not be uninstalled.
+            return false;
+        }
+
+        if ($pluginfo->get_status() === plugin_manager::PLUGIN_STATUS_NEW) {
+            // The plugin is not installed. It should be either installed or removed from the disk.
+            // Relying on this temporary state may be tricky.
             return false;
         }
 
@@ -2003,9 +2009,10 @@ class available_update_deployer {
      * Prepares a renderable widget to execute installation of an available update.
      *
      * @param available_update_info $info component version to deploy
+     * @param moodle_url $returnurl URL to return after the installation execution
      * @return renderable
      */
-    public function make_execution_widget(available_update_info $info) {
+    public function make_execution_widget(available_update_info $info, moodle_url $returnurl = null) {
         global $CFG;
 
         if (!$this->initialized()) {
@@ -2022,7 +2029,11 @@ class available_update_deployer {
 
         list($passfile, $password) = $this->prepare_authorization();
 
-        $upgradeurl = new moodle_url('/admin');
+        if (is_null($returnurl)) {
+            $returnurl = new moodle_url('/admin');
+        } else {
+            $returnurl = $returnurl;
+        }
 
         $params = array(
             'upgrade' => true,
@@ -2035,7 +2046,7 @@ class available_update_deployer {
             'dirroot' => $CFG->dirroot,
             'passfile' => $passfile,
             'password' => $password,
-            'returnurl' => $upgradeurl->out(true),
+            'returnurl' => $returnurl->out(false),
         );
 
         if (!empty($CFG->proxyhost)) {
@@ -2206,7 +2217,7 @@ class available_update_deployer {
         if (!empty($this->callerurl)) {
             $data['callerurl'] = $this->callerurl->out(false);
         }
-        if (!empty($this->callerurl)) {
+        if (!empty($this->returnurl)) {
             $data['returnurl'] = $this->returnurl->out(false);
         }
 

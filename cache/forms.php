@@ -57,19 +57,20 @@ class cachestore_addinstance_form extends moodleform {
             $form->addElement('text', 'name', get_string('storename', 'cache'));
             $form->addHelpButton('name', 'storename', 'cache');
             $form->addRule('name', get_string('required'), 'required');
-            $form->setType('name', PARAM_TEXT);
+            $form->setType('name', PARAM_NOTAGS);
         } else {
             $form->addElement('hidden', 'name', $store);
             $form->addElement('static', 'name-value', get_string('storename', 'cache'), $store);
-            $form->setType('name', PARAM_TEXT);
+            $form->setType('name', PARAM_NOTAGS);
         }
 
         if (is_array($locks)) {
             $form->addElement('select', 'lock', get_string('lockmethod', 'cache'), $locks);
             $form->addHelpButton('lock', 'lockmethod', 'cache');
-            $form->setType('lock', PARAM_TEXT);
+            $form->setType('lock', PARAM_PLUGIN);
         } else {
             $form->addElement('hidden', 'lock', '');
+            $form->setType('lock', PARAM_PLUGIN);
             $form->addElement('static', 'lock-value', get_string('lockmethod', 'cache'),
                     '<em>'.get_string('nativelocking', 'cache').'</em>');
         }
@@ -139,7 +140,9 @@ class cache_definition_mappings_form extends moodleform {
                 cache_administration_helper::get_definition_store_options($component, $area);
 
         $form->addElement('hidden', 'definition', $definition);
+        $form->setType('definition', PARAM_SAFEPATH);
         $form->addElement('hidden', 'action', 'editdefinitionmapping');
+        $form->setType('action', PARAM_ALPHA);
 
         $requiredoptions = max(3, count($currentstores)+1);
         $requiredoptions = min($requiredoptions, count($storeoptions));
@@ -200,7 +203,7 @@ class cache_mode_mappings_form extends moodleform {
         );
         foreach ($stores as $storename => $store) {
             foreach ($store['modes'] as $mode => $enabled) {
-                if ($enabled) {
+                if ($enabled && ($mode !== cache_store::MODE_SESSION || $store['supports']['searchable'])) {
                     if (empty($store['default'])) {
                         $options[$mode][$storename] = $store['name'];
                     } else {
@@ -211,6 +214,7 @@ class cache_mode_mappings_form extends moodleform {
         }
 
         $form->addElement('hidden', 'action', 'editmodemappings');
+        $form->setType('action', PARAM_ALPHA);
         foreach ($options as $mode => $optionset) {
             $form->addElement('select', 'mode_'.$mode, get_string('mode_'.$mode, 'cache'), $optionset);
         }
