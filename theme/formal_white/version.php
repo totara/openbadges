@@ -17,15 +17,17 @@
 /**
  * Label module version info
  *
- * @package    theme
- * @subpackage formal_white
+ * @package    theme_formal_white
  * @copyright  Mediatouch 2000 (http://mediatouch.it/)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die;
 
-$plugin->version   = 2012112900; // The current module version (Date: YYYYMMDDXX)
-$plugin->requires  = 2012112900; // Requires this Moodle version
+$plugin->version   = 2013050100; // The current module version (Date: YYYYMMDDXX)
+$plugin->requires  = 2013050100; // Requires this Moodle version
 $plugin->component = 'theme_formal_white';
 $plugin->maturity  = MATURITY_STABLE;
+$plugin->dependencies = array(
+    'theme_canvas'  => 2013050100,
+);

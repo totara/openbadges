@@ -6197,9 +6197,12 @@ function get_max_upload_sizes($sitebytes = 0, $coursebytes = 0, $modulebytes = 0
         return array();
     }
 
-    $filesize = array();
-    $filesize[(string)intval($maxsize)] = display_size($maxsize);
+    if ($sitebytes == 0) {
+        // Will get the minimum of upload_max_filesize or post_max_size.
+        $sitebytes = get_max_upload_file_size();
+    }
 
+    $filesize = array();
     $sizelist = array(10240, 51200, 102400, 512000, 1048576, 2097152,
                       5242880, 10485760, 20971520, 52428800, 104857600);
 
@@ -6225,7 +6228,6 @@ function get_max_upload_sizes($sitebytes = 0, $coursebytes = 0, $modulebytes = 0
        }
     }
 
-    krsort($filesize, SORT_NUMERIC);
     $limitlevel = '';
     $displaysize = '';
     if ($modulebytes &&
@@ -6233,14 +6235,20 @@ function get_max_upload_sizes($sitebytes = 0, $coursebytes = 0, $modulebytes = 0
          ($modulebytes < $sitebytes || $sitebytes == 0))) {
         $limitlevel = get_string('activity', 'core');
         $displaysize = display_size($modulebytes);
+        $filesize[$modulebytes] = $displaysize; // Make sure the limit is also included in the list.
+
     } else if ($coursebytes && ($coursebytes < $sitebytes || $sitebytes == 0)) {
         $limitlevel = get_string('course', 'core');
         $displaysize = display_size($coursebytes);
+        $filesize[$coursebytes] = $displaysize; // Make sure the limit is also included in the list.
+
     } else if ($sitebytes) {
         $limitlevel = get_string('site', 'core');
         $displaysize = display_size($sitebytes);
+        $filesize[$sitebytes] = $displaysize; // Make sure the limit is also included in the list.
     }
 
+    krsort($filesize, SORT_NUMERIC);
     if ($limitlevel) {
         $params = (object) array('contextname'=>$limitlevel, 'displaysize'=>$displaysize);
         $filesize  = array('0'=>get_string('uploadlimitwithsize', 'core', $params)) + $filesize;
@@ -6826,10 +6834,6 @@ class core_string_manager implements string_manager {
      * @return boot true if exists
      */
     public function string_exists($identifier, $component) {
-       $identifier = clean_param($identifier, PARAM_STRINGID);
-        if (empty($identifier)) {
-            return false;
-        }
         $lang = current_language();
         $string = $this->load_component_strings($component, $lang);
         return isset($string[$identifier]);
@@ -7307,10 +7311,6 @@ class install_string_manager implements string_manager {
      * @return boot true if exists
      */
     public function string_exists($identifier, $component) {
-        $identifier = clean_param($identifier, PARAM_STRINGID);
-        if (empty($identifier)) {
-            return false;
-        }
         // simple old style hack ;)
         $str = get_string($identifier, $component);
         return (strpos($str, '[[') === false);
@@ -7568,8 +7568,7 @@ function get_string($identifier, $component = '', $a = NULL, $lazyload = false) 
         return new lang_string($identifier, $component, $a);
     }
 
-    $identifier = clean_param($identifier, PARAM_STRINGID);
-    if (empty($identifier)) {
+    if (debugging('', DEBUG_DEVELOPER) && clean_param($identifier, PARAM_STRINGID) === '') {
         throw new coding_exception('Invalid string identifier. The identifier cannot be empty. Please fix your get_string() call.');
     }
 
@@ -11419,7 +11418,7 @@ class lang_string {
         // Check if we need to process the string
         if ($this->string === null) {
             // Check the quality of the identifier.
-            if (clean_param($this->identifier, PARAM_STRINGID) == '') {
+            if (debugging('', DEBUG_DEVELOPER) && clean_param($this->identifier, PARAM_STRINGID) === '') {
                 throw new coding_exception('Invalid string identifier. Most probably some illegal character is part of the string identifier. Please check your string definition');
             }
 

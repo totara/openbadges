@@ -19,8 +19,7 @@
  *
  * This plugin allows you to set up paid courses.
  *
- * @package    enrol
- * @subpackage paypal
+ * @package    enrol_paypal
  * @copyright  2010 Eugene Venter
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -119,7 +118,7 @@ class enrol_paypal_plugin extends enrol_plugin {
         if (has_capability('enrol/paypal:config', $context)) {
             $editlink = new moodle_url("/enrol/paypal/edit.php", array('courseid'=>$instance->courseid, 'id'=>$instance->id));
             $icons[] = $OUTPUT->action_icon($editlink, new pix_icon('t/edit', get_string('edit'), 'core',
-                    array('class' => 'smallicon')));
+                    array('class' => 'iconsmall')));
         }
 
         return $icons;
