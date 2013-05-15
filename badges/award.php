@@ -47,10 +47,9 @@ $navurl = new moodle_url('/badges/index.php', array('type' => $badge->type));
 if ($badge->type == BADGE_TYPE_COURSE) {
     if (empty($CFG->badges_allowcoursebadges)) {
         print_error('coursebadgesdisabled', 'badges');
-    } else {
-        require_login($badge->courseid);
-        $navurl = new moodle_url('/badges/index.php', array('type' => $badge->type, 'id' => $badge->courseid));
     }
+    require_login($badge->courseid);
+    $navurl = new moodle_url('/badges/index.php', array('type' => $badge->type, 'id' => $badge->courseid));
 }
 
 require_capability('moodle/badges:awardbadge', $context);
@@ -77,18 +76,18 @@ if (!$badge->is_active()) {
 $output = $PAGE->get_renderer('core', 'badges');
 
 // Roles that can award this badge.
-$accepted_roles = array_keys($badge->criteria[BADGE_CRITERIA_TYPE_MANUAL]->params);
+$acceptedroles = array_keys($badge->criteria[BADGE_CRITERIA_TYPE_MANUAL]->params);
 
-if (count($accepted_roles) > 1) {
+if (count($acceptedroles) > 1) {
     // If there is more than one role that can award a badge, prompt user to make a selection.
     // If it is an admin, include all accepted roles, otherwise only the ones that current user has in this context.
     if ($isadmin) {
-        $selection = $accepted_roles;
+        $selection = $acceptedroles;
     } else {
         // Get all the roles that user has and use the ones required by this badge.
         $roles = get_user_roles($context, $USER->id);
         $roleids = array_map(create_function('$o', 'return $o->roleid;'), $roles);
-        $selection = array_intersect($accepted_roles, $roleids);
+        $selection = array_intersect($acceptedroles, $roleids);
     }
     list($usertest, $userparams) = $DB->get_in_or_equal($selection, SQL_PARAMS_NAMED, 'existing', true);
     $options = $DB->get_records_sql('SELECT * FROM {role} WHERE id ' . $usertest, $userparams);
@@ -109,7 +108,7 @@ if (count($accepted_roles) > 1) {
     }
 } else {
     // User has to be an admin or the one with the required role.
-    $users = get_role_users($accepted_roles[0], $context, false, 'u.id', 'u.id ASC');
+    $users = get_role_users($acceptedroles[0], $context, false, 'u.id', 'u.id ASC');
     $usersids = array_keys($users);
     if (!$isadmin && !in_array($USER->id, $usersids)) {
         echo $OUTPUT->header();
@@ -119,7 +118,7 @@ if (count($accepted_roles) > 1) {
         die();
     } else {
         $issuerrole = new stdClass();
-        $issuerrole->roleid = $accepted_roles[0];
+        $issuerrole->roleid = $acceptedroles[0];
     }
 }
 
@@ -156,7 +155,7 @@ if ($award && data_submitted() && has_capability('moodle/badges:awardbadge', $co
 echo $OUTPUT->header();
 echo $OUTPUT->heading($strrecipients);
 
-if (count($accepted_roles) > 1) {
+if (count($acceptedroles) > 1) {
     echo $OUTPUT->box($roleselect);
 }
 

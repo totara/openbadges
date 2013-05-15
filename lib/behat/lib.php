@@ -55,12 +55,12 @@ function behat_error($errorcode, $text = '') {
             $text = 'Behat permissions problem: ' . $text . ', check the permissions';
             break;
         case BEHAT_EXITCODE_REINSTALL:
-            $path = testing_cli_argument_path('/admin/tool/behat/cli/util.php');
-            $text = "Reinstall Behat: ".$text.", use:\n php ".$path." --drop \n php ".$path." --install";
+            $path = testing_cli_argument_path('/admin/tool/behat/cli/init.php');
+            $text = "Reinstall Behat: ".$text.", use:\n php ".$path;
             break;
         case BEHAT_EXITCODE_INSTALL:
-            $path = testing_cli_argument_path('/admin/tool/behat/cli/util.php');
-            $text = "Install Behat before enabling it, use:\n php ".$path." --install";
+            $path = testing_cli_argument_path('/admin/tool/behat/cli/init.php');
+            $text = "Install Behat before enabling it, use:\n php ".$path;
             break;
         default:
             $text = 'Unknown error ' . $errorcode . ' ' . $text;
@@ -70,3 +70,74 @@ function behat_error($errorcode, $text = '') {
     testing_error($errorcode, $text);
 }
 
+/**
+ * PHP errors handler to use when running behat tests.
+ *
+ * Adds specific CSS classes to identify
+ * the messages.
+ *
+ * @param int $errno
+ * @param string $errstr
+ * @param string $errfile
+ * @param int $errline
+ * @param array $errcontext
+ * @return bool
+ */
+function behat_error_handler($errno, $errstr, $errfile, $errline, $errcontext) {
+    global $OUTPUT;
+
+    // Only after something has been writen.
+    if (!$OUTPUT->has_started()) {
+        return false;
+    }
+
+    // If is preceded by an @ we don't show it.
+    if (!error_reporting()) {
+        return true;
+    }
+
+    // This error handler receives E_ALL | E_STRICT, running the behat test site the debug level is
+    // set to DEVELOPER and will always include E_NOTICE,E_USER_NOTICE... as part of E_ALL, if the current
+    // error_reporting() value does not include one of those levels is because it has been forced through
+    // the moodle code (see fix_utf8() for example) in that cases we respect the forced error level value.
+    $respect = array(E_NOTICE, E_USER_NOTICE, E_STRICT, E_WARNING, E_USER_WARNING);
+    foreach ($respect as $respectable) {
+
+        // If the current value does not include this kind of errors and the reported error is
+        // at that level don't print anything.
+        if ($errno == $respectable && !(error_reporting() & $respectable)) {
+            return true;
+        }
+    }
+
+    // Using the default one in case there is a fatal catchable error.
+    default_error_handler($errno, $errstr, $errfile, $errline, $errcontext);
+
+    switch ($errno) {
+        case E_USER_ERROR:
+            $errnostr = 'Fatal error';
+            break;
+        case E_WARNING:
+        case E_USER_WARNING:
+            $errnostr = 'Warning';
+            break;
+        case E_NOTICE:
+        case E_USER_NOTICE:
+        case E_STRICT:
+            $errnostr = 'Notice';
+            break;
+        case E_RECOVERABLE_ERROR:
+            $errnostr = 'Catchable';
+            break;
+        default:
+            $errnostr = 'Unknown error type';
+    }
+
+    // Wrapping the output.
+    echo '<div class="phpdebugmessage">' . PHP_EOL;
+    echo "$errnostr: $errstr in $errfile on line $errline" . PHP_EOL;
+    echo '</div>';
+
+    // Also use the internal error handler so we keep the usual behaviour.
+    return false;
+}

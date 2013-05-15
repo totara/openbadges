@@ -30,6 +30,15 @@ require_once($CFG->dirroot.'/lib/adminlib.php');
 require_once($CFG->dirroot.'/cache/locallib.php');
 require_once($CFG->dirroot.'/cache/forms.php');
 
+// The first time the user visits this page we are going to reparse the definitions.
+// Just ensures that everything is up to date.
+// We flag is session so that this only happens once as people are likely to hit
+// this page several times if making changes.
+if (empty($SESSION->cacheadminreparsedefinitions)) {
+    cache_helper::update_definitions();
+    $SESSION->cacheadminreparsedefinitions = true;
+}
+
 $action = optional_param('action', null, PARAM_ALPHA);
 
 admin_externalpage_setup('cacheconfig');
@@ -101,7 +110,7 @@ if (!empty($action) && confirm_sesskey()) {
 
             if (!array_key_exists($store, $stores)) {
                 $notifysuccess = false;
-                $notification = get_string('invalidstore');
+                $notification = get_string('invalidstore', 'cache');
             } else if ($stores[$store]['mappings'] > 0) {
                 $notifysuccess = false;
                 $notification = get_string('deletestorehasmappings', 'cache');
@@ -131,6 +140,9 @@ if (!empty($action) && confirm_sesskey()) {
             break;
         case 'editdefinitionmapping' : // Edit definition mappings.
             $definition = required_param('definition', PARAM_SAFEPATH);
+            if (!array_key_exists($definition, $definitions)) {
+                throw new cache_exception('Invalid cache definition requested');
+            }
             $title = get_string('editdefinitionmappings', 'cache', $definition);
             $mform = new cache_definition_mappings_form($PAGE->url, array('definition' => $definition));
             if ($mform->is_cancelled()) {
@@ -144,6 +156,33 @@ if (!empty($action) && confirm_sesskey()) {
                     }
                 }
                 $writer->set_definition_mappings($definition, $mappings);
+                redirect($PAGE->url);
+            }
+            break;
+        case 'editdefinitionsharing' :
+            $definition = required_param('definition', PARAM_SAFEPATH);
+            if (!array_key_exists($definition, $definitions)) {
+                throw new cache_exception('Invalid cache definition requested');
+            }
+            $title = get_string('editdefinitionsharing', 'cache', $definition);
+            $sharingoptions = $definitions[$definition]['sharingoptions'];
+            $customdata = array('definition' => $definition, 'sharingoptions' => $sharingoptions);
+            $mform = new cache_definition_sharing_form($PAGE->url, $customdata);
+            $mform->set_data(array(
+                'sharing' => $definitions[$definition]['selectedsharingoption'],
+                'userinputsharingkey' => $definitions[$definition]['userinputsharingkey']
+            ));
+            if ($mform->is_cancelled()) {
+                redirect($PAGE->url);
+            } else if ($data = $mform->get_data()) {
+                $component = $definitions[$definition]['component'];
+                $area = $definitions[$definition]['area'];
+                // Purge the stores removing stale data before we alter the sharing option.
+                cache_helper::purge_stores_used_by_definition($component, $area);
+                $writer = cache_config_writer::instance();
+                $sharing = array_sum(array_keys($data->sharing));
+                $userinputsharingkey = $data->userinputsharingkey;
+                $writer->set_definition_sharing($definition, $sharing, $userinputsharingkey);
                 redirect($PAGE->url);
             }
             break;
@@ -171,7 +210,15 @@ if (!empty($action) && confirm_sesskey()) {
         case 'purgedefinition': // Purge a specific definition.
             $definition = required_param('definition', PARAM_SAFEPATH);
             list($component, $area) = explode('/', $definition, 2);
-            cache_helper::purge_by_definition($component, $area);
+            $factory = cache_factory::instance();
+            $definition = $factory->create_definition($component, $area);
+            if ($definition->has_required_identifiers()) {
+                // We will have to purge the stores used by this definition.
+                cache_helper::purge_stores_used_by_definition($component, $area);
+            } else {
+                // Alrighty we can purge just the data belonging to this definition.
+                cache_helper::purge_by_definition($component, $area);
+            }
             redirect($PAGE->url, get_string('purgedefinitionsuccess', 'cache'), 5);
             break;
 
@@ -203,7 +250,7 @@ if (!empty($action) && confirm_sesskey()) {
             $confirm = optional_param('confirm', false, PARAM_BOOL);
             if (!array_key_exists($lock, $locks)) {
                 $notifysuccess = false;
-                $notification = get_string('invalidlock');
+                $notification = get_string('invalidlock', 'cache');
             } else if ($locks[$lock]['uses'] > 0) {
                 $notifysuccess = false;
                 $notification = get_string('deletelockhasuses', 'cache');
@@ -249,7 +296,7 @@ if ($mform instanceof moodleform) {
 } else {
     echo $renderer->store_plugin_summaries($plugins);
     echo $renderer->store_instance_summariers($stores, $plugins);
-    echo $renderer->definition_summaries($definitions, cache_administration_helper::get_definition_actions($context));
+    echo $renderer->definition_summaries($definitions, $context);
     echo $renderer->lock_summaries($locks);
 
     $applicationstore = join(', ', $defaultmodestores[cache_store::MODE_APPLICATION]);

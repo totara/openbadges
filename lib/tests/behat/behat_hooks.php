@@ -65,11 +65,14 @@ class behat_hooks extends behat_base {
     public static function before_suite($event) {
         global $CFG;
 
-        // To work with behat_dataroot and behat_prefix instead of the regular environment.
-        define('BEHAT_RUNNING', 1);
+        // Defined only when the behat CLI command is running, the moodle init setup process will
+        // read this value and switch to $CFG->behat_dataroot and $CFG->behat_prefix instead of
+        // the normal site.
+        define('BEHAT_TEST', 1);
+
         define('CLI_SCRIPT', 1);
 
-        // With BEHAT_RUNNING we will be using $CFG->behat_* instead of $CFG->dataroot, $CFG->prefix and $CFG->wwwroot.
+        // With BEHAT_TEST we will be using $CFG->behat_* instead of $CFG->dataroot, $CFG->prefix and $CFG->wwwroot.
         require_once(__DIR__ . '/../../../config.php');
 
         // Now that we are MOODLE_INTERNAL.
@@ -92,7 +95,7 @@ class behat_hooks extends behat_base {
 
         // Prevents using outdated data, upgrade script would start and tests would fail.
         if (!behat_util::is_test_data_updated()) {
-            $commandpath = 'php admin/tool/behat/cli/util.php';
+            $commandpath = 'php admin/tool/behat/cli/init.php';
             throw new Exception('Your behat test site is outdated, please run ' . $commandpath . ' from your moodle dirroot to drop and install the behat test site again.');
         }
         // Avoid parallel tests execution, it continues when the previous lock is released.
@@ -109,11 +112,11 @@ class behat_hooks extends behat_base {
         global $DB, $SESSION, $CFG;
 
         // As many checks as we can.
-        if (!defined('BEHAT_RUNNING') ||
+        if (!defined('BEHAT_TEST') ||
+               !defined('BEHAT_SITE_RUNNING') ||
                php_sapi_name() != 'cli' ||
                !behat_util::is_test_mode_enabled() ||
-               !behat_util::is_test_site() ||
-               !isset($CFG->originaldataroot)) {
+               !behat_util::is_test_site()) {
             throw new coding_exception('Behat only can modify the test database and the test dataroot!');
         }
 
@@ -132,6 +135,9 @@ class behat_hooks extends behat_base {
         // Assing valid data to admin user (some generator-related code needs a valid user).
         $user = $DB->get_record('user', array('username' => 'admin'));
         session_set_user($user);
+
+        // Start always in the the homepage.
+        $this->getSession()->visit($this->locate_path('/'));
     }
 
     /**
@@ -147,7 +153,7 @@ class behat_hooks extends behat_base {
 
         // Just trying if server responds.
         try {
-            $this->getSession()->executeScript('// empty comment');
+            $this->getSession()->wait(0, false);
         } catch (Exception $e) {
             $moreinfo = 'More info in ' . behat_command::DOCS_URL . '#Running_tests';
             $msg = 'Selenium server is not running, you need to start it to run tests that involves Javascript. ' . $moreinfo;
@@ -170,12 +176,101 @@ class behat_hooks extends behat_base {
             return;
         }
 
-        // Wait until the page is ready.
-        try {
-            $this->getSession()->wait(self::TIMEOUT, '(document.readyState === "complete")');
+       // Wait until the page is ready.
+       // We are already checking that we use a JS browser, this could
+       // change in case we use another JS driver.
+       try {
+
+            // Safari and Internet Explorer requires time between steps,
+            // otherwise Selenium tries to click in the previous page's DOM.
+            if ($this->getSession()->getDriver()->getBrowserName() == 'safari' ||
+                    $this->getSession()->getDriver()->getBrowserName() == 'internet explorer') {
+                $this->getSession()->wait(self::TIMEOUT * 1000, false);
+
+            } else {
+                // With other browsers we just wait for the DOM ready.
+                $this->getSession()->wait(self::TIMEOUT * 1000, '(document.readyState === "complete")');
+            }
+
         } catch (NoSuchWindow $e) {
             // If we were interacting with a popup window it will not exists after closing it.
         }
+    }
+
+    /**
+     * Internal step definition to find exceptions, debugging() messages and PHP debug messages.
+     *
+     * Part of behat_hooks class as is part of the testing framework, is auto-executed
+     * after each step so no features will splicitly use it.
+     *
+     * @Given /^I look for exceptions$/
+     * @see Moodle\BehatExtension\Tester\MoodleStepTester
+     */
+    public function i_look_for_exceptions() {
+
+        // Wrap in try in case we were interacting with a closed window.
+        try {
+
+            // Exceptions.
+            if ($errormsg = $this->getSession()->getPage()->find('css', '.errorbox p.errormessage')) {
+
+                // Getting the debugging info and the backtrace.
+                $errorinfoboxes = $this->getSession()->getPage()->findAll('css', 'div.notifytiny');
+                $errorinfo = $this->get_debug_text($errorinfoboxes[0]->getHtml()) . "\n" .
+                    $this->get_debug_text($errorinfoboxes[1]->getHtml());
+
+                $msg = "Moodle exception: " . $errormsg->getText() . "\n" . $errorinfo;
+                throw new \Exception(html_entity_decode($msg));
+            }
+
+            // Debugging messages.
+            if ($debuggingmessages = $this->getSession()->getPage()->findAll('css', '.debuggingmessage')) {
+                $msgs = array();
+                foreach ($debuggingmessages as $debuggingmessage) {
+                    $msgs[] = $this->get_debug_text($debuggingmessage->getHtml());
+                }
+                $msg = "debugging() message/s found:\n" . implode("\n", $msgs);
+                throw new \Exception(html_entity_decode($msg));
+            }
+
+            // PHP debug messages.
+            if ($phpmessages = $this->getSession()->getPage()->findAll('css', '.phpdebugmessage')) {
+
+                $msgs = array();
+                foreach ($phpmessages as $phpmessage) {
+                    $msgs[] = $this->get_debug_text($phpmessage->getHtml());
+                }
+                $msg = "PHP debug message/s found:\n" . implode("\n", $msgs);
+                throw new \Exception(html_entity_decode($msg));
+            }
+
+            // Any other backtrace.
+            $backtracespattern = '/(line [0-9]* of [^:]*: call to [\->&;:a-zA-Z_\x7f-\xff][\->&;:a-zA-Z0-9_\x7f-\xff]*)/';
+            if (preg_match_all($backtracespattern, $this->getSession()->getPage()->getContent(), $backtraces)) {
+                $msgs = array();
+                foreach ($backtraces[0] as $backtrace) {
+                    $msgs[] = $backtrace . '()';
+                }
+                $msg = "Other backtraces found:\n" . implode("\n", $msgs);
+                throw new \Exception(htmlentities($msg));
+            }
+
+        } catch (NoSuchWindow $e) {
+            // If we were interacting with a popup window it will not exists after closing it.
+        }
+    }
+
+    /**
+     * Converts HTML tags to line breaks to display the info in CLI
+     *
+     * @param string $html
+     * @return string
+     */
+    protected function get_debug_text($html) {
+
+        // Replacing HTML tags for new lines and keeping only the text.
+        $notags = preg_replace('/<+\s*\/*\s*([A-Z][A-Z0-9]*)\b[^>]*\/*\s*>*/i', "\n", $html);
+        return preg_replace("/(\n)+/s", "\n", $notags);
     }
 
 }

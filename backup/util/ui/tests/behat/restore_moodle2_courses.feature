@@ -1,7 +1,7 @@
 @core @core_backup
 Feature: Restore Moodle 2 course backups
   In order to continue using my stored course contents
-  As a moodle teacher and as a moodle admin
+  As a teacher and an admin
   I need to restore them inside other Moodle courses or in new courses
 
   Background:
@@ -12,7 +12,7 @@ Feature: Restore Moodle 2 course backups
     And I log in as "admin"
     And I follow "Course 1"
     And I turn editing mode on
-    And I add a "forum" to section "1" and I fill the form with:
+    And I add a "Forum" to section "1" and I fill the form with:
       | Forum name | Test forum name |
       | Description | Test forum description |
     And I add the "Community finder" block

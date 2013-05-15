@@ -1,7 +1,7 @@
 @mod @mod_choice
 Feature: Add choice activity
   In order to ask questions as a choice of multiple responses
-  As a moodle teacher
+  As a teacher
   I need to add choice activities to courses
 
   @javascript
@@ -20,7 +20,7 @@ Feature: Add choice activity
     And I log in as "teacher1"
     And I follow "Course 1"
     And I turn editing mode on
-    And I add a "choice" to section "1" and I fill the form with:
+    And I add a "Choice" to section "1" and I fill the form with:
       | Choice name | Choice name |
       | Description | Choice Description |
       | option[0] | Option 1 |

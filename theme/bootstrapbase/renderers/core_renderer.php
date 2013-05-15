@@ -67,7 +67,6 @@ class theme_bootstrapbase_core_renderer extends core_renderer {
      * Overriding the custom_menu function ensures the custom menu is
      * always shown, even if no menu items are configured in the global
      * theme settings page.
-     * We use the sitename as the first menu item.
      */
     public function custom_menu($custommenuitems = '') {
         global $CFG;
@@ -85,25 +84,26 @@ class theme_bootstrapbase_core_renderer extends core_renderer {
      * This renderer is needed to enable the Bootstrap style navigation.
      */
     protected function render_custom_menu(custom_menu $menu) {
-        // If the menu has no children return an empty string.
-        if (!$menu->has_children()) {
-            return '';
-        }
+        global $CFG;
+
+        // TODO: eliminate this duplicated logic, it belongs in core, not
+        // here. See MDL-39565.
         $addlangmenu = true;
         $langs = get_string_manager()->get_list_of_translations();
-            if ($this->page->course != SITEID and !empty($this->page->course->lang)) {
-            // Do not show lang menu if language forced.
+        if (count($langs) < 2
+            or empty($CFG->langmenu)
+            or ($this->page->course != SITEID and !empty($this->page->course->lang))) {
             $addlangmenu = false;
         }
-        if (count($langs) < 2) {
-            $addlangmenu = false;
+
+        if (!$menu->has_children() && $addlangmenu === false) {
+            return '';
         }
 
         if ($addlangmenu) {
             $language = $menu->add(get_string('language'), new moodle_url('#'), get_string('language'), 10000);
             foreach ($langs as $langtype => $langname) {
-                $language->add($langname,
-                new moodle_url($this->page->url, array('lang' => $langtype)), $langname);
+                $language->add($langname, new moodle_url($this->page->url, array('lang' => $langtype)), $langname);
             }
         }
 
@@ -160,5 +160,50 @@ class theme_bootstrapbase_core_renderer extends core_renderer {
             $content .= html_writer::link($url, $menunode->get_text(), array('title'=>$menunode->get_title()));
         }
         return $content;
+    }
+
+    /**
+     * Renders tabtree
+     *
+     * @param tabtree $tabtree
+     * @return string
+     */
+    protected function render_tabtree(tabtree $tabtree) {
+        if (empty($tabtree->subtree)) {
+            return '';
+        }
+        $firstrow = $secondrow = '';
+        foreach ($tabtree->subtree as $tab) {
+            $firstrow .= $this->render($tab);
+            if (($tab->selected || $tab->activated) && !empty($tab->subtree) && $tab->subtree !== array()) {
+                $secondrow = $this->tabtree($tab->subtree);
+            }
+        }
+        return html_writer::tag('ul', $firstrow, array('class' => 'nav nav-tabs')) . $secondrow;
+    }
+
+    /**
+     * Renders tabobject (part of tabtree)
+     *
+     * This function is called from {@link core_renderer::render_tabtree()}
+     * and also it calls itself when printing the $tabobject subtree recursively.
+     *
+     * @param tabobject $tabobject
+     * @return string HTML fragment
+     */
+    protected function render_tabobject(tabobject $tab) {
+        if ($tab->selected or $tab->activated) {
+            return html_writer::tag('li', html_writer::tag('a', $tab->text), array('class' => 'active'));
+        } else if ($tab->inactive) {
+            return html_writer::tag('li', html_writer::tag('a', $tab->text), array('class' => 'disabled'));
+        } else {
+            if (!($tab->link instanceof moodle_url)) {
+                // backward compartibility when link was passed as quoted string
+                $link = "<a href=\"$tab->link\" title=\"$tab->title\">$tab->text</a>";
+            } else {
+                $link = html_writer::link($tab->link, $tab->text, array('title' => $tab->title));
+            }
+            return html_writer::tag('li', $link);
+        }
     }
 }

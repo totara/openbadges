@@ -1,7 +1,7 @@
 @core @core_course @_cross_browser
 Feature: Toggle activities groups mode from the course page
   In order to split activities in groups
-  As a moodle teacher
+  As a teacher
   I need to change quickly the group mode of an activity
 
   @javascript
@@ -18,7 +18,7 @@ Feature: Toggle activities groups mode from the course page
     And I log in as "teacher1"
     And I follow "Course 1"
     And I turn editing mode on
-    And I add a "forum" to section "1" and I fill the form with:
+    And I add a "Forum" to section "1" and I fill the form with:
       | Forum name | Test forum name |
       | Description | Test forum description |
     And I follow "Edit settings"
@@ -28,20 +28,20 @@ Feature: Toggle activities groups mode from the course page
     When I press "Save changes"
     Then "No groups (Click to change)" "link" should exists
     And ".//a//img[contains(@src, 'groupn')]" "xpath_element" should exists
-    And I click on "No groups (Click to change)" "link" in the "li.activity.forum" "css_element"
+    And I click on "No groups (Click to change)" "link" in the "Test forum name" activity
     And I wait "3" seconds
     And "Separate groups (Click to change)" "link" should exists
     And ".//a//img[contains(@src, 'groups')]" "xpath_element" should exists
     And I reload the page
     And "Separate groups (Click to change)" "link" should exists
     And ".//a//img[contains(@src, 'groups')]" "xpath_element" should exists
-    And I click on "Separate groups (Click to change)" "link" in the "li.activity.forum" "css_element"
+    And I click on "Separate groups (Click to change)" "link" in the "Test forum name" activity
     And I wait "3" seconds
     And "Visible groups (Click to change)" "link" should exists
     And ".//a//img[contains(@src, 'groupv')]" "xpath_element" should exists
     And I reload the page
     And "Visible groups (Click to change)" "link" should exists
     And ".//a//img[contains(@src, 'groupv')]" "xpath_element" should exists
-    And I click on "Visible groups (Click to change)" "link" in the "li.activity.forum" "css_element"
+    And I click on "Visible groups (Click to change)" "link" in the "Test forum name" activity
     And "No groups (Click to change)" "link" should exists
     And ".//a//img[contains(@src, 'groupn')]" "xpath_element" should exists

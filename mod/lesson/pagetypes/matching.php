@@ -161,28 +161,28 @@ class lesson_page_type_matching extends lesson_page {
         }
 
         $response = $data->response;
-        if (!is_array($response)) {
-            $result->noanswer = true;
-            return $result;
-        }
+        $getanswers = $this->get_answers();
 
-        $answers = $this->get_answers();
+        $correct = array_shift($getanswers);
+        $wrong   = array_shift($getanswers);
 
-        $correct = array_shift($answers);
-        $wrong   = array_shift($answers);
-
-        foreach ($answers as $key=>$answer) {
+        $answers = array();
+        foreach ($getanswers as $key=>$answer) {
             if ($answer->answer !== '' or $answer->response !== '') {
                 $answers[$answer->id] = $answer;
             }
-            unset($answers[$key]);
+            unset($getanswers[$key]);
         }
-        // get he users exact responses for record keeping
+        // get the user's exact responses for record keeping
         $hits = 0;
         $userresponse = array();
         foreach ($response as $id => $value) {
+            if ($value == '') {
+                $result->noanswer = true;
+                return $result;
+            }
             $userresponse[] = $value;
-            // Make sure the user's answer is exist in question's answer
+            // Make sure the user's answer exists in question's answer
             if (array_key_exists($id, $answers)) {
                 $answer = $answers[$id];
                 $result->studentanswer .= '<br />'.format_text($answer->answer, $answer->answerformat, $formattextdefoptions).' = '.$answers[$value]->response;
@@ -477,6 +477,8 @@ class lesson_add_page_form_matching extends lesson_add_page_form_base {
             $label = get_string('matchesanswer','lesson');
             $count = $i;
             $this->_form->addElement('text', 'response_editor['.$count.']', $label, array('size'=>'50'));
+            // Temporary fix until MDL-38885 gets integrated.
+            $this->_form->setType('response_editor', PARAM_TEXT);
             $this->_form->setDefault('response_editor['.$count.']', '');
             if ($required) {
                 $this->_form->addRule('response_editor['.$count.']', get_string('required'), 'required', null, 'client');
@@ -525,7 +527,8 @@ class lesson_display_answer_form_matching extends moodleform {
                 if ($hasattempt) {
                     $responseid = 'response_'.$answer->id;
                     $mform->addElement('hidden', 'response['.$answer->id.']', htmlspecialchars(trim($answers[$useranswers[$i]]->response)));
-                    $mform->setType('response['.$answer->id.']', PARAM_TEXT);
+                    // Temporary fixed until MDL-38885 gets integrated
+                    $mform->setType('response', PARAM_TEXT);
                 }
                 $mform->addElement('select', $responseid, format_text($answer->answer,$answer->answerformat,$options), $responseoptions, $disabled);
                 $mform->setType($responseid, PARAM_TEXT);

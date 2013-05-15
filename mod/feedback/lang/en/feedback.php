@@ -23,7 +23,6 @@
  */
 
 $string['add_item'] = 'Add question to activity';
-$string['add_items'] = 'Add question to activity';
 $string['add_pagebreak'] = 'Add a page break';
 $string['adjustment'] = 'Adjustment';
 $string['after_submit'] = 'After submission';
@@ -91,7 +90,7 @@ $string['dropdown_values'] = 'Answers';
 $string['drop_feedback'] = 'Remove from this course';
 $string['edit_item'] = 'Edit question';
 $string['edit_items'] = 'Edit questions';
-$string['email_notification'] = 'Send e-mail notifications';
+$string['email_notification'] = 'Enable notification of submissions';
 $string['email_notification_help'] = 'If enabled, administrators receive email notification of feedback submissions.';
 $string['emailteachermail'] = '{$a->username} has completed feedback activity : \'{$a->feedback}\'
 

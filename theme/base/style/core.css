@@ -40,7 +40,9 @@ a.dimmed_text:visited,
 .usersuspended a:link,
 .usersuspended a:visited,
 .dimmed_category,
-.dimmed_category a {
+.dimmed_category a,
+.dimmed_category a:link,
+.dimmed_category a:visited {
     color: #AAA;
 }
 .activity.label .dimmed_text {
@@ -275,7 +277,7 @@ a.skip:active {position: static;display: block;}
 .mform .fitem fieldset.fgroup label,
 .mform .fradio label,
 .mform fieldset.fdate_selector label,
-.mform fieldset.fdate_time_selector label {display:inline;float: none; margin-left: .3em; vertical-align: text-bottom;}
+.mform fieldset.fdate_time_selector label {display:inline; float:none; margin-left:.3em; vertical-align:baseline;}
 .dir-rtl .mform .fcheckbox label,
 .dir-rtl .mform .fduration label,
 .dir-rtl .mform .fitem fieldset.fgroup label,

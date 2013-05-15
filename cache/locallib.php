@@ -388,19 +388,14 @@ class cache_config_writer extends cache_config {
      * This function calls config_save, however it is safe to continue using it afterwards as this function should only ever
      * be called when there is no configuration file already.
      *
+     * @param bool $forcesave If set to true then we will forcefully save the default configuration file.
      * @return true|array Returns true if the default configuration was successfully created.
      *     Returns a configuration array if it could not be saved. This is a bad situation. Check your error logs.
      */
-    public static function create_default_configuration() {
-        global $CFG;
-
+    public static function create_default_configuration($forcesave = false) {
         // HACK ALERT.
         // We probably need to come up with a better way to create the default stores, or at least ensure 100% that the
         // default store plugins are protected from deletion.
-        require_once($CFG->dirroot.'/cache/stores/file/lib.php');
-        require_once($CFG->dirroot.'/cache/stores/session/lib.php');
-        require_once($CFG->dirroot.'/cache/stores/static/lib.php');
-
         $writer = new self;
         $writer->configstores = self::get_default_stores();
         $writer->configdefinitions = self::locate_definitions();
@@ -433,7 +428,7 @@ class cache_config_writer extends cache_config {
         $factory = cache_factory::instance();
         // We expect the cache to be initialising presently. If its not then something has gone wrong and likely
         // we are now in a loop.
-        if ($factory->get_state() !== cache_factory::STATE_INITIALISING) {
+        if (!$forcesave && $factory->get_state() !== cache_factory::STATE_INITIALISING) {
             return $writer->generate_configuration_array();
         }
         $factory->set_state(cache_factory::STATE_SAVING);
@@ -447,6 +442,12 @@ class cache_config_writer extends cache_config {
      * @return array
      */
     protected static function get_default_stores() {
+        global $CFG;
+
+        require_once($CFG->dirroot.'/cache/stores/file/lib.php');
+        require_once($CFG->dirroot.'/cache/stores/session/lib.php');
+        require_once($CFG->dirroot.'/cache/stores/static/lib.php');
+
         return array(
             'default_application' => array(
                 'name' => 'default_application',
@@ -551,6 +552,20 @@ class cache_config_writer extends cache_config {
      * @param array $definitions
      */
     private function write_definitions_to_cache(array $definitions) {
+
+        // Preserve the selected sharing option when updating the definitions.
+        // This is set by the user and should never come from caches.php.
+        foreach ($definitions as $key => $definition) {
+            unset($definitions[$key]['selectedsharingoption']);
+            unset($definitions[$key]['userinputsharingkey']);
+            if (isset($this->configdefinitions[$key]) && isset($this->configdefinitions[$key]['selectedsharingoption'])) {
+                $definitions[$key]['selectedsharingoption'] = $this->configdefinitions[$key]['selectedsharingoption'];
+            }
+            if (isset($this->configdefinitions[$key]) && isset($this->configdefinitions[$key]['userinputsharingkey'])) {
+                $definitions[$key]['userinputsharingkey'] = $this->configdefinitions[$key]['userinputsharingkey'];
+            }
+        }
+
         $this->configdefinitions = $definitions;
         foreach ($this->configdefinitionmappings as $key => $mapping) {
             if (!array_key_exists($mapping['definition'], $definitions)) {
@@ -619,6 +634,29 @@ class cache_config_writer extends cache_config {
         $this->config_save();
         return $this->siteidentifier;
     }
+
+    /**
+     * Sets the selected sharing options and key for a definition.
+     *
+     * @param string $definition The name of the definition to set for.
+     * @param int $sharingoption The sharing option to set.
+     * @param string|null $userinputsharingkey The user input key or null.
+     * @throws coding_exception
+     */
+    public function set_definition_sharing($definition, $sharingoption, $userinputsharingkey = null) {
+        if (!array_key_exists($definition, $this->configdefinitions)) {
+            throw new coding_exception('Invalid definition name passed when updating sharing options.');
+        }
+        if (!($this->configdefinitions[$definition]['sharingoptions'] & $sharingoption)) {
+            throw new coding_exception('Invalid sharing option passed when updating definition.');
+        }
+        $this->configdefinitions[$definition]['selectedsharingoption'] = (int)$sharingoption;
+        if (!empty($userinputsharingkey)) {
+            $this->configdefinitions[$definition]['userinputsharingkey'] = (string)$userinputsharingkey;
+        }
+        $this->config_save();
+    }
+
 }
 
 /**
@@ -790,10 +828,38 @@ abstract class cache_administration_helper extends cache_helper {
                 'mode' => $definition['mode'],
                 'component' => $definition['component'],
                 'area' => $definition['area'],
-                'mappings' => $mappings
+                'mappings' => $mappings,
+                'sharingoptions' => self::get_definition_sharing_options($definition['sharingoptions'], false),
+                'selectedsharingoption' => self::get_definition_sharing_options($definition['selectedsharingoption'], true),
+                'userinputsharingkey' => $definition['userinputsharingkey']
             );
         }
         return $return;
+    }
+
+    /**
+     * Given a sharing option hash this function returns an array of strings that can be used to describe it.
+     *
+     * @param int $sharingoption The sharing option hash to get strings for.
+     * @param bool $isselectedoptions Set to true if the strings will be used to view the selected options.
+     * @return array An array of lang_string's.
+     */
+    public static function get_definition_sharing_options($sharingoption, $isselectedoptions = true) {
+        $options = array();
+        $prefix = ($isselectedoptions) ? 'sharingselected' : 'sharing';
+        if ($sharingoption & cache_definition::SHARING_ALL) {
+            $options[cache_definition::SHARING_ALL] = new lang_string($prefix.'_all', 'cache');
+        }
+        if ($sharingoption & cache_definition::SHARING_SITEID) {
+            $options[cache_definition::SHARING_SITEID] = new lang_string($prefix.'_siteid', 'cache');
+        }
+        if ($sharingoption & cache_definition::SHARING_VERSION) {
+            $options[cache_definition::SHARING_VERSION] = new lang_string($prefix.'_version', 'cache');
+        }
+        if ($sharingoption & cache_definition::SHARING_INPUT) {
+            $options[cache_definition::SHARING_INPUT] = new lang_string($prefix.'_input', 'cache');
+        }
+        return $options;
     }
 
     /**
@@ -801,18 +867,27 @@ abstract class cache_administration_helper extends cache_helper {
      * @param context $context
      * @return array
      */
-    public static function get_definition_actions(context $context) {
+    public static function get_definition_actions(context $context, array $definition) {
         if (has_capability('moodle/site:config', $context)) {
-            return array(
-                array(
-                    'text' => get_string('editmappings', 'cache'),
-                    'url' => new moodle_url('/cache/admin.php', array('action' => 'editdefinitionmapping', 'sesskey' => sesskey()))
-                ),
-                array(
-                    'text' => get_string('purge', 'cache'),
-                    'url' => new moodle_url('/cache/admin.php', array('action' => 'purgedefinition', 'sesskey' => sesskey()))
-                )
+            $actions = array();
+            // Edit mappings.
+            $actions[] = array(
+                'text' => get_string('editmappings', 'cache'),
+                'url' => new moodle_url('/cache/admin.php', array('action' => 'editdefinitionmapping', 'sesskey' => sesskey()))
             );
+            // Edit sharing.
+            if (count($definition['sharingoptions']) > 1) {
+                $actions[] = array(
+                    'text' => get_string('editsharing', 'cache'),
+                    'url' => new moodle_url('/cache/admin.php', array('action' => 'editdefinitionsharing', 'sesskey' => sesskey()))
+                );
+            }
+            // Purge.
+            $actions[] = array(
+                'text' => get_string('purge', 'cache'),
+                'url' => new moodle_url('/cache/admin.php', array('action' => 'purgedefinition', 'sesskey' => sesskey()))
+            );
+            return $actions;
         }
         return array();
     }

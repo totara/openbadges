@@ -912,10 +912,7 @@ function clean_param($param, $type) {
         case PARAM_PLUGIN:
         case PARAM_AREA:
             // we do not want any guessing here, either the name is correct or not
-            if (!preg_match('/^[a-z][a-z0-9_]*[a-z0-9]$/', $param)) {
-                return '';
-            }
-            if (strpos($param, '__') !== false) {
+            if (!is_valid_plugin_name($param)) {
                 return '';
             }
             return $param;
@@ -1394,9 +1391,6 @@ function get_config($plugin, $name = NULL) {
             // install the database.
             $siteidentifier = $DB->get_field('config', 'value', array('name' => 'siteidentifier'));
         } catch (dml_exception $ex) {
-            // It's failed. We'll use this opportunity to disable cache stores so that we don't inadvertingly start using
-            // old caches. People should delete their moodledata dirs when reinstalling the database... but they don't.
-            cache_factory::disable_stores();
             // Set siteidentifier to false. We don't want to trip this continually.
             $siteidentifier = false;
             throw $ex;
@@ -4488,7 +4482,7 @@ function hash_internal_user_password($password, $fasthash = false) {
 
     $generatedhash = password_hash($password, PASSWORD_DEFAULT, $options);
 
-    if ($generatedhash === false) {
+    if ($generatedhash === false || $generatedhash === null) {
         throw new moodle_exception('Failed to generate password hash.');
     }
 
@@ -8290,6 +8284,15 @@ function get_plugin_types($fullpaths=true) {
 }
 
 /**
+ * This method validates a plug name. It is much faster than calling clean_param.
+ * @param string $name a string that might be a plugin name.
+ * @return bool if this string is a valid plugin name.
+ */
+function is_valid_plugin_name($name) {
+    return (bool) preg_match('/^[a-z](?:[a-z0-9_](?!__))*[a-z0-9]$/', $name);
+}
+
+/**
  * Simplified version of get_list_of_plugins()
  * @param string $plugintype type of plugin
  * @return array name=>fulllocation pairs of plugins of given type
@@ -8361,9 +8364,8 @@ function get_plugin_list($plugintype) {
             if (in_array($pluginname, $ignored)) {
                 continue;
             }
-            $pluginname = clean_param($pluginname, PARAM_PLUGIN);
-            if (empty($pluginname)) {
-                // better ignore plugins with problematic names here
+            if (!is_valid_plugin_name($pluginname)) {
+                // Better ignore plugins with problematic names here.
                 continue;
             }
             $result[$pluginname] = $fulldir.'/'.$pluginname;

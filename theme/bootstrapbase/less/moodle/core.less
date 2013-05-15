@@ -191,10 +191,6 @@ img.icon-post, .dir-rtl img.icon-pre {
     padding-left: 3px;
     padding-right: 0;
 }
-.categorybox .category {
-    font-size: 1.2em;
-    font-weight: bold;
-}
 .boxaligncenter {
     margin-left: auto;
     margin-right: auto;
@@ -1704,15 +1700,10 @@ body.jsenabled .formlisting {
 }
 
 /* Badges styles */
-table.collection th,
-table.collection td {
-    border: 1px solid #CCCCCC;
-}
-table.collection .r1 {
-    background-color: #FFFFFF;
-}
-table.collection .r0 {
-    background-color: #F6F6F6;
+table.collection {
+    .table;
+    .table-bordered;
+    .table-striped;
 }
 table.collection .name {
     text-align: left;
@@ -1815,7 +1806,9 @@ div.badge .expireimage {
     position: absolute;
     z-index:10;
 }
-.badge-profile { vertical-align: top; }
+.badge-profile {
+    vertical-align: top;
+}
 .connected {
     color: @successText;
 }
@@ -1839,10 +1832,10 @@ div.badge .expireimage {
     margin-bottom: 0px;
 }
 .statusbox.active {
-    background-color: #D9F991;
+    background-color: @successBackground;
 }
 .statusbox.inactive {
-    background-color: #FFEBA8;
+    background-color: @warningBackground;
 }
 .activatebadge {
     margin: 0px;

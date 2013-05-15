@@ -1,7 +1,7 @@
 @core @core_course @_cross_browser
 Feature: Force group mode in a course
   In order to use the same group mode all over the course
-  As a moodle teacher
+  As a teacher
   I need to force the group mode of all course's activities
 
   Background:
@@ -17,7 +17,7 @@ Feature: Force group mode in a course
     And I log in as "teacher1"
     And I follow "Course 1"
     And I turn editing mode on
-    And I add a "chat" to section "1" and I fill the form with:
+    And I add a "Chat" to section "1" and I fill the form with:
       | Name of this chat room | Chat room |
       | Description | Chat description |
     And I follow "Edit settings"

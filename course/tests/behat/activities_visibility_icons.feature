@@ -1,7 +1,7 @@
 @core @core_course @_cross_browser
 Feature: Toggle activities visibility from the course page
   In order to delay activities availability
-  As a moodle teacher
+  As a teacher
   I need to quickly change the visibility of an activity
 
   @javascript
@@ -20,15 +20,15 @@ Feature: Toggle activities visibility from the course page
     And I log in as "teacher1"
     And I follow "Course 1"
     And I turn editing mode on
-    And I add a "forum" to section "1" and I fill the form with:
+    And I add a "Forum" to section "1" and I fill the form with:
       | Forum name | Test forum name |
       | Description | Test forum description |
       | Visible | Show |
-    When I click on "Hide" "link" in the "li.activity.forum" "css_element"
+    When I click on "Hide" "link" in the "Test forum name" activity
     Then "Test forum name" activity should be hidden
-    And I click on "Show" "link" in the "li.activity.forum" "css_element"
+    And I click on "Show" "link" in the "Test forum name" activity
     And "Test forum name" activity should be visible
-    And I click on "Hide" "link" in the "li.activity.forum" "css_element"
+    And I click on "Hide" "link" in the "Test forum name" activity
     And "Test forum name" activity should be hidden
     And I reload the page
     And "Test forum name" activity should be hidden

@@ -1,7 +1,7 @@
 @mod @mod_forum
 Feature: Students can choose from 4 discussion display options and their choice is remembered
   In order to read forum posts in a suitable view
-  As a moodle user
+  As a user
   I need to select which display method I want to use
 
   Background:
@@ -17,7 +17,7 @@ Feature: Students can choose from 4 discussion display options and their choice 
     And I log in as "admin"
     And I follow "Course 1"
     And I turn editing mode on
-    And I add a "forum" to section "1" and I fill the form with:
+    And I add a "Forum" to section "1" and I fill the form with:
       | Forum name | Test forum name |
       | Description | Test forum description |
     And I add a new discussion to "Test forum name" forum with:

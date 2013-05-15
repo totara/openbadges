@@ -312,8 +312,11 @@ abstract class moodleform_mod extends moodleform {
         }
 
         // Completion: Don't let them choose automatic completion without turning
-        // on some conditions
-        if (array_key_exists('completion', $data) && $data['completion']==COMPLETION_TRACKING_AUTOMATIC) {
+        // on some conditions. Ignore this check when completion settings are
+        // locked, as the options are then disabled.
+        if (array_key_exists('completion', $data) &&
+                $data['completion'] == COMPLETION_TRACKING_AUTOMATIC &&
+                !empty($data['completionunlocked'])) {
             if (empty($data['completionview']) && empty($data['completionusegrade']) &&
                 !$this->completion_rule_enabled($data)) {
                 $errors['completion'] = get_string('badautocompletion', 'completion');
@@ -558,8 +561,10 @@ abstract class moodleform_mod extends moodleform {
                 $fieldcount = 1;
             }
 
-            $this->repeat_elements(array($group), $count, array(), 'conditiongraderepeats', 'conditiongradeadds', 2,
-                                   get_string('addgrades', 'condition'), true);
+            $this->repeat_elements(array($group), $count, array(
+                'conditiongradegroup[conditiongrademin]' => array('type' => PARAM_RAW),
+                'conditiongradegroup[conditiongrademax]' => array('type' => PARAM_RAW)
+                ), 'conditiongraderepeats', 'conditiongradeadds', 2, get_string('addgrades', 'condition'), true);
             $mform->addHelpButton('conditiongradegroup[0]', 'gradecondition', 'condition');
 
             // Conditions based on user fields
@@ -573,11 +578,11 @@ abstract class moodleform_mod extends moodleform {
             $grouparray[] =& $mform->createElement('select', 'conditionfield', '', $useroptions);
             $grouparray[] =& $mform->createElement('select', 'conditionfieldoperator', '', $operators);
             $grouparray[] =& $mform->createElement('text', 'conditionfieldvalue');
-            $mform->setType('conditionfieldvalue', PARAM_RAW);
             $group = $mform->createElement('group', 'conditionfieldgroup', get_string('userfield', 'condition'), $grouparray);
 
-            $this->repeat_elements(array($group), $fieldcount, array(), 'conditionfieldrepeats', 'conditionfieldadds', 2,
-                                   get_string('adduserfields', 'condition'), true);
+            $this->repeat_elements(array($group), $fieldcount, array(
+                'conditionfieldgroup[conditionfieldvalue]' => array('type' => PARAM_RAW)),
+                'conditionfieldrepeats', 'conditionfieldadds', 2, get_string('adduserfields', 'condition'), true);
             $mform->addHelpButton('conditionfieldgroup[0]', 'userfield', 'condition');
 
             // Conditions based on completion

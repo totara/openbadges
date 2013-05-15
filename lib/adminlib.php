@@ -871,7 +871,7 @@ class admin_category implements parentable_part_of_admin_tree {
      *                  defaults to false
      */
     public function locate($name, $findpath=false) {
-        if (is_array($this->category_cache) and !isset($this->category_cache[$this->name])) {
+        if (!isset($this->category_cache[$this->name])) {
             // somebody much have purged the cache
             $this->category_cache[$this->name] = $this;
         }
@@ -885,7 +885,7 @@ class admin_category implements parentable_part_of_admin_tree {
         }
 
         // quick category lookup
-        if (!$findpath and is_array($this->category_cache) and isset($this->category_cache[$name])) {
+        if (!$findpath and isset($this->category_cache[$name])) {
             return $this->category_cache[$name];
         }
 
@@ -938,11 +938,9 @@ class admin_category implements parentable_part_of_admin_tree {
         foreach($this->children as $precedence => $child) {
             if ($child->name == $name) {
                 // clear cache and delete self
-                if (is_array($this->category_cache)) {
-                    while($this->category_cache) {
-                        // delete the cache, but keep the original array address
-                        array_pop($this->category_cache);
-                    }
+                while($this->category_cache) {
+                    // delete the cache, but keep the original array address
+                    array_pop($this->category_cache);
                 }
                 unset($this->children[$precedence]);
                 return true;
@@ -1010,7 +1008,7 @@ class admin_category implements parentable_part_of_admin_tree {
                     );
                 }
             }
-            if (is_array($this->category_cache) and ($something instanceof admin_category)) {
+            if ($something instanceof admin_category) {
                 if (isset($this->category_cache[$something->name])) {
                     debugging('Duplicate admin category name: '.$something->name);
                 } else {
@@ -2107,6 +2105,16 @@ class admin_setting_configfile extends admin_setting_configtext {
         '<div class="form-file defaultsnext"><input type="text" size="'.$this->size.'" id="'.$this->get_id().'" name="'.$this->get_full_name().'" value="'.s($data).'" />'.$executable.'</div>',
         $this->description, true, '', $default, $query);
     }
+    /**
+     * checks if execpatch has been disabled in config.php
+     */
+    public function write_setting($data) {
+        global $CFG;
+        if (!empty($CFG->preventexecpath)) {
+            return '';
+        }
+        return parent::write_setting($data);
+    }
 }
 
 
@@ -2125,6 +2133,7 @@ class admin_setting_configexecutable extends admin_setting_configfile {
      * @return string XHTML field
      */
     public function output_html($data, $query='') {
+        global $CFG;
         $default = $this->get_defaultsetting();
 
         if ($data) {
@@ -2135,6 +2144,9 @@ class admin_setting_configexecutable extends admin_setting_configfile {
             }
         } else {
             $executable = '';
+        }
+        if (!empty($CFG->preventexecpath)) {
+            $this->visiblename .= '<div class="form-overridden">'.get_string('execpathnotallowed', 'admin').'</div>';
         }
 
         return format_admin_setting($this, $this->visiblename,
@@ -4130,7 +4142,7 @@ class admin_setting_question_behaviour extends admin_setting_configselect {
     public function load_choices() {
         global $CFG;
         require_once($CFG->dirroot . '/question/engine/lib.php');
-        $this->choices = question_engine::get_archetypal_behaviours();
+        $this->choices = question_engine::get_behaviour_options('');
         return true;
     }
 }
@@ -7946,7 +7958,7 @@ class admin_setting_managewebservicetokens extends admin_setting {
 
                 $validuntil = '';
                 if (!empty($token->validuntil)) {
-                    $validuntil = date("F j, Y"); //TODO: language support (look for moodle function)
+                    $validuntil = userdate($token->validuntil, get_string('strftimedatetime', 'langconfig'));
                 }
 
                 $iprestriction = '';
