@@ -49,6 +49,12 @@ abstract class moodleform_mod extends moodleform {
     /** a flag indicating whether outcomes are being used*/
     protected $_outcomesused;
 
+    /**
+     * @var bool A flag used to indicate that this module should lock settings
+     *           based on admin settings flags in definition_after_data.
+     */
+    protected $applyadminlockedflags = false;
+
     function moodleform_mod($current, $section, $cm, $course) {
         $this->current   = $current;
         $this->_instance = $current->instance;
@@ -278,6 +284,9 @@ abstract class moodleform_mod extends moodleform {
                 }
             }
         }
+
+        // Freeze admin defaults if required (and not different from default)
+        $this->apply_admin_locked_flags();
     }
 
     // form verification
@@ -863,6 +872,99 @@ abstract class moodleform_mod extends moodleform {
         $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
         $mform->setType('buttonar', PARAM_RAW);
         $mform->closeHeaderBefore('buttonar');
+    }
+
+    /**
+     * Get the list of admin settings for this module and apply any locked settings.
+     * This cannot happen in apply_admin_defaults because we do not the current values of the settings
+     * in that function because set_data has not been called yet.
+     *
+     * @return void
+     */
+    protected function apply_admin_locked_flags() {
+        global $OUTPUT;
+
+        if (!$this->applyadminlockedflags) {
+            return;
+        }
+
+        $settings = get_config($this->_modname);
+        $mform = $this->_form;
+        $lockedicon = html_writer::tag('span',
+                                       $OUTPUT->pix_icon('t/locked', get_string('locked', 'admin')),
+                                       array('class' => 'action-icon'));
+        $isupdate = !empty($this->_cm);
+
+        foreach ($settings as $name => $value) {
+            if (strpos('_', $name) !== false) {
+                continue;
+            }
+            if ($mform->elementExists($name)) {
+                $element = $mform->getElement($name);
+                $lockedsetting = $name . '_locked';
+                if (!empty($settings->$lockedsetting)) {
+                    // Always lock locked settings for new modules,
+                    // for updates, only lock them if the current value is the same as the default (or there is no current value).
+                    $value = $settings->$name;
+                    if ($isupdate && isset($this->current->$name)) {
+                        $value = $this->current->$name;
+                    }
+                    if ($value == $settings->$name) {
+                        $mform->setConstant($name, $settings->$name);
+                        $element->setLabel($element->getLabel() . $lockedicon);
+                        // Do not use hardfreeze because we need the hidden input to check dependencies.
+                        $element->freeze();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Get the list of admin settings for this module and apply any defaults/advanced/locked settings.
+     *
+     * @param $datetimeoffsets array - If passed, this is an array of fieldnames => times that the
+     *                         default date/time value should be relative to. If not passed, all
+     *                         date/time fields are set relative to the users current midnight.
+     * @return void
+     */
+    public function apply_admin_defaults($datetimeoffsets = array()) {
+        // This flag triggers the settings to be locked in apply_admin_locked_flags().
+        $this->applyadminlockedflags = true;
+
+        $settings = get_config($this->_modname);
+        $mform = $this->_form;
+        $usermidnight = usergetmidnight(time());
+        $isupdate = !empty($this->_cm);
+
+        foreach ($settings as $name => $value) {
+            if (strpos('_', $name) !== false) {
+                continue;
+            }
+            if ($mform->elementExists($name)) {
+                $element = $mform->getElement($name);
+                if (!$isupdate) {
+                    if ($element->getType() == 'date_time_selector') {
+                        $enabledsetting = $name . '_enabled';
+                        if (empty($settings->$enabledsetting)) {
+                            $mform->setDefault($name, 0);
+                        } else {
+                            $relativetime = $usermidnight;
+                            if (isset($datetimeoffsets[$name])) {
+                                $relativetime = $datetimeoffsets[$name];
+                            }
+                            $mform->setDefault($name, $relativetime + $settings->$name);
+                        }
+                    } else {
+                        $mform->setDefault($name, $settings->$name);
+                    }
+                }
+                $advancedsetting = $name . '_adv';
+                if (!empty($settings->$advancedsetting)) {
+                    $mform->setAdvanced($name);
+                }
+            }
+        }
     }
 }
 

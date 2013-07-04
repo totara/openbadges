@@ -143,8 +143,8 @@ class plugin_manager {
             // Hack: include mod and editor subplugin management classes first,
             //       the adminlib.php is supposed to contain extra admin settings too.
             require_once($CFG->libdir.'/adminlib.php');
-            foreach(array('mod', 'editor') as $type) {
-                foreach (get_plugin_list($type) as $dir) {
+            foreach (core_component::get_plugin_types_with_subplugins() as $type => $ignored) {
+                foreach (core_component::get_plugin_list($type) as $dir) {
                     if (file_exists("$dir/adminlib.php")) {
                         include_once("$dir/adminlib.php");
                     }
@@ -221,8 +221,6 @@ class plugin_manager {
      * Returns list of plugins that define their subplugins and the information
      * about them from the db/subplugins.php file.
      *
-     * At the moment, only activity modules and editors can define subplugins.
-     *
      * @param bool $disablecache force reload, cache can be used otherwise
      * @return array with keys like 'mod_quiz', and values the data from the
      *      corresponding db/subplugins.php file.
@@ -231,9 +229,8 @@ class plugin_manager {
 
         if ($disablecache or is_null($this->subpluginsinfo)) {
             $this->subpluginsinfo = array();
-            foreach (array('mod', 'editor') as $type) {
-                $owners = get_plugin_list($type);
-                foreach ($owners as $component => $ownerdir) {
+            foreach (core_component::get_plugin_types_with_subplugins() as $type => $ignored) {
+                foreach (core_component::get_plugin_list($type) as $component => $ownerdir) {
                     $componentsubplugins = array();
                     if (file_exists($ownerdir . '/db/subplugins.php')) {
                         $subplugins = array();
@@ -518,6 +515,26 @@ class plugin_manager {
         }
 
         return true;
+    }
+
+    /**
+     * Returns uninstall URL if exists.
+     *
+     * @param string $component
+     * @return moodle_url uninstall URL, null if uninstall not supported
+     */
+    public function get_uninstall_url($component) {
+        if (!$this->can_uninstall_plugin($component)) {
+            return null;
+        }
+
+        $pluginfo = $this->get_plugin_info($component);
+
+        if (is_null($pluginfo)) {
+            return null;
+        }
+
+        return $pluginfo->get_uninstall_url();
     }
 
     /**
@@ -2826,6 +2843,15 @@ abstract class plugininfo_base {
     }
 
     /**
+     * Optional extra warning before uninstallation, for example number of uses in courses.
+     *
+     * @return string
+     */
+    public function get_uninstall_extra_warning() {
+        return '';
+    }
+
+    /**
      * Returns the URL of the screen where this plugin can be uninstalled
      *
      * Visiting that URL must be safe, that is a manual confirmation is needed
@@ -3048,9 +3074,19 @@ class plugininfo_block extends plugininfo_base {
         return true;
     }
 
-    public function get_uninstall_url() {
-        $blocksinfo = self::get_blocks_info();
-        return new moodle_url('/admin/blocks.php', array('delete' => $blocksinfo[$this->name]->id, 'sesskey' => sesskey()));
+    /**
+     * Warnign with number of block instances.
+     *
+     * @return string
+     */
+    public function get_uninstall_extra_warning() {
+        global $DB;
+
+        if (!$count = $DB->count_records('block_instances', array('blockname'=>$this->name))) {
+            return '';
+        }
+
+        return '<p>'.get_string('uninstallextraconfirmblock', 'core_plugin', array('instances'=>$count)).'</p>';
     }
 
     /**
@@ -3384,8 +3420,32 @@ class plugininfo_mod extends plugininfo_base {
         }
     }
 
-    public function get_uninstall_url() {
-        return new moodle_url('/admin/modules.php', array('delete' => $this->name, 'sesskey' => sesskey()));
+    /**
+     * Return warning with number of activities and number of affected courses.
+     *
+     * @return string
+     */
+    public function get_uninstall_extra_warning() {
+        global $DB;
+
+        if (!$module = $DB->get_record('modules', array('name'=>$this->name))) {
+            return '';
+        }
+
+        if (!$count = $DB->count_records('course_modules', array('module'=>$module->id))) {
+            return '';
+        }
+
+        $sql = "SELECT COUNT('x')
+                  FROM (
+                    SELECT course
+                      FROM {course_modules}
+                     WHERE module = :mid
+                  GROUP BY course
+                  ) c";
+        $courses = $DB->count_records_sql($sql, array('mid'=>$module->id));
+
+        return '<p>'.get_string('uninstallextraconfirmmod', 'core_plugin', array('instances'=>$count, 'courses'=>$courses)).'</p>';
     }
 
     /**
@@ -3566,11 +3626,38 @@ class plugininfo_enrol extends plugininfo_base {
     }
 
     public function is_uninstall_allowed() {
+        if ($this->name === 'manual') {
+            return false;
+        }
         return true;
     }
 
-    public function get_uninstall_url() {
-        return new moodle_url('/admin/enrol.php', array('action' => 'uninstall', 'enrol' => $this->name, 'sesskey' => sesskey()));
+    /**
+     * Return warning with number of activities and number of affected courses.
+     *
+     * @return string
+     */
+    public function get_uninstall_extra_warning() {
+        global $DB, $OUTPUT;
+
+        $sql = "SELECT COUNT('x')
+                  FROM {user_enrolments} ue
+                  JOIN {enrol} e ON e.id = ue.enrolid
+                 WHERE e.enrol = :plugin";
+        $count = $DB->count_records_sql($sql, array('plugin'=>$this->name));
+
+        if (!$count) {
+            return '';
+        }
+
+        $migrateurl = new moodle_url('/admin/enrol.php', array('action'=>'migrate', 'enrol'=>$this->name, 'sesskey'=>sesskey()));
+        $migrate = new single_button($migrateurl, get_string('migratetomanual', 'core_enrol'));
+        $button = $OUTPUT->render($migrate);
+
+        $result = '<p>'.get_string('uninstallextraconfirmenrol', 'core_plugin', array('enrolments'=>$count)).'</p>';
+        $result .= $button;
+
+        return $result;
     }
 }
 
@@ -3781,10 +3868,6 @@ class plugininfo_tool extends plugininfo_base {
     public function is_uninstall_allowed() {
         return true;
     }
-
-    public function get_uninstall_url() {
-        return new moodle_url('/admin/tools.php', array('delete' => $this->name, 'sesskey' => sesskey()));
-    }
 }
 
 
@@ -3796,10 +3879,6 @@ class plugininfo_report extends plugininfo_base {
     public function is_uninstall_allowed() {
         return true;
     }
-
-    public function get_uninstall_url() {
-        return new moodle_url('/admin/reports.php', array('delete' => $this->name, 'sesskey' => sesskey()));
-    }
 }
 
 
@@ -3808,8 +3887,8 @@ class plugininfo_report extends plugininfo_base {
  */
 class plugininfo_local extends plugininfo_base {
 
-    public function get_uninstall_url() {
-        return new moodle_url('/admin/localplugins.php', array('delete' => $this->name, 'sesskey' => sesskey()));
+    public function is_uninstall_allowed() {
+        return true;
     }
 }
 
@@ -3836,6 +3915,17 @@ class plugininfo_editor extends plugininfo_base {
         }
         if ($settings) {
             $ADMIN->add($parentnodename, $settings);
+        }
+    }
+
+    /**
+     * Basic textarea editor can not be uninstalled.
+     */
+    public function is_uninstall_allowed() {
+        if ($this->name === 'textarea') {
+            return false;
+        } else {
+            return true;
         }
     }
 
@@ -3880,6 +3970,10 @@ class plugininfo_plagiarism extends plugininfo_base {
             $adminroot->add($parentnodename, $settings);
         }
     }
+
+    public function is_uninstall_allowed() {
+        return true;
+    }
 }
 
 /**
@@ -3921,12 +4015,7 @@ class plugininfo_webservice extends plugininfo_base {
     }
 
     public function is_uninstall_allowed() {
-        return true;
-    }
-
-    public function get_uninstall_url() {
-        return new moodle_url('/admin/webservice/protocols.php',
-                array('sesskey' => sesskey(), 'action' => 'uninstall', 'webservice' => $this->name));
+        return false;
     }
 }
 
@@ -3987,8 +4076,21 @@ class plugininfo_format extends plugininfo_base {
         }
     }
 
-    public function get_uninstall_url() {
-        return new moodle_url('/admin/courseformats.php',
-                array('sesskey' => sesskey(), 'action' => 'uninstall', 'format' => $this->name));
+    public function get_uninstall_extra_warning() {
+        global $DB;
+
+        $coursecount = $DB->count_records('course', array('format' => $this->name));
+
+        if (!$coursecount) {
+            return '';
+        }
+
+        $defaultformat = $this->get_plugin_manager()->plugin_name('format_'.get_config('moodlecourse', 'format'));
+        $message = get_string(
+            'formatuninstallwithcourses', 'core_admin',
+            (object)array('count' => $coursecount, 'format' => $this->displayname,
+            'defaultformat' => $defaultformat));
+
+        return $message;
     }
 }

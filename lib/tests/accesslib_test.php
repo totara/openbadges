@@ -123,7 +123,7 @@ class accesslib_testcase extends advanced_testcase {
      * @return void
      */
     public function test_is_siteadmin() {
-        global $DB;
+        global $DB, $CFG;
 
         $this->resetAfterTest();
 
@@ -145,6 +145,20 @@ class accesslib_testcase extends advanced_testcase {
                 $this->assertFalse(is_siteadmin(null));
             }
         }
+
+        // Change the site admin list and check that it still works with
+        // multiple admins. We do this with userids only (not real user
+        // accounts) because it makes the test simpler.
+        $before = $CFG->siteadmins;
+        set_config('siteadmins', '666,667,668');
+        $this->assertTrue(is_siteadmin(666));
+        $this->assertTrue(is_siteadmin(667));
+        $this->assertTrue(is_siteadmin(668));
+        $this->assertFalse(is_siteadmin(669));
+        set_config('siteadmins', '13');
+        $this->assertTrue(is_siteadmin(13));
+        $this->assertFalse(is_siteadmin(666));
+        set_config('siteadmins', $before);
     }
 
     /**
@@ -809,6 +823,45 @@ class accesslib_testcase extends advanced_testcase {
     }
 
     /**
+     * Test role default allows.
+     */
+    public function test_get_default_role_archetype_allows() {
+        $archetypes = get_role_archetypes();
+        foreach ($archetypes as $archetype) {
+
+            $result = get_default_role_archetype_allows('assign', $archetype);
+            $this->assertTrue(is_array($result));
+
+            $result = get_default_role_archetype_allows('override', $archetype);
+            $this->assertTrue(is_array($result));
+
+            $result = get_default_role_archetype_allows('switch', $archetype);
+            $this->assertTrue(is_array($result));
+        }
+
+        $result = get_default_role_archetype_allows('assign', '');
+        $this->assertSame(array(), $result);
+
+        $result = get_default_role_archetype_allows('override', '');
+        $this->assertSame(array(), $result);
+
+        $result = get_default_role_archetype_allows('switch', '');
+        $this->assertSame(array(), $result);
+
+        $result = get_default_role_archetype_allows('assign', 'wrongarchetype');
+        $this->assertSame(array(), $result);
+        $this->assertDebuggingCalled();
+
+        $result = get_default_role_archetype_allows('override', 'wrongarchetype');
+        $this->assertSame(array(), $result);
+        $this->assertDebuggingCalled();
+
+        $result = get_default_role_archetype_allows('switch', 'wrongarchetype');
+        $this->assertSame(array(), $result);
+        $this->assertDebuggingCalled();
+    }
+
+    /**
      * Test allowing of role assignments.
      * @return void
      */
@@ -1222,8 +1275,7 @@ class accesslib_testcase extends advanced_testcase {
      * @return void
      */
     public function test_get_role_users() {
-        global $DB, $CFG;
-        require_once("$CFG->dirroot/group/lib.php");
+        global $DB;
 
         $this->resetAfterTest();
 
@@ -1238,9 +1290,9 @@ class accesslib_testcase extends advanced_testcase {
         $otherrename = (object)array('roleid'=>$otherid, 'name'=>'Ostatní', 'contextid'=>$coursecontext->id);
         $DB->insert_record('role_names', $otherrename);
 
-        $user1 = $this->getDataGenerator()->create_user();
+        $user1 = $this->getDataGenerator()->create_user(array('firstname'=>'John', 'lastname'=>'Smith'));
         role_assign($teacherrole->id, $user1->id, $coursecontext->id);
-        $user2 = $this->getDataGenerator()->create_user();
+        $user2 = $this->getDataGenerator()->create_user(array('firstname'=>'Jan', 'lastname'=>'Kovar'));
         role_assign($teacherrole->id, $user2->id, $systemcontext->id);
         $user3 = $this->getDataGenerator()->create_user();
         $this->getDataGenerator()->enrol_user($user3->id, $course->id, $teacherrole->id);
@@ -1248,27 +1300,41 @@ class accesslib_testcase extends advanced_testcase {
         $this->getDataGenerator()->enrol_user($user4->id, $course->id, $studentrole->id);
 
         $group = $this->getDataGenerator()->create_group(array('courseid'=>$course->id));
-        groups_add_member($group->id, $user3->id);
+        groups_add_member($group, $user3);
 
         $users = get_role_users($teacherrole->id, $coursecontext);
-        $this->assertEquals(array($user1->id, $user3->id), array_keys($users), '', 0, 10, true);
-        $user = $users[$user1->id];
-        $this->assertEquals($teacherrole->id, $user->roleid);
-        $this->assertEquals($teacherrole->name, $user->rolename);
-        $this->assertEquals($teacherrole->shortname, $user->roleshortname);
-        $this->assertEquals($teacherrename->name, $user->rolecoursealias);
+        $this->assertCount(2, $users);
+        $this->assertArrayHasKey($user1->id, $users);
+        $this->assertEquals($users[$user1->id]->id, $user1->id);
+        $this->assertEquals($users[$user1->id]->roleid, $teacherrole->id);
+        $this->assertEquals($users[$user1->id]->rolename, $teacherrole->name);
+        $this->assertEquals($users[$user1->id]->roleshortname, $teacherrole->shortname);
+        $this->assertEquals($users[$user1->id]->rolecoursealias, $teacherrename->name);
+        $this->assertArrayHasKey($user3->id, $users);
+        $this->assertEquals($users[$user3->id]->id, $user3->id);
+        $this->assertEquals($users[$user3->id]->roleid, $teacherrole->id);
+        $this->assertEquals($users[$user3->id]->rolename, $teacherrole->name);
+        $this->assertEquals($users[$user3->id]->roleshortname, $teacherrole->shortname);
+        $this->assertEquals($users[$user3->id]->rolecoursealias, $teacherrename->name);
 
         $users = get_role_users($teacherrole->id, $coursecontext, true);
-        $this->assertEquals(array($user1->id, $user2->id, $user3->id), array_keys($users), '', 0, 10, true);
+        $this->assertCount(3, $users);
 
-        $users = get_role_users($teacherrole->id, $coursecontext, false, '', null, false);
-        $this->assertEquals(array($user3->id), array_keys($users), '', 0, 10, true);
+        $users = get_role_users($teacherrole->id, $coursecontext, true, '', null, null, '', 2, 1);
+        $this->assertCount(1, $users);
 
-        $users = get_role_users($teacherrole->id, $coursecontext, false, '', null, null);
+        $users = get_role_users($teacherrole->id, $coursecontext, false, 'u.id, u.email, u.idnumber', 'u.idnumber');
         $this->assertCount(2, $users);
+        $this->assertArrayHasKey($user1->id, $users);
+        $this->assertArrayHasKey($user3->id, $users);
 
-        $users = get_role_users($teacherrole->id, $coursecontext, false, 'u.id, u.email, u.idnumber', 'u.idnumber', true, $group->id, 0, 10, 'u.deleted = 0');
-        $this->assertEquals(array($user3->id), array_keys($users), '', 0, 10, true);
+        $users = get_role_users($teacherrole->id, $coursecontext, false, 'u.id, u.email, u.idnumber', 'u.idnumber', null, $group->id);
+        $this->assertCount(1, $users);
+        $this->assertArrayHasKey($user3->id, $users);
+
+        $users = get_role_users($teacherrole->id, $coursecontext, true, 'u.id, u.email, u.idnumber, u.firstname', 'u.idnumber', null, '', '', '', 'u.firstname = :xfirstname', array('xfirstname'=>'John'));
+        $this->assertCount(1, $users);
+        $this->assertArrayHasKey($user1->id, $users);
     }
 
     /**
@@ -2300,6 +2366,12 @@ class accesslib_testcase extends advanced_testcase {
         $this->resetDebugging();
         $this->assertEquals(count($children), $DB->count_records('context')-1);
         unset($children);
+
+        // Make sure a debugging is thrown.
+        get_context_instance($record->contextlevel, $record->instanceid);
+        $this->assertDebuggingCalled('get_context_instance() is deprecated, please use context_xxxx::instance() instead.', DEBUG_DEVELOPER);
+        get_context_instance_by_id($record->id);
+        $this->assertDebuggingCalled('get_context_instance_by_id() is deprecated, please use context::instance_by_id($id) instead.', DEBUG_DEVELOPER);
 
         $DB->delete_records('context', array('contextlevel'=>CONTEXT_BLOCK));
         create_contexts();

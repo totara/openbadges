@@ -513,8 +513,8 @@ function filter_get_all_installed() {
     global $CFG;
 
     $filternames = array();
-    foreach (get_list_of_plugins('filter') as $filter) {
-        if (is_readable("$CFG->dirroot/filter/$filter/filter.php")) {
+    foreach (get_plugin_list('filter') as $filter => $fulldir) {
+        if (is_readable("$fulldir/filter.php")) {
             $filternames[$filter] = filter_get_name($filter);
         }
     }
@@ -571,17 +571,22 @@ function filter_set_global_state($filtername, $state, $move = 0) {
     if (isset($on[$filtername])) {
         $filter = $on[$filtername];
         if ($filter->active != $state) {
+            add_to_config_log('filter_active', $filter->active, $state, $filtername);
+
             $filter->active = $state;
             $DB->update_record('filter_active', $filter);
             if ($filter->active == TEXTFILTER_DISABLED) {
                 unset($on[$filtername]);
                 $off = array($filter->filter => $filter) + $off;
             }
+
         }
 
     } else if (isset($off[$filtername])) {
         $filter = $off[$filtername];
         if ($filter->active != $state) {
+            add_to_config_log('filter_active', $filter->active, $state, $filtername);
+
             $filter->active = $state;
             $DB->update_record('filter_active', $filter);
             if ($filter->active != TEXTFILTER_DISABLED) {
@@ -591,6 +596,8 @@ function filter_set_global_state($filtername, $state, $move = 0) {
         }
 
     } else {
+        add_to_config_log('filter_active', '', $state, $filtername);
+
         $filter = new stdClass();
         $filter->filter    = $filtername;
         $filter->contextid = $syscontext->id;

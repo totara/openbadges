@@ -813,6 +813,83 @@ class backup_comments_structure_step extends backup_structure_step {
 }
 
 /**
+ * structure step in charge of constructing the badges.xml file for all the badges found
+ * in a given context
+ */
+class backup_badges_structure_step extends backup_structure_step {
+
+    protected function execute_condition() {
+        // Check that all activities have been included.
+        if ($this->task->is_excluding_activities()) {
+            return false;
+        }
+        return true;
+    }
+
+    protected function define_structure() {
+
+        // Define each element separated.
+
+        $badges = new backup_nested_element('badges');
+        $badge = new backup_nested_element('badge', array('id'), array('name', 'description',
+                'timecreated', 'timemodified', 'usercreated', 'usermodified', 'issuername',
+                'issuerurl', 'issuercontact', 'expiredate', 'expireperiod', 'type', 'courseid',
+                'message', 'messagesubject', 'attachment', 'notification', 'status', 'nextcron'));
+
+        $criteria = new backup_nested_element('criteria');
+        $criterion = new backup_nested_element('criterion', array('id'), array('badgeid',
+                'criteriatype', 'method'));
+
+        $parameters = new backup_nested_element('parameters');
+        $parameter = new backup_nested_element('parameter', array('id'), array('critid',
+                'name', 'value', 'criteriatype'));
+
+        $manual_awards = new backup_nested_element('manual_awards');
+        $manual_award = new backup_nested_element('manual_award', array('id'), array('badgeid',
+                'recipientid', 'issuerid', 'issuerrole', 'datemet'));
+
+        // Build the tree.
+
+        $badges->add_child($badge);
+        $badge->add_child($criteria);
+        $criteria->add_child($criterion);
+        $criterion->add_child($parameters);
+        $parameters->add_child($parameter);
+        $badge->add_child($manual_awards);
+        $manual_awards->add_child($manual_award);
+
+        // Define sources.
+
+        $badge->set_source_table('badge', array('courseid' => backup::VAR_COURSEID));
+        $criterion->set_source_table('badge_criteria', array('badgeid' => backup::VAR_PARENTID));
+
+        $parametersql = 'SELECT cp.*, c.criteriatype
+                             FROM {badge_criteria_param} cp JOIN {badge_criteria} c
+                                 ON cp.critid = c.id
+                             WHERE critid = :critid';
+        $parameterparams = array('critid' => backup::VAR_PARENTID);
+        $parameter->set_source_sql($parametersql, $parameterparams);
+
+        $manual_award->set_source_table('badge_manual_award', array('badgeid' => backup::VAR_PARENTID));
+
+        // Define id annotations.
+
+        $badge->annotate_ids('user', 'usercreated');
+        $badge->annotate_ids('user', 'usermodified');
+        $criterion->annotate_ids('badge', 'badgeid');
+        $parameter->annotate_ids('criterion', 'critid');
+        $badge->annotate_files('badges', 'badgeimage', 'id');
+        $manual_award->annotate_ids('badge', 'badgeid');
+        $manual_award->annotate_ids('user', 'recipientid');
+        $manual_award->annotate_ids('user', 'issuerid');
+        $manual_award->annotate_ids('role', 'issuerrole');
+
+        // Return the root element ($badges).
+        return $badges;
+    }
+}
+
+/**
  * structure step in charge of constructing the calender.xml file for all the events found
  * in a given context
  */
@@ -1489,6 +1566,7 @@ class backup_main_structure_step extends backup_structure_step {
         $info['backup_date']    = time();
         $info['backup_uniqueid']= $this->get_backupid();
         $info['mnet_remoteusers']=backup_controller_dbops::backup_includes_mnet_remote_users($this->get_backupid());
+        $info['include_files'] = backup_controller_dbops::backup_includes_files($this->get_backupid());
         $info['include_file_references_to_external_content'] =
                 backup_controller_dbops::backup_includes_file_references($this->get_backupid());
         $info['original_wwwroot']=$CFG->wwwroot;
@@ -1510,7 +1588,7 @@ class backup_main_structure_step extends backup_structure_step {
 
         $information = new backup_nested_element('information', null, array(
             'name', 'moodle_version', 'moodle_release', 'backup_version',
-            'backup_release', 'backup_date', 'mnet_remoteusers', 'include_file_references_to_external_content', 'original_wwwroot',
+            'backup_release', 'backup_date', 'mnet_remoteusers', 'include_files', 'include_file_references_to_external_content', 'original_wwwroot',
             'original_site_identifier_hash', 'original_course_id',
             'original_course_fullname', 'original_course_shortname', 'original_course_startdate',
             'original_course_contextid', 'original_system_contextid'));

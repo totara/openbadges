@@ -31,6 +31,176 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
+ * List all core subsystems and their location
+ *
+ * This is a whitelist of components that are part of the core and their
+ * language strings are defined in /lang/en/<<subsystem>>.php. If a given
+ * plugin is not listed here and it does not have proper plugintype prefix,
+ * then it is considered as course activity module.
+ *
+ * The location is optionally dirroot relative path. NULL means there is no special
+ * directory for this subsystem. If the location is set, the subsystem's
+ * renderer.php is expected to be there.
+ *
+ * @deprecated since 2.6, use core_component::get_core_subsystems()
+ *
+ * @param bool $fullpaths false means relative paths from dirroot, use true for performance reasons
+ * @return array of (string)name => (string|null)location
+ */
+function get_core_subsystems($fullpaths = false) {
+    global $CFG;
+
+    // NOTE: do not add any other debugging here, keep forever.
+
+    $subsystems = core_component::get_core_subsystems();
+
+    if ($fullpaths) {
+        return $subsystems;
+    }
+
+    debugging('Short paths are deprecated when using get_core_subsystems(), please fix the code to use fullpaths instead.', DEBUG_DEVELOPER);
+
+    $dlength = strlen($CFG->dirroot);
+
+    foreach ($subsystems as $k => $v) {
+        if ($v === null) {
+            continue;
+        }
+        $subsystems[$k] = substr($v, $dlength+1);
+    }
+
+    return $subsystems;
+}
+
+/**
+ * Lists all plugin types.
+ *
+ * @deprecated since 2.6, use core_component::get_plugin_types()
+ *
+ * @param bool $fullpaths false means relative paths from dirroot
+ * @return array Array of strings - name=>location
+ */
+function get_plugin_types($fullpaths = true) {
+    global $CFG;
+
+    // NOTE: do not add any other debugging here, keep forever.
+
+    $types = core_component::get_plugin_types();
+
+    if ($fullpaths) {
+        return $types;
+    }
+
+    debugging('Short paths are deprecated when using get_plugin_types(), please fix the code to use fullpaths instead.', DEBUG_DEVELOPER);
+
+    $dlength = strlen($CFG->dirroot);
+
+    foreach ($types as $k => $v) {
+        if ($k === 'theme') {
+            $types[$k] = 'theme';
+            continue;
+        }
+        $types[$k] = substr($v, $dlength+1);
+    }
+
+    return $types;
+}
+
+/**
+ * Use when listing real plugins of one type.
+ *
+ * @deprecated since 2.6, use core_component::get_plugin_list()
+ *
+ * @param string $plugintype type of plugin
+ * @return array name=>fulllocation pairs of plugins of given type
+ */
+function get_plugin_list($plugintype) {
+
+    // NOTE: do not add any other debugging here, keep forever.
+
+    if ($plugintype === '') {
+        $plugintype = 'mod';
+    }
+
+    return core_component::get_plugin_list($plugintype);
+}
+
+/**
+ * Get a list of all the plugins of a given type that define a certain class
+ * in a certain file. The plugin component names and class names are returned.
+ *
+ * @deprecated since 2.6, use core_component::get_plugin_list_with_class()
+ *
+ * @param string $plugintype the type of plugin, e.g. 'mod' or 'report'.
+ * @param string $class the part of the name of the class after the
+ *      frankenstyle prefix. e.g 'thing' if you are looking for classes with
+ *      names like report_courselist_thing. If you are looking for classes with
+ *      the same name as the plugin name (e.g. qtype_multichoice) then pass ''.
+ * @param string $file the name of file within the plugin that defines the class.
+ * @return array with frankenstyle plugin names as keys (e.g. 'report_courselist', 'mod_forum')
+ *      and the class names as values (e.g. 'report_courselist_thing', 'qtype_multichoice').
+ */
+function get_plugin_list_with_class($plugintype, $class, $file) {
+
+    // NOTE: do not add any other debugging here, keep forever.
+
+    return core_component::get_plugin_list_with_class($plugintype, $class, $file);
+}
+
+/**
+ * Returns the exact absolute path to plugin directory.
+ *
+ * @deprecated since 2.6, use core_component::get_plugin_directory()
+ *
+ * @param string $plugintype type of plugin
+ * @param string $name name of the plugin
+ * @return string full path to plugin directory; NULL if not found
+ */
+function get_plugin_directory($plugintype, $name) {
+
+    // NOTE: do not add any other debugging here, keep forever.
+
+    if ($plugintype === '') {
+        $plugintype = 'mod';
+    }
+
+    return core_component::get_plugin_directory($plugintype, $name);
+}
+
+/**
+ * Normalize the component name using the "frankenstyle" names.
+ *
+ * @deprecated since 2.6, use core_component::normalize_component()
+ *
+ * @param string $component
+ * @return array as (string)$type => (string)$plugin
+ */
+function normalize_component($component) {
+
+    // NOTE: do not add any other debugging here, keep forever.
+
+    return core_component::normalize_component($component);
+}
+
+/**
+ * Return exact absolute path to a plugin directory.
+ *
+ * @deprecated since 2.6, use core_component::normalize_component()
+ *
+ * @param string $component name such as 'moodle', 'mod_forum'
+ * @return string full path to component directory; NULL if not found
+ */
+function get_component_directory($component) {
+
+    // NOTE: do not add any other debugging here, keep forever.
+
+    return core_component::get_component_directory($component);
+}
+
+
+// === Deprecated before 2.6.0 ===
+
+/**
  * Hack to find out the GD version by parsing phpinfo output
  *
  * @return int GD version (1, 2, or 0)
@@ -2838,24 +3008,10 @@ function show_event($event) {
 }
 
 /**
- * Converts string to lowercase using most compatible function available.
- *
  * @deprecated Use textlib::strtolower($text) instead.
- *
- * @param string $string The string to convert to all lowercase characters.
- * @param string $encoding The encoding on the string.
- * @return string
  */
 function moodle_strtolower($string, $encoding='') {
-
-    debugging('moodle_strtolower() is deprecated. Please use textlib::strtolower() instead.', DEBUG_DEVELOPER);
-
-    //If not specified use utf8
-    if (empty($encoding)) {
-        $encoding = 'UTF-8';
-    }
-    //Use text services
-    return textlib::strtolower($string, $encoding);
+    throw new coding_exception('moodle_strtolower() cannot be used any more. Please use textlib::strtolower() instead.');
 }
 
 /**
@@ -4675,4 +4831,71 @@ function convert_tabrows_to_tree($tabrows, $selected, $inactive, $activated) {
     }
 
     return $subtree;
+}
+
+/**
+ * @deprecated since Moodle 2.3
+ */
+function move_section($course, $section, $move) {
+    throw new coding_exception('move_section() can not be used any more, please see move_section_to().');
+}
+/**
+ * Can handle rotated text. Whether it is safe to use the trickery in textrotate.js.
+ *
+ * @deprecated since 2.5 - do not use, the textrotate.js will work it out automatically
+ * @return bool True for yes, false for no
+ */
+function can_use_rotated_text() {
+    debugging('can_use_rotated_text() is deprecated since Moodle 2.5. JS feature detection is used automatically.', DEBUG_DEVELOPER);
+    return true;
+}
+
+/**
+ * Get the context instance as an object. This function will create the
+ * context instance if it does not exist yet.
+ *
+ * @deprecated since 2.2, use context_course::instance() or other relevant class instead
+ * @todo This will be deleted in Moodle 2.8, refer MDL-34472
+ * @param integer $contextlevel The context level, for example CONTEXT_COURSE, or CONTEXT_MODULE.
+ * @param integer $instance The instance id. For $level = CONTEXT_COURSE, this would be $course->id,
+ *      for $level = CONTEXT_MODULE, this would be $cm->id. And so on. Defaults to 0
+ * @param int $strictness IGNORE_MISSING means compatible mode, false returned if record not found, debug message if more found;
+ *      MUST_EXIST means throw exception if no record or multiple records found
+ * @return context The context object.
+ */
+function get_context_instance($contextlevel, $instance = 0, $strictness = IGNORE_MISSING) {
+
+    debugging('get_context_instance() is deprecated, please use context_xxxx::instance() instead.', DEBUG_DEVELOPER);
+
+    $instances = (array)$instance;
+    $contexts = array();
+
+    $classname = context_helper::get_class_for_level($contextlevel);
+
+    // we do not load multiple contexts any more, PAGE should be responsible for any preloading
+    foreach ($instances as $inst) {
+        $contexts[$inst] = $classname::instance($inst, $strictness);
+    }
+
+    if (is_array($instance)) {
+        return $contexts;
+    } else {
+        return $contexts[$instance];
+    }
+}
+
+/**
+ * Get a context instance as an object, from a given context id.
+ *
+ * @deprecated since Moodle 2.2 MDL-35009 - please do not use this function any more.
+ * @todo MDL-34550 This will be deleted in Moodle 2.8
+ * @see context::instance_by_id($id)
+ * @param int $id context id
+ * @param int $strictness IGNORE_MISSING means compatible mode, false returned if record not found, debug message if more found;
+ *                        MUST_EXIST means throw exception if no record or multiple records found
+ * @return context|bool the context object or false if not found.
+ */
+function get_context_instance_by_id($id, $strictness = IGNORE_MISSING) {
+    debugging('get_context_instance_by_id() is deprecated, please use context::instance_by_id($id) instead.', DEBUG_DEVELOPER);
+    return context::instance_by_id($id, $strictness);
 }

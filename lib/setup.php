@@ -289,6 +289,8 @@ umask(0000);
 $CFG->yui2version = '2.9.0';
 $CFG->yui3version = '3.9.1';
 
+// core_component can be used in any scripts, it does not need anything else.
+require_once($CFG->libdir .'/classes/component.php');
 
 // special support for highly optimised scripts that do not need libraries and DB connection
 if (defined('ABORT_AFTER_CONFIG')) {
@@ -504,8 +506,14 @@ ini_set('include_path', $CFG->libdir.'/pear' . PATH_SEPARATOR . ini_get('include
 //please note zend library is supposed to be used only from web service protocol classes, it may be removed in future
 ini_set('include_path', $CFG->libdir.'/zend' . PATH_SEPARATOR . ini_get('include_path'));
 
+// Register our classloader, in theory somebody might want to replace it to load other hacked core classes.
+if (defined('COMPONENT_CLASSLOADER')) {
+    spl_autoload_register(COMPONENT_CLASSLOADER);
+} else {
+    spl_autoload_register('core_component::classloader');
+}
+
 // Load up standard libraries
-require_once($CFG->libdir .'/textlib.class.php');   // Functions to handle multibyte strings
 require_once($CFG->libdir .'/filterlib.php');       // Functions for filtering test as it is output
 require_once($CFG->libdir .'/ajax/ajaxlib.php');    // Functions for managing our use of JavaScript and YUI
 require_once($CFG->libdir .'/weblib.php');          // Functions relating to HTTP and content

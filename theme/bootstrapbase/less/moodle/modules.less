@@ -76,22 +76,23 @@ select {
 
 .breadcrumb-button {
     float: right;
-    margin-top: 3px;
+    margin-top: 4px;
 }
 .dir-rtl .navbar .brand {
     float: right;
 }
-.navbar .logininfo a {
-    color: @navbarLinkColor;
+
+.navbar-inverse .logininfo a {
+    color: @navbarInverseLinkColor;
 }
-.navbar .logininfo a:hover {
-  background-color: @navbarLinkBackgroundHover; // "transparent" is default to differentiate :hover/:focus from .active
-  color: @navbarLinkColorHover;
+.navbar-inverse .logininfo a:hover {
+    background-color: @navbarInverseLinkBackgroundHover; // "transparent" is default to differentiate :hover/:focus from .active
+    color: @navbarInverseLinkColorHover;
 }
 
 .navbar-fixed-top,
 .navbar-fixed-bottom {
-        z-index: 4030;
+    z-index: 4030;
 }
 
 .dir-rtl .breadcrumb-button,
@@ -100,7 +101,7 @@ select {
 }
 
 .ie .row-fluid .desktop-first-column {
-      margin-left: 0;
+    margin-left: 0;
 }
 .langmenu form {
     margin: 0;
@@ -130,4 +131,9 @@ div#dock {
     margin: auto;
     min-width: 280px;
     width: 60%;
+}
+
+.path-mod-lesson .centerpadded {
+    padding: 5px;
+    text-align: center;
 }

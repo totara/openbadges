@@ -49,7 +49,7 @@ class mod_assign_grading_batch_operations_form extends moodleform {
         if ($instance['submissiondrafts']) {
             $options['reverttodraft'] = get_string('reverttodraft', 'assign');
         }
-        if ($instance['duedate']) {
+        if ($instance['duedate'] && has_capability('mod/assign:grantextension', $instance['context'])) {
             $options['grantextension'] = get_string('grantextension', 'assign');
         }
         if ($instance['attemptreopenmethod'] == ASSIGN_ATTEMPT_REOPEN_METHOD_MANUAL) {
@@ -63,6 +63,12 @@ class mod_assign_grading_batch_operations_form extends moodleform {
                     $options[$operationkey] = $description;
                 }
             }
+        }
+        if ($instance['markingworkflow']) {
+            $options['setmarkingworkflowstate'] = get_string('setmarkingworkflowstate', 'assign');
+        }
+        if ($instance['markingallocation']) {
+            $options['setmarkingallocation'] = get_string('setmarkingallocation', 'assign');
         }
 
         $mform->addElement('hidden', 'action', 'gradingbatchoperation');

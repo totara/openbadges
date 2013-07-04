@@ -828,8 +828,10 @@ abstract class condition_info_base {
             // Need the array of operators
             foreach ($this->item->conditionsfield as $field => $details) {
                 $a = new stdclass;
-                $a->field = format_string($details->fieldname, true, array('context' => $context));
-                $a->value = $details->value;
+                // Display the fieldname into current lang.
+                $translatedfieldname = get_user_field_name($details->fieldname);
+                $a->field = format_string($translatedfieldname, true, array('context' => $context));
+                $a->value = s($details->value);
                 $information .= html_writer::start_tag('li');
                 $information .= get_string('requires_user_field_'.$details->operator, 'condition', $a) . ' ';
                 $information .= html_writer::end_tag('li');
@@ -1061,7 +1063,7 @@ abstract class condition_info_base {
                     $available = false;
                     $a = new stdClass();
                     $a->field = format_string($details->fieldname, true, array('context' => $context));
-                    $a->value = $details->value;
+                    $a->value = s($details->value);
                     $information .= html_writer::start_tag('li');
                     $information .= get_string('requires_user_field_'.$details->operator, 'condition', $a) . ' ';
                     $information .= html_writer::end_tag('li');

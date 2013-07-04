@@ -32,7 +32,9 @@ require_once(__DIR__ . '/../../behat/behat_base.php');
 use Behat\Behat\Event\SuiteEvent as SuiteEvent,
     Behat\Behat\Event\ScenarioEvent as ScenarioEvent,
     Behat\Behat\Event\StepEvent as StepEvent,
-    WebDriver\Exception\NoSuchWindow as NoSuchWindow;
+    WebDriver\Exception\NoSuchWindow as NoSuchWindow,
+    WebDriver\Exception\UnexpectedAlertOpen as UnexpectedAlertOpen,
+    WebDriver\Exception\NoAlertOpenError as NoAlertOpenError;
 
 /**
  * Hooks to the behat process.
@@ -51,6 +53,11 @@ use Behat\Behat\Event\SuiteEvent as SuiteEvent,
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class behat_hooks extends behat_base {
+
+    /**
+     * @var Last browser session start time.
+     */
+    protected static $lastbrowsersessionstart = 0;
 
     /**
      * Gives access to moodle codebase, ensures all is ready and sets up the test lock.
@@ -100,6 +107,12 @@ class behat_hooks extends behat_base {
         }
         // Avoid parallel tests execution, it continues when the previous lock is released.
         test_lock::acquire('behat');
+
+        // Store the browser reset time if reset after N seconds is specified in config.php.
+        if (!empty($CFG->behat_restart_browser_after)) {
+            // Store the initial browser session opening.
+            self::$lastbrowsersessionstart = time();
+        }
     }
 
     /**
@@ -136,8 +149,27 @@ class behat_hooks extends behat_base {
         $user = $DB->get_record('user', array('username' => 'admin'));
         session_set_user($user);
 
+        // Reset the browser if specified in config.php.
+        if (!empty($CFG->behat_restart_browser_after) && $this->running_javascript()) {
+            $now = time();
+            if (self::$lastbrowsersessionstart + $CFG->behat_restart_browser_after < $now) {
+                $this->getSession()->restart();
+                self::$lastbrowsersessionstart = $now;
+            }
+        }
+
         // Start always in the the homepage.
         $this->getSession()->visit($this->locate_path('/'));
+
+        // Closing JS dialogs if present. Otherwise they would block this scenario execution.
+        if ($this->running_javascript()) {
+            try {
+                $this->getSession()->getDriver()->getWebDriverSession()->accept_alert();
+            } catch (NoAlertOpenError $e) {
+                // All ok, there should not be JS dialogs in theory.
+            }
+        }
+
     }
 
     /**
@@ -245,18 +277,29 @@ class behat_hooks extends behat_base {
             }
 
             // Any other backtrace.
-            $backtracespattern = '/(line [0-9]* of [^:]*: call to [\->&;:a-zA-Z_\x7f-\xff][\->&;:a-zA-Z0-9_\x7f-\xff]*)/';
-            if (preg_match_all($backtracespattern, $this->getSession()->getPage()->getContent(), $backtraces)) {
-                $msgs = array();
-                foreach ($backtraces[0] as $backtrace) {
-                    $msgs[] = $backtrace . '()';
+            // First looking through xpath as it is faster than get and parse the whole page contents,
+            // we get the contents and look for matches once we found something to suspect that there is a backtrace.
+            if ($this->getSession()->getDriver()->find("(//html/descendant::*[contains(., ': call to ')])[1]")) {
+                $backtracespattern = '/(line [0-9]* of [^:]*: call to [\->&;:a-zA-Z_\x7f-\xff][\->&;:a-zA-Z0-9_\x7f-\xff]*)/';
+                if (preg_match_all($backtracespattern, $this->getSession()->getPage()->getContent(), $backtraces)) {
+                    $msgs = array();
+                    foreach ($backtraces[0] as $backtrace) {
+                        $msgs[] = $backtrace . '()';
+                    }
+                    $msg = "Other backtraces found:\n" . implode("\n", $msgs);
+                    throw new \Exception(htmlentities($msg));
                 }
-                $msg = "Other backtraces found:\n" . implode("\n", $msgs);
-                throw new \Exception(htmlentities($msg));
             }
 
         } catch (NoSuchWindow $e) {
             // If we were interacting with a popup window it will not exists after closing it.
+        } catch (UnexpectedAlertOpen $e) {
+            // We fail the scenario if we find an opened JS alert/confirm, in most of the cases it
+            // will be there because we are leaving an edited form without submitting/cancelling
+            // it, but moodle is using JS confirms and we can not just cancel the JS dialog
+            // as in some cases (delete activity with JS enabled for example) the test writer should
+            // use extra steps to deal with moodle's behaviour.
+            throw new Exception('Modal window present. Ensure there are no edited forms pending to submit/cancel.');
         }
     }
 

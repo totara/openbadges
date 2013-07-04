@@ -589,7 +589,7 @@ class navigation_node implements renderable {
     public function find_expandable(array &$expandable) {
         foreach ($this->children as &$child) {
             if ($child->display && $child->has_children() && $child->children->count() == 0) {
-                $child->id = 'expandable_branch_'.(count($expandable)+1);
+                $child->id = 'expandable_branch_'.$child->type.'_'.clean_param($child->key, PARAM_ALPHANUMEXT);
                 $this->add_class('canexpand');
                 $expandable[] = array('id' => $child->id, 'key' => $child->key, 'type' => $child->type);
             }
@@ -899,8 +899,9 @@ class navigation_node_collection implements IteratorAggregate {
         $child = $this->get($key, $type);
         if ($child !== false) {
             foreach ($this->collection as $colkey => $node) {
-                if ($node->key == $key && $node->type == $type) {
+                if ($node->key === $key && $node->type == $type) {
                     unset($this->collection[$colkey]);
+                    $this->collection = array_values($this->collection);
                     break;
                 }
             }
@@ -2447,9 +2448,9 @@ class global_navigation extends navigation_node {
         }
 
         // Badges.
-        if (!empty($CFG->enablebadges) && !empty($CFG->badges_allowcoursebadges) && has_capability('moodle/badges:viewbadges', $this->page->context)) {
-            $url = new moodle_url($CFG->wwwroot . '/badges/view.php',
-                    array('type' => 2, 'id' => $course->id));
+        if (!empty($CFG->enablebadges) && !empty($CFG->badges_allowcoursebadges) &&
+            has_capability('moodle/badges:viewbadges', $this->page->context)) {
+            $url = new moodle_url('/badges/view.php', array('type' => 2, 'id' => $course->id));
 
             $coursenode->add(get_string('coursebadges', 'badges'), null,
                     navigation_node::TYPE_CONTAINER, null, 'coursebadges');
@@ -2498,7 +2499,7 @@ class global_navigation extends navigation_node {
         }
 
         //Badges
-        if (!empty($CFG->enablebadges) && !empty($CFG->badges_allowcoursebadges) && has_capability('moodle/badges:viewbadges', $this->page->context)) {
+        if (!empty($CFG->enablebadges) && has_capability('moodle/badges:viewbadges', $this->page->context)) {
             $url = new moodle_url($CFG->wwwroot . '/badges/view.php', array('type' => 1));
             $coursenode->add(get_string('sitebadges', 'badges'), $url, navigation_node::TYPE_CUSTOM);
         }
@@ -2651,7 +2652,7 @@ class global_navigation extends navigation_node {
             list($sql, $params) = $DB->get_in_or_equal($categoryids);
             $categories = $DB->get_recordset_select('course_categories', 'id '.$sql.' AND parent = 0', $params, 'sortorder, id');
             foreach ($categories as $category) {
-                $this->add_category($category, $this->rootnodes['mycourses']);
+                $this->add_category($category, $this->rootnodes['mycourses'], self::TYPE_MY_CATEGORY);
             }
             $categories->close();
         } else {
@@ -2833,20 +2834,49 @@ class global_navigation_for_ajax extends global_navigation {
                 $this->add_category($category, $this, $nodetype);
                 $basecategory = $this->addedcategories[$category->id];
             } else {
-                $subcategories[] = $category;
+                $subcategories[$category->id] = $category;
             }
         }
         $categories->close();
 
-        if (!is_null($basecategory)) {
-            foreach ($subcategories as $category) {
-                $this->add_category($category, $basecategory, $nodetype);
-            }
-        }
 
-        // If category is shown in MyHome then only show enrolled courses, else show all courses.
+        // If category is shown in MyHome then only show enrolled courses and hide empty subcategories,
+        // else show all courses.
         if ($nodetype === self::TYPE_MY_CATEGORY) {
             $courses = enrol_get_my_courses();
+            $categoryids = array();
+
+            // Only search for categories if basecategory was found.
+            if (!is_null($basecategory)) {
+                // Get course parent category ids.
+                foreach ($courses as $course) {
+                    $categoryids[] = $course->category;
+                }
+
+                // Get a unique list of category ids which a part of the path
+                // to user's courses.
+                $coursesubcategories = array();
+                $addedsubcategories = array();
+
+                list($sql, $params) = $DB->get_in_or_equal($categoryids);
+                $categories = $DB->get_recordset_select('course_categories', 'id '.$sql, $params, 'sortorder, id', 'id, path');
+
+                foreach ($categories as $category){
+                    $coursesubcategories = array_merge($coursesubcategories, explode('/', trim($category->path, "/")));
+                }
+                $coursesubcategories = array_unique($coursesubcategories);
+
+                // Only add a subcategory if it is part of the path to user's course and
+                // wasn't already added.
+                foreach ($subcategories as $subid => $subcategory) {
+                    if (in_array($subid, $coursesubcategories) &&
+                            !in_array($subid, $addedsubcategories)) {
+                            $this->add_category($subcategory, $basecategory, $nodetype);
+                            $addedsubcategories[] = $subid;
+                    }
+                }
+            }
+
             foreach ($courses as $course) {
                 // Add course if it's in category.
                 if (in_array($course->category, $categorylist)) {
@@ -2854,6 +2884,11 @@ class global_navigation_for_ajax extends global_navigation {
                 }
             }
         } else {
+            if (!is_null($basecategory)) {
+                foreach ($subcategories as $key=>$category) {
+                    $this->add_category($category, $basecategory, $nodetype);
+                }
+            }
             $courses = $DB->get_recordset('course', array('category' => $categoryid), 'sortorder', '*' , 0, $limit);
             foreach ($courses as $course) {
                 $this->add_course($course);
@@ -3489,7 +3524,7 @@ class settings_navigation extends navigation_node {
             $coursenode->force_open();
         }
 
-        if (has_capability('moodle/course:update', $coursecontext)) {
+        if ($this->page->user_allowed_editing()) {
             // Add the turn on/off settings
 
             if ($this->page->url->compare(new moodle_url('/course/view.php'), URL_MATCH_BASE)) {
@@ -3509,8 +3544,10 @@ class settings_navigation extends navigation_node {
                 $editurl->param('edit', 'on');
                 $editstring = get_string('turneditingon');
             }
-            $coursenode->add($editstring, $editurl, self::TYPE_SETTING, null, null, new pix_icon('i/edit', ''));
+            $coursenode->add($editstring, $editurl, self::TYPE_SETTING, null, 'turneditingonoff', new pix_icon('i/edit', ''));
+        }
 
+        if (has_capability('moodle/course:update', $coursecontext)) {
             // Add the course settings link
             $url = new moodle_url('/course/edit.php', array('id'=>$course->id));
             $coursenode->add(get_string('editsettings'), $url, self::TYPE_SETTING, null, 'editsettings', new pix_icon('i/settings', ''));
@@ -3906,10 +3943,11 @@ class settings_navigation extends navigation_node {
                 }
             } else {
                 $canviewusercourse = has_capability('moodle/user:viewdetails', $coursecontext);
-                $canaccessallgroups = has_capability('moodle/site:accessallgroups', $coursecontext);
-                if ((!$canviewusercourse && !$canviewuser) || !can_access_course($course, $user->id)) {
+                $userisenrolled = is_enrolled($coursecontext, $user->id);
+                if ((!$canviewusercourse && !$canviewuser) || !$userisenrolled) {
                     return false;
                 }
+                $canaccessallgroups = has_capability('moodle/site:accessallgroups', $coursecontext);
                 if (!$canaccessallgroups && groups_get_course_groupmode($course) == SEPARATEGROUPS) {
                     // If groups are in use, make sure we can see that group
                     return false;
@@ -4030,23 +4068,6 @@ class settings_navigation extends navigation_node {
             $usersetting->add(get_string('securitykeys', 'webservice'), $url, self::TYPE_SETTING);
         }
 
-        // Repository
-        if (!$currentuser && $usercontext->contextlevel == CONTEXT_USER) {
-            if (!$this->cache->cached('contexthasrepos'.$usercontext->id)) {
-                require_once($CFG->dirroot . '/repository/lib.php');
-                $editabletypes = repository::get_editable_types($usercontext);
-                $haseditabletypes = !empty($editabletypes);
-                unset($editabletypes);
-                $this->cache->set('contexthasrepos'.$usercontext->id, $haseditabletypes);
-            } else {
-                $haseditabletypes = $this->cache->{'contexthasrepos'.$usercontext->id};
-            }
-            if ($haseditabletypes) {
-                $url = new moodle_url('/repository/manage_instances.php', array('contextid'=>$usercontext->id));
-                $usersetting->add(get_string('repositories', 'repository'), $url, self::TYPE_SETTING);
-            }
-        }
-
         // Messaging
         if (($currentuser && has_capability('moodle/user:editownmessageprofile', $systemcontext)) || (!isguestuser($user) && has_capability('moodle/user:editmessageprofile', $usercontext) && !is_primary_admin($user->id))) {
             $url = new moodle_url('/message/edit.php', array('id'=>$user->id));
@@ -4079,7 +4100,7 @@ class settings_navigation extends navigation_node {
             $reportfunction($reporttab, $user, $course);
         }
         $anyreport = has_capability('moodle/user:viewuseractivitiesreport', $usercontext);
-        if ($anyreport || ($course->showreports && $currentuser && $forceforcontext)) {
+        if ($anyreport || ($course->showreports && $currentuser)) {
             // Add grade hardcoded grade report if necessary.
             $gradeaccess = false;
             if (has_capability('moodle/grade:viewall', $coursecontext)) {
@@ -4104,7 +4125,6 @@ class settings_navigation extends navigation_node {
         }
         // Check the number of nodes in the report node... if there are none remove the node
         $reporttab->trim_if_empty();
-
 
         // Login as ...
         if (!$user->deleted and !$currentuser && !session_is_loggedinas() && has_capability('moodle/user:loginas', $coursecontext) && !is_siteadmin($user->id)) {
@@ -4244,7 +4264,7 @@ class settings_navigation extends navigation_node {
         }
         $frontpage->id = 'frontpagesettings';
 
-        if (has_capability('moodle/course:update', $coursecontext)) {
+        if ($this->page->user_allowed_editing()) {
 
             // Add the turn on/off settings
             $url = new moodle_url('/course/view.php', array('id'=>$course->id, 'sesskey'=>sesskey()));
@@ -4256,7 +4276,9 @@ class settings_navigation extends navigation_node {
                 $editstring = get_string('turneditingon');
             }
             $frontpage->add($editstring, $url, self::TYPE_SETTING, null, null, new pix_icon('i/edit', ''));
+        }
 
+        if (has_capability('moodle/course:update', $coursecontext)) {
             // Add the course settings link
             $url = new moodle_url('/admin/settings.php', array('section'=>'frontpagesettings'));
             $frontpage->add(get_string('editsettings'), $url, self::TYPE_SETTING, null, null, new pix_icon('i/settings', ''));

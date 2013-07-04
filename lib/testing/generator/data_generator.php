@@ -23,6 +23,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * Data generator class for unit tests and other tools that need to create fake test sites.
@@ -554,6 +555,35 @@ EOD;
 
         return groups_assign_grouping($record['groupingid'], $record['groupid']);
     }
+
+    /**
+     * Create an instance of a repository.
+     *
+     * @param string type of repository to create an instance for.
+     * @param array|stdClass $record data to use to up set the instance.
+     * @param array $options options
+     * @return stdClass repository instance record
+     * @since 2.5.1
+     */
+    public function create_repository($type, $record=null, array $options = null) {
+        $generator = $this->get_plugin_generator('repository_'.$type);
+        return $generator->create_instance($record, $options);
+    }
+
+    /**
+     * Create an instance of a repository.
+     *
+     * @param string type of repository to create an instance for.
+     * @param array|stdClass $record data to use to up set the instance.
+     * @param array $options options
+     * @return repository_type object
+     * @since 2.5.1
+     */
+    public function create_repository_type($type, $record=null, array $options = null) {
+        $generator = $this->get_plugin_generator('repository_'.$type);
+        return $generator->create_type($record, $options);
+    }
+
 
     /**
      * Create a test scale

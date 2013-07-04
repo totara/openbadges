@@ -46,6 +46,7 @@ if (file_exists($configfile)) {
 define('CLI_SCRIPT', false); // prevents some warnings later
 define('AJAX_SCRIPT', false); // prevents some warnings later
 define('CACHE_DISABLE_ALL', true); // Disables caching.. just in case.
+define('PHPUNIT_TEST', false);
 
 // Servers should define a default timezone in php.ini, but if they don't then make sure something is defined.
 // This is a quick hack.  Ideally we should ask the admin for a value.  See MDL-22625 for more on this.
@@ -88,7 +89,8 @@ if (PHP_INT_SIZE > 4) {
 /** Used by library scripts to check they are being called by Moodle */
 define('MOODLE_INTERNAL', true);
 
-require dirname(__FILE__).'/lib/installlib.php';
+require_once(__DIR__.'/lib/classes/component.php');
+require_once(__DIR__.'/lib/installlib.php');
 
 // TODO: add lang detection here if empty $_REQUEST['lang']
 
@@ -129,7 +131,12 @@ if (!empty($_POST)) {
     $config->dbpass   = trim($_POST['dbpass']);
     $config->dbname   = trim($_POST['dbname']);
     $config->prefix   = trim($_POST['prefix']);
-    $config->dbsocket = (int)(!empty($_POST['dbsocket']));
+    $config->dbport   = (int)trim($_POST['dbport']);
+    $config->dbsocket = trim($_POST['dbsocket']);
+
+    if ($config->dbport <= 0) {
+        $config->dbport = '';
+    }
 
     $config->admin    = empty($_POST['admin']) ? 'admin' : trim($_POST['admin']);
 
@@ -144,7 +151,8 @@ if (!empty($_POST)) {
     $config->dbpass   = '';
     $config->dbname   = 'moodle';
     $config->prefix   = 'mdl_';
-    $config->dbsocket = 0;
+    $config->dbport   = empty($distro->dbport) ? '' : $distro->dbport;
+    $config->dbsocket = empty($distro->dbsocket) ? '' : $distro->dbsocket;
 
     $config->admin    = 'admin';
 
@@ -185,7 +193,7 @@ if (!empty($memlimit) and $memlimit != -1) {
 }
 
 // Continue with lib loading
-require_once($CFG->libdir.'/textlib.class.php');
+require_once($CFG->libdir.'/classes/text.php');
 require_once($CFG->libdir.'/weblib.php');
 require_once($CFG->libdir.'/outputlib.php');
 require_once($CFG->libdir.'/dmllib.php');
@@ -263,9 +271,9 @@ if ($config->stage == INSTALL_SAVE) {
         $config->stage = INSTALL_DATABASETYPE;
     } else {
         if (function_exists('distro_pre_create_db')) { // Hook for distros needing to do something before DB creation
-            $distro = distro_pre_create_db($database, $config->dbhost, $config->dbuser, $config->dbpass, $config->dbname, $config->prefix, array('dbpersist'=>0, 'dbsocket'=>$config->dbsocket), $distro);
+            $distro = distro_pre_create_db($database, $config->dbhost, $config->dbuser, $config->dbpass, $config->dbname, $config->prefix, array('dbpersist'=>0, 'dbport'=>$config->dbport, 'dbsocket'=>$config->dbsocket), $distro);
         }
-        $hint_database = install_db_validate($database, $config->dbhost, $config->dbuser, $config->dbpass, $config->dbname, $config->prefix, array('dbpersist'=>0, 'dbsocket'=>$config->dbsocket));
+        $hint_database = install_db_validate($database, $config->dbhost, $config->dbuser, $config->dbpass, $config->dbname, $config->prefix, array('dbpersist'=>0, 'dbport'=>$config->dbport, 'dbsocket'=>$config->dbsocket));
 
         if ($hint_database === '') {
             $configphp = install_generate_configphp($database, $CFG);
@@ -405,6 +413,7 @@ if ($config->stage == INSTALL_DATABASE) {
     $strdbuser   = get_string('databaseuser', 'install');
     $strdbpass   = get_string('databasepass', 'install');
     $strprefix   = get_string('dbprefix', 'install');
+    $strdbport   = get_string('databaseport', 'install');
     $strdbsocket = get_string('databasesocket', 'install');
 
     echo '<div class="userinput">';
@@ -432,11 +441,13 @@ if ($config->stage == INSTALL_DATABASE) {
     echo '<input id="id_prefix" name="prefix" type="text" value="'.s($config->prefix).'" size="10" class="forminput" />';
     echo '</div>';
 
+    echo '<div class="formrow"><label for="id_prefix" class="formlabel">'.$strdbport.'</label>';
+    echo '<input id="id_dbport" name="dbport" type="text" value="'.s($config->dbport).'" size="10" class="forminput" />';
+    echo '</div>';
+
     if (!(stristr(PHP_OS, 'win') && !stristr(PHP_OS, 'darwin'))) {
-        $checked = $config->dbsocket ? 'checked="checked' : '';
         echo '<div class="formrow"><label for="id_dbsocket" class="formlabel">'.$strdbsocket.'</label>';
-        echo '<input type="hidden" value="0" name="dbsocket" />';
-        echo '<input type="checkbox" id="id_dbsocket" value="1" name="dbsocket" '.$checked.' class="forminput" />';
+        echo '<input id="id_dbsocket" name="dbsocket" type="text" value="'.s($config->dbsocket).'" size="50" class="forminput" />';
         echo '</div>';
     }
 

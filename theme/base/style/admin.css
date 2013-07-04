@@ -111,7 +111,10 @@
 #page-admin-qtypes #qtypes img { padding-right: .45em; vertical-align: text-bottom; }
 
 .path-admin-roles .buttons .singlebutton,
-#page-admin-course-manage {display: inline;padding: 5px;}
+#page-admin-course-manage .buttons {
+  display: inline;
+  padding: 5px;
+}
 
 .path-admin-roles .capabilitysearchui {text-align: left;margin-left: auto;margin-right: auto;}
 #page-admin-roles-define .topfields {margin: 1em 0 2em;}
@@ -250,6 +253,12 @@
 .admin_colourpicker .colourdialogue {float:left;border:1px solid #000;}
 .admin_colourpicker .previewcolour {border:1px solid #000;margin-left:301px;}
 .admin_colourpicker .currentcolour {border:1px solid #000;margin-left:301px;border-top-width:0;}
+
+/* Styles for flags on admin settings */
+.adminsettingsflags { float: right; }
+.dir-rtl .adminsettingsflags { float: left; }
+.adminsettingsflags label { margin-right: 7px; }
+.dir-rtl .adminsettingsflags label { margin-left: 7px; }
 
 /** Overide for RTL layout **/
 .dir-rtl #adminsettings .form-item  .form-setting,

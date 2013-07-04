@@ -51,7 +51,8 @@ defined('MOODLE_INTERNAL') || die();
  *      the forum or quiz table) that this page belongs to. Will be null
  *      if this page is not within a module.
  * @property-read array $alternativeversions Mime type => object with ->url and ->title.
- * @property-read blocks_manager $blocks The blocks manager object for this page.
+ * @property-read block_manager $blocks The blocks manager object for this page.
+ * @property-read array $blockmanipulations
  * @property-read string $bodyclasses A string to use within the class attribute on the body tag.
  * @property-read string $bodyid A string to use as the id of the body tag.
  * @property-read string $button The HTML to go where the Turn editing on button normally goes.
@@ -638,6 +639,22 @@ class moodle_page {
     }
 
     /**
+     * Returns an array of minipulations or false if there are none to make.
+     *
+     * @since 2.5.1 2.6
+     * @return bool|array
+     */
+    protected function magic_get_blockmanipulations() {
+        if (!right_to_left()) {
+            return false;
+        }
+        if (is_null($this->_theme)) {
+            $this->initialise_theme_and_output();
+        }
+        return $this->_theme->blockrtlmanipulations;
+    }
+
+    /**
      * Please do not call this method directly, use the ->devicetypeinuse syntax. {@link moodle_page::__get()}.
      * @return string The device type being used.
      */
@@ -882,7 +899,7 @@ class moodle_page {
     /**
      * Set the main context to which this page belongs.
      *
-     * @param context $context a context object, normally obtained with get_context_instance.
+     * @param context $context a context object. You normally get this with context_xxxx::instance().
      */
     public function set_context($context) {
         if ($context === null) {
@@ -1824,5 +1841,26 @@ class moodle_page {
      */
     public function set_popup_notification_allowed($allowed) {
         $this->_popup_notification_allowed = $allowed;
+    }
+
+    /**
+     * Returns the block region having made any required theme manipulations.
+     *
+     * @since 2.5.1 2.6
+     * @param string $region
+     * @return string
+     */
+    public function apply_theme_region_manipulations($region) {
+        if ($this->blockmanipulations && isset($this->blockmanipulations[$region])) {
+            $regionwas = $region;
+            $regionnow = $this->blockmanipulations[$region];
+            if ($this->blocks->is_known_region($regionwas) && $this->blocks->is_known_region($regionnow)) {
+                // Both the before and after regions are known so we can swap them over.
+                return $regionnow;
+            }
+            // We didn't know about both, we won't swap them over.
+            return $regionwas;
+        }
+        return $region;
     }
 }

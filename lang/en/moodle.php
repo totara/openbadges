@@ -197,8 +197,6 @@ $string['badges'] = 'Badges';
 $string['block'] = 'Block';
 $string['blockconfiga'] = 'Configuring a {$a} block';
 $string['blockconfigbad'] = 'This block has not been implemented correctly and thus cannot provide a configuration interface.';
-$string['blockdeleteconfirm'] = 'You are about to completely delete the block \'{$a}\'.  This will completely delete everything in the database associated with this block. Are you SURE you want to continue?';
-$string['blockdeletefiles'] = 'All data associated with the block \'{$a->block}\' has been deleted from the database.  To complete the deletion (and prevent the block re-installing itself), you should now delete this directory from your server: {$a->directory}';
 $string['blocks'] = 'Blocks';
 $string['blocksaddedit'] = 'Add/Edit blocks';
 $string['blockseditoff'] = 'Blocks editing off';
@@ -352,7 +350,7 @@ $string['courserequestdetails'] = 'Details of the course you are requesting';
 $string['courserequestfailed'] = 'For some reason, your course request could not be saved';
 $string['courserequestintro'] = 'Use this form to request a course to be created for you.<br />Try and fill in as much information as you can to allow<br />the administrators to understand your reasons for wanting this course.';
 $string['courserequestreason'] = 'Reasons for wanting this course';
-$string['courserequestsuccess'] = 'Successfully saved your course request. Expect an email within a few days with the outcome';
+$string['courserequestsuccess'] = 'Your course request has been saved successfully. You will be sent an email to inform you whether your request was approved.';
 $string['courserequestsupport'] = 'Supporting information to help the administrator evaluate this request';
 $string['courserestore'] = 'Course restore';
 $string['courses'] = 'Courses';
@@ -926,7 +924,6 @@ $string['listofallpeople'] = 'List of all people';
 $string['listofcourses'] = 'List of courses';
 $string['loadinghelp'] = 'Loading...';
 $string['local'] = 'Local';
-$string['localplugindeleteconfirm'] = 'You are about to completely delete the local plugin \'{$a}\'. This will completely delete everything in the database associated with this plugin. Are you SURE you want to continue?';
 $string['localplugins'] = 'Local plugins';
 $string['localpluginsmanage'] = 'Manage local plugins';
 $string['location'] = 'Location';
@@ -934,13 +931,13 @@ $string['log_excel_date_format'] = 'yyyy mmmm d h:mm';
 $string['loggedinas'] = 'You are logged in as {$a}';
 $string['loggedinasguest'] = 'You are currently using guest access';
 $string['loggedinnot'] = 'You are not logged in.';
-$string['login'] = 'Login';
+$string['login'] = 'Log in';
 $string['loginalready'] = 'You are already logged in';
-$string['loginas'] = 'Login as';
+$string['loginas'] = 'Log in as';
 $string['loginaspasswordexplain'] = '<p>You must enter the special "loginas password" to use this feature.<br />If you do not know it, ask your server administrator.</p>';
 $string['login_failure_logs'] = 'Login failure logs';
-$string['loginguest'] = 'Login as a guest';
-$string['loginsite'] = 'Login to the site';
+$string['loginguest'] = 'Log in as a guest';
+$string['loginsite'] = 'Log in to the site';
 $string['loginsteps'] = 'Hi! For full access to courses you\'ll need to take
    a minute to create a new account for yourself on this web site.
    Each of the individual courses may also have a one-time
@@ -963,10 +960,9 @@ $string['loginstepsnone'] = '<p>Hi!</p>
 <p>For full access to courses you\'ll need to create yourself an account.</p>
 <p>All you need to do is make up a username and password and use it in the form on this page!</p>
 <p>If someone else has already chosen your username then you\'ll have to try again using a different username.</p>';
-$string['loginto'] = 'Login to {$a}';
-$string['loginusing'] = 'Login here using your username and password';
-$string['logout'] = 'Logout';
-$string['logoutconfirm'] = 'Do you really want to logout?';
+$string['loginto'] = 'Log in to {$a}';
+$string['logout'] = 'Log out';
+$string['logoutconfirm'] = 'Do you really want to log out?';
 $string['logs'] = 'Logs';
 $string['logtoomanycourses'] = '[ <a href="{$a->url}">more</a> ]';
 $string['logtoomanyusers'] = '[ <a href="{$a->url}">more</a> ]';
@@ -1059,8 +1055,6 @@ $string['months'] = 'Months';
 $string['modified'] = 'Modified';
 $string['modchooserenable'] = 'Activity chooser on';
 $string['modchooserdisable'] = 'Activity chooser off';
-$string['moduledeleteconfirm'] = 'You are about to completely delete the module \'{$a}\'.  This will completely delete everything in the database associated with this activity module.  Are you SURE you want to continue?';
-$string['moduledeletefiles'] = 'All data associated with the module \'{$a->module}\' has been deleted from the database.  To complete the deletion (and prevent the module re-installing itself), you should now delete this directory from your server: {$a->directory}';
 $string['moduleintro'] = 'Description';
 $string['modulesetup'] = 'Setting up module tables';
 $string['modulesuccess'] = '{$a} tables have been set up correctly';
@@ -1159,7 +1153,7 @@ line at the top of your web browser window.
 Cheers from the \'{$a->sitename}\' administrator,
 {$a->signoff}';
 $string['newusers'] = 'New users';
-$string['newwindow'] = 'new window';
+$string['newwindow'] = 'New window';
 $string['next'] = 'Next';
 $string['nextsection'] = 'Next section';
 $string['no'] = 'No';
@@ -1494,7 +1488,7 @@ $string['selectaregion'] = 'Select a region';
 $string['selctauser'] = 'Select a user';
 $string['selectall'] = 'Select all';
 $string['selectamodule'] = 'Please select an activity module';
-$string['selectanoptions'] = 'Select an options';
+$string['selectanoptions'] = 'Select an option';
 $string['selectdefault'] = 'Select default';
 $string['selectedfile'] = 'Selected file';
 $string['selectednowmove'] = '{$a} files selected for moving. Now go into the destination folder and press \'Move files to here\'';
@@ -1502,7 +1496,7 @@ $string['selectfiles'] = 'Select files';
 $string['selectmoduletoviewhelp'] = 'Select an activity or resource to view its help.
 
 Double-click on an activity or resource name to quickly add it.';
-$string['selectnos'] = 'Select all \'no\'';
+$string['selectnos'] = 'Select all \'No\'';
 $string['selectperiod'] = 'Select period';
 $string['senddetails'] = 'Send my details via email';
 $string['separate'] = 'Separate';

@@ -326,6 +326,14 @@ class theme_config {
     public $yuicssmodules = array('cssreset', 'cssfonts', 'cssgrids', 'cssbase');
 
     /**
+     * An associative array of block manipulations that should be made if the user is using an rtl language.
+     * The key is the original block region, and the value is the block region to change to.
+     * This is used when displaying blocks for regions only.
+     * @var array
+     */
+    public $blockrtlmanipulations = array();
+
+    /**
      * @var renderer_factory Instance of the renderer_factory implementation
      * we are using. Implementation detail.
      */
@@ -418,7 +426,7 @@ class theme_config {
         $configurable = array('parents', 'sheets', 'parents_exclude_sheets', 'plugins_exclude_sheets', 'javascripts', 'javascripts_footer',
                               'parents_exclude_javascripts', 'layouts', 'enable_dock', 'enablecourseajax', 'supportscssoptimisation',
                               'rendererfactory', 'csspostprocess', 'editor_sheets', 'rarrow', 'larrow', 'hidefromselector', 'doctype',
-                              'yuicssmodules');
+                              'yuicssmodules', 'blockrtlmanipulations');
 
         foreach ($config as $key=>$value) {
             if (in_array($key, $configurable)) {
@@ -525,7 +533,10 @@ class theme_config {
                 $this->rarrow = '&#x25B6;';
                 $this->larrow = '&#x25C0;';
             }
-            elseif (false !== strpos($uagent, 'Konqueror')) {
+            elseif ((false !== strpos($uagent, 'Konqueror'))
+                || (false !== strpos($uagent, 'Android')))  {
+                // The fonts on Android don't include the characters required for this to work as expected.
+                // So we use the same ones Konqueror uses.
                 $this->rarrow = '&rarr;';
                 $this->larrow = '&larr;';
             }
@@ -568,26 +579,23 @@ class theme_config {
      * Returns the stylesheet URL of this editor content
      *
      * @param bool $encoded false means use & and true use &amp; in URLs
-     * @return string
+     * @return moodle_url
      */
     public function editor_css_url($encoded=true) {
         global $CFG;
-
         $rev = theme_get_revision();
-
         if ($rev > -1) {
+            $url = new moodle_url("$CFG->httpswwwroot/theme/styles.php");
             if (!empty($CFG->slasharguments)) {
-                $url = new moodle_url("$CFG->httpswwwroot/theme/styles.php");
                 $url->set_slashargument('/'.$this->name.'/'.$rev.'/editor', 'noparam', true);
-                return $url;
             } else {
-                $params = array('theme'=>$this->name,'rev'=>$rev, 'type'=>'editor');
-                return new moodle_url($CFG->httpswwwroot.'/theme/styles.php', $params);
+                $url->params(array('theme'=>$this->name,'rev'=>$rev, 'type'=>'editor'));
             }
         } else {
             $params = array('theme'=>$this->name, 'type'=>'editor');
-            return new moodle_url($CFG->httpswwwroot.'/theme/styles_debug.php', $params);
+            $url = new moodle_url($CFG->httpswwwroot.'/theme/styles_debug.php', $params);
         }
+        return $url;
     }
 
     /**
@@ -650,31 +658,33 @@ class theme_config {
 
         if ($rev > -1) {
             $url = new moodle_url("$CFG->httpswwwroot/theme/styles.php");
-            if (check_browser_version('MSIE', 5)) {
-                // We need to split the CSS files for IE
-                $urls[] = new moodle_url($url, array('theme' => $this->name,'rev' => $rev, 'type' => 'plugins', 'svg' => '0'));
-                $urls[] = new moodle_url($url, array('theme' => $this->name,'rev' => $rev, 'type' => 'parents', 'svg' => '0'));
-                $urls[] = new moodle_url($url, array('theme' => $this->name,'rev' => $rev, 'type' => 'theme', 'svg' => '0'));
-            } else {
-                if (!empty($CFG->slasharguments)) {
-                    $slashargs = '/'.$this->name.'/'.$rev.'/all';
-                    if (!$svg) {
-                        // We add a simple /_s to the start of the path.
-                        // The underscore is used to ensure that it isn't a valid theme name.
-                        $slashargs = '/_s'.$slashargs;
-                    }
-                    $url->set_slashargument($slashargs, 'noparam', true);
-                } else {
-                    $params = array('theme' => $this->name,'rev' => $rev, 'type' => 'all');
-                    if (!$svg) {
-                        // We add an SVG param so that we know not to serve SVG images.
-                        // We do this because all modern browsers support SVG and this param will one day be removed.
-                        $params['svg'] = '0';
-                    }
-                    $url->params($params);
+            $separate = (check_browser_version('MSIE', 5) && !check_browser_version('MSIE', 10));
+            if (!empty($CFG->slasharguments)) {
+                $slashargs = '';
+                if (!$svg) {
+                    // We add a simple /_s to the start of the path.
+                    // The underscore is used to ensure that it isn't a valid theme name.
+                    $slashargs .= '/_s'.$slashargs;
                 }
-                $urls[] = $url;
+                $slashargs .= '/'.$this->name.'/'.$rev.'/all';
+                if ($separate) {
+                    $slashargs .= '/chunk0';
+                }
+                $url->set_slashargument($slashargs, 'noparam', true);
+            } else {
+                $params = array('theme' => $this->name,'rev' => $rev, 'type' => 'all');
+                if (!$svg) {
+                    // We add an SVG param so that we know not to serve SVG images.
+                    // We do this because all modern browsers support SVG and this param will one day be removed.
+                    $params['svg'] = '0';
+                }
+                if ($separate) {
+                    $params['chunk'] = '0';
+                }
+                $url->params($params);
             }
+            $urls[] = $url;
+
         } else {
             // find out the current CSS and cache it now for 5 seconds
             // the point is to construct the CSS only once and pass it through the

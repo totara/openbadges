@@ -231,7 +231,11 @@ font-size: 80%}
 }
 
 // replaces grades/report/grader/styles.css
-
+table#user-grades tr.avg td.cell {
+    background-color: #EFEFFF;
+    font-weight: 700;
+    color: #00008B;
+}
 table#user-grades tr td.overridden {
     background-color:#F3E4C0;
 }
@@ -315,7 +319,11 @@ table#user-grades th#studentheader,
 table#user-grades th.user {
     text-align: left;
 }
-
+.dir-rtl table#user-grades th.category,
+.dir-rtl table#user-grades th#studentheader,
+.dir-rtl table#user-grades th.user {
+  text-align: right;
+}
 div.gradertoggle {
     display: inline;
     margin-left: 20px;
@@ -338,11 +346,6 @@ table#user-grades .quickfeedback {
     text-align:right;
 }
 
-table#user-grades .hidden,
-table#user-grades .hidden a {
-    .muted
-}
-
 table#user-grades .datesubmitted {
     font-size: @fontSizeMini;
 }
@@ -354,6 +357,9 @@ table#user-grades .datesubmitted {
 
 .path-grade-report-grader th.user img.userpicture {
     margin-right: 0.5em;
+}
+.path-grade-report-grader.dir-rtl th.user img.userpicture {
+  margin-left: 0.5em;
 }
 
 .path-grade-report-grader a.quickedit {

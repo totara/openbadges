@@ -572,8 +572,21 @@ function is_siteadmin($user_or_id = null) {
         $userid = $user_or_id;
     }
 
+    // Because this script is called many times (150+ for course page) with
+    // the same parameters, it is worth doing minor optimisations. This static
+    // cache stores the value for a single userid, saving about 2ms from course
+    // page load time without using significant memory. As the static cache
+    // also includes the value it depends on, this cannot break unit tests.
+    static $knownid, $knownresult, $knownsiteadmins;
+    if ($knownid === $userid && $knownsiteadmins === $CFG->siteadmins) {
+        return $knownresult;
+    }
+    $knownid = $userid;
+    $knownsiteadmins = $CFG->siteadmins;
+
     $siteadmins = explode(',', $CFG->siteadmins);
-    return in_array($userid, $siteadmins);
+    $knownresult = in_array($userid, $siteadmins);
+    return $knownresult;
 }
 
 /**
@@ -704,7 +717,7 @@ function has_capability_in_accessdata($capability, context $context, array &$acc
  * @see has_capability()
  *
  * @param string $capability the name of the capability to check. For example mod/forum:view
- * @param context $context the context to check the capability in. You normally get this with {@link get_context_instance}.
+ * @param context $context the context to check the capability in. You normally get this with context_xxxx::instance().
  * @param int $userid A user id. By default (null) checks the permissions of the current user.
  * @param bool $doanything If false, ignore effect of admin role assignment
  * @param string $errormessage The error string to to user. Defaults to 'nopermissions'.
@@ -1682,7 +1695,7 @@ function role_assign($roleid, $userid, $contextid, $component = '', $itemid = 0,
  *
  * @param int $roleid
  * @param int  $userid
- * @param int|context  $contextid
+ * @param int  $contextid
  * @param string $component
  * @param int  $itemid
  * @return void
@@ -2441,6 +2454,79 @@ function get_default_capabilities($archetype) {
     }
 
     return $defaults;
+}
+
+/**
+ * Return default roles that can be assigned, overridden or switched
+ * by give role archetype.
+ *
+ * @param string $type  assign|override|switch
+ * @param string $archetype
+ * @return array of role ids
+ */
+function get_default_role_archetype_allows($type, $archetype) {
+    global $DB;
+
+    if (empty($archetype)) {
+        return array();
+    }
+
+    $roles = $DB->get_records('role');
+    $archetypemap = array();
+    foreach ($roles as $role) {
+        if ($role->archetype) {
+            $archetypemap[$role->archetype][$role->id] = $role->id;
+        }
+    }
+
+    $defaults = array(
+        'assign' => array(
+            'manager'        => array('manager', 'coursecreator', 'editingteacher', 'teacher', 'student'),
+            'coursecreator'  => array(),
+            'editingteacher' => array('teacher', 'student'),
+            'teacher'        => array(),
+            'student'        => array(),
+            'guest'          => array(),
+            'user'           => array(),
+            'frontpage'      => array(),
+        ),
+        'override' => array(
+            'manager'        => array('manager', 'coursecreator', 'editingteacher', 'teacher', 'student', 'guest', 'user', 'frontpage'),
+            'coursecreator'  => array(),
+            'editingteacher' => array('teacher', 'student', 'guest'),
+            'teacher'        => array(),
+            'student'        => array(),
+            'guest'          => array(),
+            'user'           => array(),
+            'frontpage'      => array(),
+        ),
+        'switch' => array(
+            'manager'        => array('editingteacher', 'teacher', 'student', 'guest'),
+            'coursecreator'  => array(),
+            'editingteacher' => array('teacher', 'student', 'guest'),
+            'teacher'        => array('student', 'guest'),
+            'student'        => array(),
+            'guest'          => array(),
+            'user'           => array(),
+            'frontpage'      => array(),
+        ),
+    );
+
+    if (!isset($defaults[$type][$archetype])) {
+        debugging("Unknown type '$type'' or archetype '$archetype''");
+        return array();
+    }
+
+    $return = array();
+    foreach ($defaults[$type][$archetype] as $at) {
+        if (isset($archetypemap[$at])) {
+            foreach ($archetypemap[$at] as $roleid) {
+                $return[$roleid] = $roleid;
+            }
+        }
+    }
+
+    return $return;
 }
 
 /**
@@ -7177,49 +7263,6 @@ function remove_temp_roles($context, array $accessdata) {
  */
 function get_system_context($cache = true) {
     return context_system::instance(0, IGNORE_MISSING, $cache);
-}
-
-/**
- * Get the context instance as an object. This function will create the
- * context instance if it does not exist yet.
- *
- * @deprecated since 2.2, use context_course::instance() or other relevant class instead
- * @param integer $contextlevel The context level, for example CONTEXT_COURSE, or CONTEXT_MODULE.
- * @param integer $instance The instance id. For $level = CONTEXT_COURSE, this would be $course->id,
- *      for $level = CONTEXT_MODULE, this would be $cm->id. And so on. Defaults to 0
- * @param int $strictness IGNORE_MISSING means compatible mode, false returned if record not found, debug message if more found;
- *      MUST_EXIST means throw exception if no record or multiple records found
- * @return context The context object.
- */
-function get_context_instance($contextlevel, $instance = 0, $strictness = IGNORE_MISSING) {
-    $instances = (array)$instance;
-    $contexts = array();
-
-    $classname = context_helper::get_class_for_level($contextlevel);
-
-    // we do not load multiple contexts any more, PAGE should be responsible for any preloading
-    foreach ($instances as $inst) {
-        $contexts[$inst] = $classname::instance($inst, $strictness);
-    }
-
-    if (is_array($instance)) {
-        return $contexts;
-    } else {
-        return $contexts[$instance];
-    }
-}
-
-/**
- * Get a context instance as an object, from a given context id.
- *
- * @deprecated since 2.2, use context::instance_by_id($id) instead
- * @param int $id context id
- * @param int $strictness IGNORE_MISSING means compatible mode, false returned if record not found, debug message if more found;
- *                        MUST_EXIST means throw exception if no record or multiple records found
- * @return context|bool the context object or false if not found.
- */
-function get_context_instance_by_id($id, $strictness = IGNORE_MISSING) {
-    return context::instance_by_id($id, $strictness);
 }
 
 /**

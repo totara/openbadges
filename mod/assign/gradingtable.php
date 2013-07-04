@@ -78,7 +78,7 @@ class assign_grading_table extends table_sql implements renderable {
                                 $rowoffset,
                                 $quickgrading,
                                 $downloadfilename = null) {
-        global $CFG, $PAGE, $DB;
+        global $CFG, $PAGE, $DB, $USER;
         parent::__construct('mod_assign_grading');
         $this->assignment = $assignment;
 
@@ -135,7 +135,9 @@ class assign_grading_table extends table_sql implements renderable {
         $fields .= 'g.timecreated as firstmarked, ';
         $fields .= 'uf.mailed as mailed, ';
         $fields .= 'uf.locked as locked, ';
-        $fields .= 'uf.extensionduedate as extensionduedate';
+        $fields .= 'uf.extensionduedate as extensionduedate, ';
+        $fields .= 'uf.workflowstate as workflowstate, ';
+        $fields .= 'uf.allocatedmarker as allocatedmarker ';
 
         $submissionmaxattempt = 'SELECT mxs.userid, MAX(mxs.attemptnumber) AS maxattempt
                                  FROM {assign_submission} mxs
@@ -166,18 +168,51 @@ class assign_grading_table extends table_sql implements renderable {
         // The filters do not make sense when there are no submissions, so do not apply them.
         if ($this->assignment->is_any_submission_plugin_enabled()) {
             if ($filter == ASSIGN_FILTER_SUBMITTED) {
-                $where .= ' AND s.timecreated > 0 ';
-            }
-            if ($filter == ASSIGN_FILTER_REQUIRE_GRADING) {
+                $where .= ' AND (s.timemodified IS NOT NULL AND
+                                 s.status = :submitted) ';
+                $params['submitted'] = ASSIGN_SUBMISSION_STATUS_SUBMITTED;
+
+            } else if ($filter == ASSIGN_FILTER_REQUIRE_GRADING) {
                 $where .= ' AND (s.timemodified IS NOT NULL AND
                                  s.status = :submitted AND
                                  (s.timemodified > g.timemodified OR g.timemodified IS NULL))';
                 $params['submitted'] = ASSIGN_SUBMISSION_STATUS_SUBMITTED;
-            }
-            if (strpos($filter, ASSIGN_FILTER_SINGLE_USER) === 0) {
+
+            } else if (strpos($filter, ASSIGN_FILTER_SINGLE_USER) === 0) {
                 $userfilter = (int) array_pop(explode('=', $filter));
                 $where .= ' AND (u.id = :userid)';
                 $params['userid'] = $userfilter;
+            }
+        }
+
+        if ($this->assignment->get_instance()->markingallocation) {
+            if (has_capability('mod/assign:manageallocations', $this->assignment->get_context())) {
+                //Check to see if marker filter is set
+                $markerfilter = (int)get_user_preferences('assign_markerfilter', '');
+                if (!empty($markerfilter)) {
+                    $where .= ' AND uf.allocatedmarker = :markerid';
+                    $params['markerid'] = $markerfilter;
+                }
+            } else { // Only show users allocated to this marker.
+                $where .= ' AND uf.allocatedmarker = :markerid';
+                $params['markerid'] = $USER->id;
+            }
+        }
+
+        if ($this->assignment->get_instance()->markingworkflow) {
+            $workflowstates = $this->assignment->get_marking_workflow_states_for_current_user();
+            if (!empty($workflowstates)) {
+                $workflowfilter = get_user_preferences('assign_workflowfilter', '');
+                if (array_key_exists($workflowfilter, $workflowstates) || $workflowfilter == ASSIGN_MARKING_WORKFLOW_STATE_NOTMARKED) {
+                    if ($workflowfilter == ASSIGN_MARKING_WORKFLOW_STATE_NOTMARKED) {
+                        $where .= ' AND (uf.workflowstate = :workflowstate OR uf.workflowstate IS NULL OR '.
+                            $DB->sql_isempty('assign_user_flags', 'workflowstate', true, true).')';
+                        $params['workflowstate'] = $workflowfilter;
+                    } else {
+                        $where .= ' AND uf.workflowstate = :workflowstate';
+                        $params['workflowstate'] = $workflowfilter;
+                    }
+                }
             }
         }
 
@@ -226,6 +261,10 @@ class assign_grading_table extends table_sql implements renderable {
         if ($assignment->is_any_submission_plugin_enabled()) {
             $columns[] = 'status';
             $headers[] = get_string('status');
+        } else if ($this->assignment->get_instance()->markingworkflow) {
+            $columns[] = 'workflowstatus';
+            $headers[] = get_string('status');
+
         }
 
         // Team submission columns.
@@ -236,7 +275,13 @@ class assign_grading_table extends table_sql implements renderable {
             $columns[] = 'teamstatus';
             $headers[] = get_string('teamsubmissionstatus', 'assign');
         }
-
+        //allocated marker
+        if ($this->assignment->get_instance()->markingallocation &&
+            has_capability('mod/assign:manageallocations', $this->assignment->get_context())) {
+            // Add a column for the allocated marker.
+            $columns[] = 'allocatedmarker';
+            $headers[] = get_string('marker', 'assign');
+        }
         // Grade.
         $columns[] = 'grade';
         $headers[] = get_string('grade');
@@ -249,6 +294,15 @@ class assign_grading_table extends table_sql implements renderable {
                 $columns[] = 'scale';
                 $headers[] = get_string('scale', 'assign');
             }
+
+            if ($this->assignment->get_instance()->markingworkflow) {
+                // Add a column for the marking workflow state.
+                $columns[] = 'workflowstate';
+                $headers[] = get_string('markingworkflowstate', 'assign');
+            }
+            // Add a column for the list of valid marking workflow states.
+            $columns[] = 'gradecanbechanged';
+            $headers[] = get_string('gradecanbechanged', 'assign');
         }
         if (!$this->is_downloading()) {
             // We have to call this column userid so we can use userid as a default sortable column.
@@ -411,6 +465,96 @@ class assign_grading_table extends table_sql implements renderable {
         return $this->perpage;
     }
 
+    /**
+     * list current marking workflow state
+     *
+     * @param stdClass $row
+     * @return string
+     */
+    public function col_workflowstatus(stdClass $row) {
+        $o = '';
+
+        $gradingdisabled = $this->assignment->grading_disabled($row->id);
+        if ($this->assignment->get_instance()->markingworkflow) {
+            // The function in the assignment keeps a static cache of this list of states.
+            $workflowstates = $this->assignment->get_marking_workflow_states_for_current_user();
+            $workflowstate = $row->workflowstate;
+            if (empty($workflowstate)) {
+                $workflowstate = ASSIGN_MARKING_WORKFLOW_STATE_NOTMARKED;
+            }
+            if ($this->quickgrading && !$gradingdisabled) {
+                $name = 'quickgrade_' . $row->id . '_workflowstate';
+                $o .= html_writer::select($workflowstates, $name, $workflowstate, array('' => get_string('markingworkflowstatenotmarked', 'assign')));
+                // Check if this user is a marker that can't manage allocations and doesn't have the marker column added.
+                if ($this->assignment->get_instance()->markingallocation &&
+                    !has_capability('mod/assign:manageallocations', $this->assignment->get_context())) {
+
+                    $name = 'quickgrade_' . $row->id . '_allocatedmarker';
+                    $o .= html_writer::empty_tag('input', array('type'=>'hidden', 'name'=>$name, 'value'=>$row->allocatedmarker));
+                }
+            } else {
+                $o .= $this->output->container(get_string('markingworkflowstate' . $workflowstate, 'assign'), $workflowstate);
+            }
+        }
+        return $o;
+    }
+
+    /**
+     * For download only - list current marking workflow state
+     *
+     * @param stdClass $row - The row of data
+     * @return string The current marking workflow state
+     */
+    public function col_workflowstate($row) {
+        $state = $row->workflowstate;
+        if (empty($state)) {
+            $state = ASSIGN_MARKING_WORKFLOW_STATE_NOTMARKED;
+        }
+
+        return get_string('markingworkflowstate' . $state, 'assign');
+    }
+
+    /**
+     * list current marker
+     *
+     * @param stdClass $row - The row of data
+     * @return id the user->id of the marker.
+     */
+    function col_allocatedmarker(stdClass $row) {
+        static $markers = null;
+        static $markerlist = array();
+        if ($markers === null) {
+            $markers = get_users_by_capability($this->assignment->get_context(), 'mod/assign:grade');
+            $markerlist[0] = get_string('choosemarker', 'assign');
+            foreach ($markers as $marker) {
+                $markerlist[$marker->id] = fullname($marker);
+            }
+        }
+        if (empty($markerlist)) {
+            // TODO: add some form of notification here that no markers are available.
+            return '';
+        }
+        if ($this->is_downloading()) {
+            return $markers[$row->allocatedmarker];
+        }
+
+        if ($this->quickgrading && has_capability('mod/assign:manageallocations', $this->assignment->get_context()) &&
+            (empty($row->workflowstate) ||
+             $row->workflowstate == ASSIGN_MARKING_WORKFLOW_STATE_INMARKING ||
+             $row->workflowstate == ASSIGN_MARKING_WORKFLOW_STATE_NOTMARKED)) {
+
+            $name = 'quickgrade_' . $row->id . '_allocatedmarker';
+            return  html_writer::select($markerlist, $name, $row->allocatedmarker, false);
+        } else if (!empty($row->allocatedmarker)) {
+            $output = '';
+            if ($this->quickgrading) { // Add hidden field for quickgrading page.
+                $name = 'quickgrade_' . $row->id . '_allocatedmarker';
+                $output .= html_writer::empty_tag('input', array('type'=>'hidden', 'name'=>$name, 'value'=>$row->allocatedmarker));
+            }
+            $output .= $markerlist[$row->allocatedmarker];
+            return $output;
+        }
+    }
     /**
      * For download only - list all the valid options for this custom scale.
      *
@@ -625,6 +769,21 @@ class assign_grading_table extends table_sql implements renderable {
      * @param stdClass $row
      * @return string
      */
+    public function col_gradecanbechanged(stdClass $row) {
+        $gradingdisabled = $this->assignment->grading_disabled($row->id);
+        if ($gradingdisabled) {
+            return get_string('no');
+        } else {
+            return get_string('yes');
+        }
+    }
+
+    /**
+     * Format a column of data for display
+     *
+     * @param stdClass $row
+     * @return string
+     */
     public function col_grademax(stdClass $row) {
         return format_float($this->assignment->get_instance()->grade, 2);
     }
@@ -639,7 +798,7 @@ class assign_grading_table extends table_sql implements renderable {
         $o = '';
 
         $link = '';
-        $separator = '';
+        $separator = $this->output->spacer(array(), true);
         $grade = '';
         $gradingdisabled = $this->assignment->grading_disabled($row->id);
 
@@ -657,14 +816,15 @@ class assign_grading_table extends table_sql implements renderable {
                                'action'=>'grade');
             $url = new moodle_url('/mod/assign/view.php', $urlparams);
             $link = $this->output->action_link($url, $icon);
-            $separator = $this->output->spacer(array(), true);
+            $grade .= $link . $separator;
         }
-        $grade = $this->display_grade($row->grade,
-                                      $this->quickgrading && !$gradingdisabled,
-                                      $row->userid,
-                                      $row->timemarked);
 
-        return $link . $separator . $grade;
+        $grade .= $this->display_grade($row->grade,
+                                       $this->quickgrading && !$gradingdisabled,
+                                       $row->userid,
+                                       $row->timemarked);
+
+        return $grade;
     }
 
     /**
@@ -750,9 +910,7 @@ class assign_grading_table extends table_sql implements renderable {
                 $lockedstr = get_string('submissionslockedshort', 'assign');
                 $o .= $this->output->container($lockedstr, 'lockedsubmission');
             }
-            if ($row->grade !== null && $row->grade >= 0) {
-                $o .= $this->output->container(get_string('graded', 'assign'), 'submissiongraded');
-            }
+            $o .= $this->col_workflowstatus($row);
             if (!$row->timesubmitted) {
                 $now = time();
                 $due = $instance->duedate;

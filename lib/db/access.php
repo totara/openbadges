@@ -1886,26 +1886,23 @@ $capabilities = array(
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes'   => array(
             'manager'       => CAP_ALLOW,
-            'student'       => CAP_PREVENT
         )
     ),
 
     // View available badges without earning them.
     'moodle/badges:viewbadges' => array(
         'captype'       => 'read',
-        'contextlevel'  => CONTEXT_SYSTEM,
+        'contextlevel'  => CONTEXT_COURSE,
         'archetypes'    => array(
-            'manager'       => CAP_ALLOW,
             'user'          => CAP_ALLOW,
-            'student'       => CAP_ALLOW
         )
     ),
 
     // Manage badges on own private badges page.
     'moodle/badges:manageownbadges' => array(
-        'riskbitmap'    => RISK_SPAM | RISK_PERSONAL,
+        'riskbitmap'    => RISK_SPAM,
         'captype'       => 'write',
-        'contextlevel'  => CONTEXT_SYSTEM,
+        'contextlevel'  => CONTEXT_USER,
         'archetypes'    => array(
             'user'    => CAP_ALLOW
         )
@@ -1924,75 +1921,63 @@ $capabilities = array(
     // Earn badge.
     'moodle/badges:earnbadge' => array(
         'captype'       => 'write',
-        'contextlevel'  => CONTEXT_SYSTEM,
+        'contextlevel'  => CONTEXT_COURSE,
         'archetypes'    => array(
             'user'           => CAP_ALLOW,
-            'student'        => CAP_ALLOW,
         )
     ),
 
     // Create/duplicate badges.
     'moodle/badges:createbadge' => array(
-        'riskbitmask'  => RISK_CONFIG | RISK_SPAM,
+        'riskbitmask'  => RISK_SPAM,
         'captype'      => 'write',
-        'contextlevel' => CONTEXT_SYSTEM,
+        'contextlevel' => CONTEXT_COURSE,
         'archetypes'   => array(
             'manager'        => CAP_ALLOW,
-            'coursecreator'  => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
-            'student'        => CAP_PREVENT
         )
     ),
 
     // Delete badges.
     'moodle/badges:deletebadge' => array(
-        'riskbitmask'  => RISK_CONFIG | RISK_DATALOSS,
+        'riskbitmask'  => RISK_DATALOSS,
         'captype'      => 'write',
-        'contextlevel' => CONTEXT_SYSTEM,
+        'contextlevel' => CONTEXT_COURSE,
         'archetypes'   => array(
             'manager'        => CAP_ALLOW,
-            'coursecreator'  => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
-            'student'        => CAP_PREVENT
         )
     ),
 
     // Set up/edit badge details.
     'moodle/badges:configuredetails' => array(
-        'riskbitmask'  => RISK_CONFIG,
+        'riskbitmask'  => RISK_SPAM,
         'captype'      => 'write',
-        'contextlevel' => CONTEXT_SYSTEM,
+        'contextlevel' => CONTEXT_COURSE,
         'archetypes'   => array(
             'manager'        => CAP_ALLOW,
-            'coursecreator'  => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
-            'student'        => CAP_PREVENT
         )
     ),
 
     // Set up/edit criteria of earning a badge.
     'moodle/badges:configurecriteria' => array(
-        'riskbitmask'  => RISK_CONFIG,
         'captype'      => 'write',
-        'contextlevel' => CONTEXT_SYSTEM,
+        'contextlevel' => CONTEXT_COURSE,
         'archetypes'   => array(
             'manager'        => CAP_ALLOW,
-            'coursecreator'  => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
-            'student'        => CAP_PREVENT
         )
     ),
 
     // Configure badge messages.
     'moodle/badges:configuremessages' => array(
-        'riskbitmask'  => RISK_CONFIG,
+        'riskbitmask'  => RISK_SPAM,
         'captype'      => 'write',
-        'contextlevel' => CONTEXT_SYSTEM,
+        'contextlevel' => CONTEXT_COURSE,
         'archetypes'   => array(
             'manager'        => CAP_ALLOW,
-            'coursecreator'  => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
-            'student'        => CAP_PREVENT
         )
     ),
 
@@ -2000,13 +1985,11 @@ $capabilities = array(
     'moodle/badges:awardbadge' => array(
         'riskbitmask'  => RISK_SPAM,
         'captype'      => 'write',
-        'contextlevel' => CONTEXT_SYSTEM,
+        'contextlevel' => CONTEXT_COURSE,
         'archetypes'   => array(
             'manager'        => CAP_ALLOW,
-            'coursecreator'  => CAP_ALLOW,
             'teacher'        => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
-            'student'        => CAP_PREVENT
         )
     ),
 
@@ -2014,7 +1997,7 @@ $capabilities = array(
     'moodle/badges:viewawarded' => array(
         'riskbitmask'  => RISK_PERSONAL,
         'captype'      => 'read',
-        'contextlevel' => CONTEXT_SYSTEM,
+        'contextlevel' => CONTEXT_COURSE,
         'archetypes'   => array(
                 'manager'        => CAP_ALLOW,
                 'teacher'        => CAP_ALLOW,

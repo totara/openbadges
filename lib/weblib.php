@@ -909,20 +909,37 @@ function close_window($delay = 0, $reloadopener = false) {
  * @return string The link to user documentation for this current page
  */
 function page_doc_link($text='') {
-    global $CFG, $PAGE, $OUTPUT;
-
-    if (empty($CFG->docroot) || during_initial_install()) {
-        return '';
-    }
-    if (!has_capability('moodle/site:doclinks', $PAGE->context)) {
-        return '';
-    }
-
-    $path = $PAGE->docspath;
+    global $OUTPUT, $PAGE;
+    $path = page_get_doc_link_path($PAGE);
     if (!$path) {
         return '';
     }
     return $OUTPUT->doc_link($path, $text);
+}
+
+/**
+ * Returns the path to use when constructing a link to the docs.
+ *
+ * @since 2.5.1 2.6
+ * @global stdClass $CFG
+ * @param moodle_page $page
+ * @return string
+ */
+function page_get_doc_link_path(moodle_page $page) {
+    global $CFG;
+
+    if (empty($CFG->docroot) || during_initial_install()) {
+        return '';
+    }
+    if (!has_capability('moodle/site:doclinks', $page->context)) {
+        return '';
+    }
+
+    $path = $page->docspath;
+    if (!$path) {
+        return '';
+    }
+    return $path;
 }
 
 
@@ -1074,7 +1091,7 @@ function format_text($text, $format = FORMAT_MOODLE, $options = NULL, $courseid_
     }
 
     // Calculate best context
-    if (empty($CFG->version) or $CFG->version < 2010072800 or during_initial_install()) {
+    if (empty($CFG->version) or $CFG->version < 2013051400 or during_initial_install()) {
         // do not filter anything during installation or before upgrade completes
         $context = null;
 
@@ -1178,6 +1195,12 @@ function format_text($text, $format = FORMAT_MOODLE, $options = NULL, $courseid_
         // The only potential problem is that somebody might try to format
         // the text before storing into database which would be itself big bug.
         $text = str_replace("\"$CFG->httpswwwroot/draftfile.php", "\"$CFG->httpswwwroot/brokenfile.php#", $text);
+
+        if (debugging('', DEBUG_DEVELOPER)) {
+            if (strpos($text, '@@PLUGINFILE@@/') !== false) {
+                debugging('Before calling format_text(), the content must be processed with file_rewrite_pluginfile_urls()', DEBUG_DEVELOPER);
+            }
+        }
     }
 
     // Warn people that we have removed this old mechanism, just in case they
@@ -1273,7 +1296,7 @@ function format_string($string, $striplinks = true, $options = NULL) {
     //We'll use a in-memory cache here to speed up repeated strings
     static $strcache = false;
 
-    if (empty($CFG->version) or $CFG->version < 2010072800 or during_initial_install()) {
+    if (empty($CFG->version) or $CFG->version < 2013051400 or during_initial_install()) {
         // do not filter anything during installation or before upgrade completes
         return $string = strip_tags($string);
     }
@@ -2577,19 +2600,20 @@ function redirect($url, $message='', $delay=-1) {
 function obfuscate_text($plaintext) {
 
     $i=0;
-    $length = strlen($plaintext);
+    $length = textlib::strlen($plaintext);
     $obfuscated='';
     $prev_obfuscated = false;
     while ($i < $length) {
-        $c = ord($plaintext{$i});
-        $numerical = ($c >= ord('0')) && ($c <= ord('9'));
+        $char = textlib::substr($plaintext, $i, 1);
+        $ord = textlib::utf8ord($char);
+        $numerical = ($ord >= ord('0')) && ($ord <= ord('9'));
         if ($prev_obfuscated and $numerical ) {
-            $obfuscated.='&#'.ord($plaintext{$i}).';';
+            $obfuscated.='&#'.$ord.';';
         } else if (rand(0,2)) {
-            $obfuscated.='&#'.ord($plaintext{$i}).';';
+            $obfuscated.='&#'.$ord.';';
             $prev_obfuscated = true;
         } else {
-            $obfuscated.=$plaintext{$i};
+            $obfuscated.=$char;
             $prev_obfuscated = false;
         }
       $i++;

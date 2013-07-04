@@ -557,6 +557,30 @@ function get_site() {
 }
 
 /**
+ * Gets a course object from database. If the course id corresponds to an
+ * already-loaded $COURSE or $SITE object, then the loaded object will be used,
+ * saving a database query.
+ *
+ * If it reuses an existing object, by default the object will be cloned. This
+ * means you can modify the object safely without affecting other code.
+ *
+ * @param int $courseid Course id
+ * @param bool $clone If true (default), makes a clone of the record
+ * @return stdClass A course object
+ * @throws dml_exception If not found in database
+ */
+function get_course($courseid, $clone = true) {
+    global $DB, $COURSE, $SITE;
+    if (!empty($COURSE->id) && $COURSE->id == $courseid) {
+        return $clone ? clone($COURSE) : $COURSE;
+    } else if (!empty($SITE->id) && $SITE->id == $courseid) {
+        return $clone ? clone($SITE) : $SITE;
+    } else {
+        return $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+    }
+}
+
+/**
  * Returns list of courses, for whole site, or category
  *
  * Returns list of courses, for whole site, or category
@@ -1514,6 +1538,35 @@ function coursemodule_visible_for_user($cm, $userid=0) {
 
 /// LOG FUNCTIONS /////////////////////////////////////////////////////
 
+/**
+ * Add an entry to the config log table.
+ *
+ * These are "action" focussed rather than web server hits,
+ * and provide a way to easily reconstruct changes to Moodle configuration.
+ *
+ * @package core
+ * @category log
+ * @global moodle_database $DB
+ * @global stdClass $USER
+ * @param    string  $name     The name of the configuration change action
+                               For example 'filter_active' when activating or deactivating a filter
+ * @param    string  $oldvalue The config setting's previous value
+ * @param    string  $value    The config setting's new value
+ * @param    string  $plugin   Plugin name, for example a filter name when changing filter configuration
+ * @return void
+ */
+function add_to_config_log($name, $oldvalue, $value, $plugin) {
+    global $USER, $DB;
+
+    $log = new stdClass();
+    $log->userid       = during_initial_install() ? 0 :$USER->id; // 0 as user id during install
+    $log->timemodified = time();
+    $log->name         = $name;
+    $log->oldvalue  = $oldvalue;
+    $log->value     = $value;
+    $log->plugin    = $plugin;
+    $DB->insert_record('config_log', $log);
+}
 
 /**
  * Add an entry to the log table.

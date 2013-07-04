@@ -26,9 +26,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-global $CFG;
-require_once($CFG->dirroot.'/'.$CFG->admin.'/tool/installaddon/classes/installer.php');
-
 
 /**
  * Unit tests for the {@link tool_installaddon_installer} class
@@ -122,6 +119,13 @@ class tool_installaddon_installer_test extends advanced_testcase {
             'name' => 'Non-existing plugintype',
             'component' => 'david_mudrak',
             'version' => 2012123199,
+        )));
+        $this->assertSame(false, $installer->testable_decode_remote_request($request));
+
+        $request = base64_encode(json_encode(array(
+            'name' => 'Bogus module name',
+            'component' => 'mod_xxx_yyy',
+            'version' => 2012123190,
         )));
         $this->assertSame(false, $installer->testable_decode_remote_request($request));
     }
