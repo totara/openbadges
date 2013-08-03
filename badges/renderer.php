@@ -350,15 +350,15 @@ class core_badges_renderer extends plugin_renderer_base {
         $agg = $badge->get_aggregation_methods();
         $evidence = $badge->get_criteria_completions($ibadge->recipient);
         $eids = array_map(create_function('$o', 'return $o->critid;'), $evidence);
-        unset($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]);
+        unset($badge->criteria['overall']);
 
         $items = array();
         foreach ($badge->criteria as $type => $c) {
             if (in_array($c->id, $eids)) {
                 if (count($c->params) == 1) {
-                    $items[] = get_string('criteria_descr_single_' . $type , 'badges') . $c->get_details();
+                    $items[] = get_string('description_single', 'badgecriteria_' . $type) . $c->get_details();
                 } else {
-                    $items[] = get_string('criteria_descr_' . $type , 'badges',
+                    $items[] = get_string('description', 'badgecriteria_' . $type,
                             strtoupper($agg[$badge->get_aggregation_method($type)])) . $c->get_details();
                 }
             }
@@ -582,7 +582,7 @@ class core_badges_renderer extends plugin_renderer_base {
                         html_writer::start_tag('span') . $b->name . html_writer::end_tag('span');
             $name = html_writer::link(new moodle_url('/badges/overview.php', array('id' => $b->id)), $forlink, $style);
             $status = $b->statstring;
-            $criteria = self::print_badge_criteria($b, 'short');
+            $criteria = self::print_badge_criteria($b, true);
 
             if (has_capability('moodle/badges:viewawarded', $this->page->context)) {
                 $awards = html_writer::link(new moodle_url('/badges/recipients.php', array('id' => $b->id)), $b->awards);
@@ -652,13 +652,19 @@ class core_badges_renderer extends plugin_renderer_base {
             $table = new html_table();
             $table->attributes['class'] = 'boxaligncenter statustable';
 
-            if (!$badge->has_criteria()) {
+            if (!$badge->has_criteria() || $badge->has_invalid_criteria()) {
                 $criteriaurl = new moodle_url('/badges/criteria.php', array('id' => $badge->id));
-                $status = get_string('nocriteria', 'badges');
+                if ($badge->has_invalid_criteria()) {
+                    $status = get_string('invalidcriteria', 'badges');
+                    $buttontext = get_string('fixcriteria', 'badges');
+                } else {
+                    $status = get_string('nocriteria', 'badges');
+                    $buttontext = get_string('addcriteria', 'badges');
+                }
                 if ($this->page->url != $criteriaurl) {
                     $action = $this->output->single_button(
                         $criteriaurl,
-                        get_string('addcriteria', 'badges'), 'POST', array('class' => 'activatebadge'));
+                        $buttontext, 'POST', array('class' => 'activatebadge'));
                 } else {
                     $action = '';
                 }
@@ -688,26 +694,31 @@ class core_badges_renderer extends plugin_renderer_base {
     }
 
     // Prints badge criteria.
-    public function print_badge_criteria(badge $badge, $short = '') {
+    public function print_badge_criteria(badge $badge, $short = false) {
         $output = "";
+        $shortstr = $short ? '_short' : '';
         $agg = $badge->get_aggregation_methods();
-        if (empty($badge->criteria)) {
+        if (!$badge->has_criteria()) {
             return get_string('nocriteria', 'badges');
-        } else if (count($badge->criteria) == 2) {
+        } else if ($badge->has_one_criterion()) {
             if (!$short) {
                 $output .= get_string('criteria_descr', 'badges');
             }
         } else {
-            $output .= get_string('criteria_descr_' . $short . BADGE_CRITERIA_TYPE_OVERALL, 'badges',
+            $output .= get_string('description' . $shortstr, 'badgecriteria_overall',
                                     strtoupper($agg[$badge->get_aggregation_method()]));
         }
         $items = array();
-        unset($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]);
+        unset($badge->criteria['overall']);
+        foreach ($badge->invalidcriteria as $invalid) {
+            $items[] = html_writer::tag('span', get_string('invalidcriteria_descr' . $shortstr, 'badges', $invalid),
+                array('class' => 'badge-error'));
+        }
         foreach ($badge->criteria as $type => $c) {
             if (count($c->params) == 1) {
-                $items[] = get_string('criteria_descr_single_' . $short . $type , 'badges') . $c->get_details($short);
+                $items[] = get_string('description_single' . $shortstr, 'badgecriteria_' . $type) . $c->get_details($short);
             } else {
-                $items[] = get_string('criteria_descr_' . $short . $type , 'badges',
+                $items[] = get_string('description' . $shortstr , 'badgecriteria_' . $type,
                         strtoupper($agg[$badge->get_aggregation_method($type)])) . $c->get_details($short);
             }
         }
@@ -727,9 +738,10 @@ class core_badges_renderer extends plugin_renderer_base {
             $potential = array_diff($accepted, array_keys($badge->criteria));
 
             if (!empty($potential)) {
+                $select = array();
                 foreach ($potential as $p) {
-                    if ($p != 0) {
-                        $select[$p] = get_string('criteria_' . $p, 'badges');
+                    if ($p != 'overall') {
+                        $select[$p] = get_string('pluginname', 'badgecriteria_' . $p);
                     }
                 }
                 $actions[] = get_string('addbadgecriteria', 'badges');

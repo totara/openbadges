@@ -26,72 +26,21 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-/*
- * Role completion criteria type
- * Criteria type constant, primarily for storing criteria type in the database.
- */
-define('BADGE_CRITERIA_TYPE_OVERALL', 0);
-
-/*
- * Activity completion criteria type
- * Criteria type constant, primarily for storing criteria type in the database.
- */
-define('BADGE_CRITERIA_TYPE_ACTIVITY', 1);
-
-/*
- * Duration completion criteria type
- * Criteria type constant, primarily for storing criteria type in the database.
- */
-define('BADGE_CRITERIA_TYPE_MANUAL', 2);
-
-/*
- * Grade completion criteria type
- * Criteria type constant, primarily for storing criteria type in the database.
- */
-define('BADGE_CRITERIA_TYPE_SOCIAL', 3);
-
-/*
- * Course completion criteria type
- * Criteria type constant, primarily for storing criteria type in the database.
-*/
-define('BADGE_CRITERIA_TYPE_COURSE', 4);
-
-/*
- * Courseset completion criteria type
- * Criteria type constant, primarily for storing criteria type in the database.
- */
-define('BADGE_CRITERIA_TYPE_COURSESET', 5);
-
-/*
- * Course completion criteria type
- * Criteria type constant, primarily for storing criteria type in the database.
- */
-define('BADGE_CRITERIA_TYPE_PROFILE', 6);
-
-/*
- * Criteria type constant to class name mapping
- */
-global $BADGE_CRITERIA_TYPES;
-$BADGE_CRITERIA_TYPES = array(
-    BADGE_CRITERIA_TYPE_OVERALL   => 'overall',
-    BADGE_CRITERIA_TYPE_ACTIVITY  => 'activity',
-    BADGE_CRITERIA_TYPE_MANUAL    => 'manual',
-    BADGE_CRITERIA_TYPE_SOCIAL    => 'social',
-    BADGE_CRITERIA_TYPE_COURSE    => 'course',
-    BADGE_CRITERIA_TYPE_COURSESET => 'courseset',
-    BADGE_CRITERIA_TYPE_PROFILE   => 'profile'
-);
-
 /**
  * Award criteria abstract definition
  *
  */
-abstract class award_criteria {
+abstract class badgecriteria_award {
 
     public $id;
     public $method;
     public $badgeid;
     public $params = array();
+    /* @var array Supported badge types (e.g. BADGE_TYPE_COURSE, BADGE_TYPE_SITE) */
+    public static $supportedtypes = array();
+
+    public $required_param = null;
+    public $optional_params = array();
 
     /**
      * The base constructor
@@ -108,21 +57,58 @@ abstract class award_criteria {
     }
 
     /**
+     * Return an array of all existing criteria types
+     *
+     * @return array Array of criteria names installed on this site.
+     */
+    public static function get_all_criteria() {
+        global $CFG;
+        $criteria = array_keys(core_component::get_plugin_list('badgecriteria'));
+        usort($criteria, 'self::criteria_sort');
+        return $criteria;
+    }
+
+    /**
+     * Sorting function to sort criteria alphabetically, but with 'overall' at the top
+     *
+     * @param string $str1 The first value to compare
+     * @param string $str2 The second value to compare
+     * @return integer -1, 0 or 1 depending on how the strings compare. See strcmp().
+     */
+    public static function criteria_sort($str1, $str2) {
+        if ($str1 == 'overall' && $str2 == 'overall') {
+            return 0;
+        } else if ($str1 == 'overall') {
+            return -1;
+        } else if ($str2 == 'overall') {
+            return 1;
+        } else {
+            return strcmp($str1, $str2);
+        }
+    }
+
+    /**
      * Factory method for creating criteria class object
      *
      * @param array $params associative arrays varname => value
-     * @return award_criteria
+     * @return badgecriteria_award|false
      */
     public static function build($params) {
-        global $CFG, $BADGE_CRITERIA_TYPES;
+        global $CFG;
+        $allcriteria = self::get_all_criteria();
 
-        if (!isset($params['criteriatype']) || !isset($BADGE_CRITERIA_TYPES[$params['criteriatype']])) {
-            print_error('error:invalidcriteriatype', 'badges');
+        $criteriatype = isset($params['criteriatype']) ? $params['criteriatype'] : null;
+
+        if (!in_array($criteriatype, $allcriteria)) {
+            // Criteria types are plugins but the 'overall' type is always required.
+            if ($criteriatype == 'overall') {
+                print_error('error:missingoverallcriteriatype', 'badges');
+            } else {
+                return false;
+            }
         }
 
-        $class = 'award_criteria_' . $BADGE_CRITERIA_TYPES[$params['criteriatype']];
-        require_once($CFG->dirroot . '/badges/criteria/' . $class . '.php');
-
+        $class = "badgecriteria_{$criteriatype}_award";
         return new $class($params);
     }
 
@@ -132,16 +118,16 @@ abstract class award_criteria {
      * @return string
      */
     public function get_title() {
-        return get_string('criteria_' . $this->criteriatype, 'badges');
+        return get_string('pluginname', 'badgecriteria_' . $this->criteriatype);
     }
 
     /**
      * Get criteria details for displaying to users
      *
-     * @param string $short Print short version of criteria
+     * @param boolean $short Print short version of criteria
      * @return string
      */
-    abstract public function get_details($short = '');
+    abstract public function get_details($short = false);
 
     /**
      * Add appropriate criteria options to the form
@@ -201,11 +187,11 @@ abstract class award_criteria {
     /**
      * Add appropriate criteria elements
      *
-     * @param stdClass $data details of various criteria
+     * @param badge $badge Badge being edited
      */
-    public function config_form_criteria($data) {
+    public function config_form_criteria(badge $badge) {
         global $OUTPUT;
-        $agg = $data->get_aggregation_methods();
+        $agg = $badge->get_aggregation_methods();
 
         $editurl = new moodle_url('/badges/criteria_settings.php',
                 array('badgeid' => $this->badgeid, 'edit' => true, 'type' => $this->criteriatype, 'crit' => $this->id));
@@ -215,20 +201,42 @@ abstract class award_criteria {
         $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null, array('class' => 'criteria-action'));
 
         echo $OUTPUT->box_start();
-        if (!$data->is_locked() && !$data->is_active()) {
+        if (!$badge->is_locked() && !$badge->is_active()) {
             echo $OUTPUT->box($deleteaction . $editaction, array('criteria-header'));
         }
-        echo $OUTPUT->heading($this->get_title() . $OUTPUT->help_icon('criteria_' . $this->criteriatype, 'badges'), 3, 'main help');
+        echo $OUTPUT->heading($this->get_title() . $OUTPUT->help_icon('pluginname', 'badgecriteria_' . $this->criteriatype), 3, 'main help');
 
-        if (!empty($this->params)) {
+        if (isset($this->params)) {
             if (count($this->params) > 1) {
-                echo $OUTPUT->box(get_string('criteria_descr_' . $this->criteriatype, 'badges',
-                        strtoupper($agg[$data->get_aggregation_method($this->criteriatype)])), array('clearfix'));
+                echo $OUTPUT->box(get_string('description', 'badgecriteria_' . $this->criteriatype,
+                        strtoupper($agg[$badge->get_aggregation_method($this->criteriatype)])), array('clearfix'));
             } else {
-                echo $OUTPUT->box(get_string('criteria_descr_single_' . $this->criteriatype , 'badges'), array('clearfix'));
+                echo $OUTPUT->box(get_string('description_single', 'badgecriteria_' . $this->criteriatype), array('clearfix'));
             }
             echo $OUTPUT->box($this->get_details(), array('clearfix'));
         }
+        echo $OUTPUT->box_end();
+    }
+
+    /**
+     * Add form elements for an invalid criterion
+     *
+     * @param badge $badge Badge being edited.
+     * @param string $name Name of the invalid criterion type
+     */
+    public static function config_form_invalid_criteria(badge $badge, $name) {
+        global $OUTPUT;
+        $deleteurl = new moodle_url('/badges/criteria_action.php',
+                array('badgeid' => $badge->id, 'delete' => true, 'type' => $name));
+        $deleteaction = $OUTPUT->action_icon($deleteurl, new pix_icon('t/delete', get_string('delete')), null,
+                array('class' => 'criteria-action'));
+        echo $OUTPUT->box_start();
+        if (!$badge->is_locked() && !$badge->is_active()) {
+            echo $OUTPUT->box($deleteaction, array('criteria-header'));
+        }
+
+        echo html_writer::tag('span', get_string('invalidcriteria_descr_full', 'badges', $name), array('class' => 'badge-error'));
+
         echo $OUTPUT->box_end();
     }
 

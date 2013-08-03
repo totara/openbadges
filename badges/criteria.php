@@ -68,7 +68,7 @@ if ((($update == BADGE_CRITERIA_AGGREGATION_ALL) || ($update == BADGE_CRITERIA_A
     require_sesskey();
     require_capability('moodle/badges:configurecriteria', $context);
     $obj = new stdClass();
-    $obj->id = $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->id;
+    $obj->id = $badge->criteria['overall']->id;
     $obj->method = $update;
     if ($DB->update_record('badge_criteria', $obj)) {
         $msg = get_string('changessaved');
@@ -94,8 +94,11 @@ if (!$badge->is_locked() && !$badge->is_active()) {
 }
 
 if ($badge->has_criteria()) {
-    ksort($badge->criteria);
+    uksort($badge->criteria, 'badgecriteria_award::criteria_sort');
 
+    foreach ($badge->invalidcriteria as $invalid) {
+        badgecriteria_award::config_form_invalid_criteria($badge, $invalid);
+    }
     foreach ($badge->criteria as $crit) {
         $crit->config_form_criteria($badge);
     }

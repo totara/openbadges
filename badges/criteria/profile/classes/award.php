@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This file contains the profile completion badge award criteria type class
+ * This file contains the profile completion badge criteria award class
  *
  * @package    core
  * @subpackage badges
@@ -31,10 +31,12 @@ require_once($CFG->dirroot . "/user/lib.php");
  * Profile completion badge award criteria
  *
  */
-class award_criteria_profile extends award_criteria {
+class badgecriteria_profile_award extends badgecriteria_award {
 
-    /* @var int Criteria [BADGE_CRITERIA_TYPE_PROFILE] */
-    public $criteriatype = BADGE_CRITERIA_TYPE_PROFILE;
+    /* @var string Criteria ['profile'] */
+    public $criteriatype = 'profile';
+    /* @var array Supported badge types */
+    public static $supportedtypes = array(BADGE_TYPE_SITE);
 
     public $required_param = 'field';
     public $optional_params = array();
@@ -73,14 +75,14 @@ class award_criteria_profile extends award_criteria {
             $mform->addElement('header', 'category_errors', get_string('criterror', 'badges'));
             $mform->addHelpButton('category_errors', 'criterror', 'badges');
             foreach ($missing as $m) {
-                $this->config_options($mform, array('id' => $m, 'checked' => true, 'name' => get_string('error:nosuchfield', 'badges'), 'error' => true));
+                $this->config_options($mform, array('id' => $m, 'checked' => true, 'name' => get_string('error:nosuchfield', 'badgecriteria_profile'), 'error' => true));
                 $none = false;
             }
         }
 
         if (!empty($dfields)) {
             $mform->addElement('header', 'first_header', $this->get_title());
-            $mform->addHelpButton('first_header', 'criteria_' . $this->criteriatype, 'badges');
+            $mform->addHelpButton('first_header', 'pluginname', 'badgecriteria_' . $this->criteriatype);
             foreach ($dfields as $field) {
                 $checked = false;
                 if (in_array($field, $existing)) {
@@ -110,9 +112,9 @@ class award_criteria_profile extends award_criteria {
         if (!$none) {
             $mform->addElement('header', 'aggregation', get_string('method', 'badges'));
             $agg = array();
-            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethodprofile', 'badges'), 1);
+            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethod', 'badgecriteria_profile'), 1);
             $agg[] =& $mform->createElement('static', 'none_break', null, '<br/>');
-            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethodprofile', 'badges'), 2);
+            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethod', 'badgecriteria_profile'), 2);
             $mform->addGroup($agg, 'methodgr', '', array(' '), false);
             if ($this->id !== 0) {
                 $mform->setDefault('agg', $this->method);
@@ -129,7 +131,7 @@ class award_criteria_profile extends award_criteria {
      *
      * @return string
      */
-    public function get_details($short = '') {
+    public function get_details($short = false) {
         global $DB, $OUTPUT;
         $output = array();
         foreach ($this->params as $p) {
@@ -139,7 +141,7 @@ class award_criteria_profile extends award_criteria {
                 $str = get_user_field_name($p['field']);
             }
             if (!$str) {
-                $output[] = $OUTPUT->error_text(get_string('error:nosuchfield', 'badges'));
+                $output[] = $OUTPUT->error_text(get_string('error:nosuchfield', 'badgecriteria_profile'));
             } else {
                 $output[] = $str;
             }

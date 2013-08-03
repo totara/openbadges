@@ -26,8 +26,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-/* Include required award criteria library. */
-require_once($CFG->dirroot . '/badges/criteria/award_criteria.php');
+/* Include required badgecriteria_award library. */
+require_once($CFG->dirroot . '/badges/criteria/badgecriteria_award.php');
 
 /*
  * Number of records per page.
@@ -124,6 +124,8 @@ class badge {
 
     /** @var array Badge criteria */
     public $criteria = array();
+    /** @var array Names of any criteria that could not be constructed */
+    public $invalidcriteria = array();
 
     /**
      * Constructs with badge details.
@@ -146,7 +148,7 @@ class badge {
             }
         }
 
-        $this->criteria = self::get_criteria();
+        list($this->criteria, $this->invalidcriteria) = $this->get_criteria();
     }
 
     /**
@@ -176,25 +178,18 @@ class badge {
 
     /**
      * Return array of accepted criteria types for this badge
+     *
      * @return array
      */
     public function get_accepted_criteria() {
         $criteriatypes = array();
+        $allcriteria = badgecriteria_award::get_all_criteria();
 
-        if ($this->type == BADGE_TYPE_COURSE) {
-            $criteriatypes = array(
-                    BADGE_CRITERIA_TYPE_OVERALL,
-                    BADGE_CRITERIA_TYPE_MANUAL,
-                    BADGE_CRITERIA_TYPE_COURSE,
-                    BADGE_CRITERIA_TYPE_ACTIVITY
-            );
-        } else if ($this->type == BADGE_TYPE_SITE) {
-            $criteriatypes = array(
-                    BADGE_CRITERIA_TYPE_OVERALL,
-                    BADGE_CRITERIA_TYPE_MANUAL,
-                    BADGE_CRITERIA_TYPE_COURSESET,
-                    BADGE_CRITERIA_TYPE_PROFILE,
-            );
+        foreach ($allcriteria as $criterianame) {
+            $class = "badgecriteria_{$criterianame}_award";
+            if (in_array($this->type, $class::$supportedtypes)) {
+                $criteriatypes[] = $criterianame;
+            }
         }
 
         return $criteriatypes;
@@ -214,6 +209,7 @@ class badge {
             $fordb->{$k} = $v;
         }
         unset($fordb->criteria);
+        unset($fordb->invalidcriteria);
 
         $fordb->timemodified = time();
         if ($DB->update_record_raw('badge', $fordb)) {
@@ -321,6 +317,15 @@ class badge {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Checks if any of a badge's criteria are invalid
+     *
+     * @return bool True if any criteria are invalid
+     */
+    public function has_invalid_criteria() {
+        return !empty($this->invalidcriteria);
     }
 
     /**
@@ -449,12 +454,16 @@ class badge {
 
         foreach ($toearn as $uid) {
             $toreview = false;
+            // Invalid criteria should never be awarded, we can exit early if overall aggregation is 'all'.
+            if ($this->has_invalid_criteria() && $this->criteria['overall']->method == BADGE_CRITERIA_AGGREGATION_ALL) {
+                break;
+            }
             foreach ($this->criteria as $crit) {
-                if ($crit->criteriatype != BADGE_CRITERIA_TYPE_OVERALL) {
+                if ($crit->criteriatype != 'overall') {
                     if ($crit->review($uid)) {
                         $crit->mark_complete($uid);
-                        if ($this->criteria[BADGE_CRITERIA_TYPE_OVERALL]->method == BADGE_CRITERIA_AGGREGATION_ANY) {
-                            $this->criteria[BADGE_CRITERIA_TYPE_OVERALL]->mark_complete($uid);
+                        if ($this->criteria['overall']->method == BADGE_CRITERIA_AGGREGATION_ANY) {
+                            $this->criteria['overall']->mark_complete($uid);
                             $this->issue($uid);
                             $awards++;
                             break;
@@ -463,7 +472,7 @@ class badge {
                             continue;
                         }
                     } else {
-                        if ($this->criteria[BADGE_CRITERIA_TYPE_OVERALL]->method == BADGE_CRITERIA_AGGREGATION_ANY) {
+                        if ($this->criteria['overall']->method == BADGE_CRITERIA_AGGREGATION_ANY) {
                             continue;
                         } else {
                             break;
@@ -472,8 +481,8 @@ class badge {
                 }
             }
             // Review overall if it is required.
-            if ($toreview && $this->criteria[BADGE_CRITERIA_TYPE_OVERALL]->review($uid)) {
-                $this->criteria[BADGE_CRITERIA_TYPE_OVERALL]->mark_complete($uid);
+            if ($toreview && $this->criteria['overall']->review($uid)) {
+                $this->criteria['overall']->mark_complete($uid);
                 $this->issue($uid);
                 $awards++;
             }
@@ -506,28 +515,65 @@ class badge {
      * @return bool A status indicating badge has at least one criterion
      */
     public function has_criteria() {
-        if (count($this->criteria) > 0) {
+        if ((count($this->criteria) + count($this->invalidcriteria)) > 0) {
             return true;
         }
         return false;
     }
 
     /**
+     * Check if a badge has exactly one criterion
+     *
+     * This includes invalid criterion but excludes the 'overall' criterion
+     *
+     * @return bool True if there is exactly one criterion
+     */
+    public function has_one_criterion() {
+        // Check for two since we are ignoring the 'overall' criterion.
+        return ((count($this->criteria) + count($this->invalidcriteria)) == 2);
+    }
+
+    /**
      * Returns badge award criteria
      *
-     * @return array An array of badge criteria
+     * @return array An array of arrays containing valid and invalid badge criteria
      */
     public function get_criteria() {
         global $DB;
         $criteria = array();
+        $invalidcriteria = array();
 
         if ($records = (array)$DB->get_records('badge_criteria', array('badgeid' => $this->id))) {
             foreach ($records as $record) {
-                $criteria[$record->criteriatype] = award_criteria::build((array)$record);
+                if ($criteriaobj = badgecriteria_award::build((array)$record)) {
+                    $criteria[$record->criteriatype] = $criteriaobj;
+                } else {
+                    $invalidcriteria[] = $record->criteriatype;
+                }
             }
         }
 
-        return $criteria;
+        return array($criteria, $invalidcriteria);
+    }
+
+    /**
+     * Remove records belonging to an invalid criteria
+     *
+     * @param string $type Criteria type
+     */
+    public function delete_invalid_criteria($type) {
+        global $DB;
+
+        $criteriaid = $DB->get_field('badge_criteria', 'id', array('badgeid' => $this->id, 'criteriatype' => $type));
+
+        // Remove any records if it has already been met.
+        $DB->delete_records('badge_criteria_met', array('critid' => $criteriaid));
+
+        // Remove all parameters records.
+        $DB->delete_records('badge_criteria_param', array('critid' => $criteriaid));
+
+        // Finally remove criterion itself.
+        $DB->delete_records('badge_criteria', array('id' => $criteriaid));
     }
 
     /**
@@ -585,7 +631,7 @@ class badge {
      */
     public function has_manual_award_criteria() {
         foreach ($this->criteria as $criterion) {
-            if ($criterion->criteriatype == BADGE_CRITERIA_TYPE_MANUAL) {
+            if ($criterion->criteriatype == 'manual') {
                 return true;
             }
         }
@@ -956,8 +1002,8 @@ function badges_award_handle_course_criteria_review(stdClass $eventdata) {
                 if ($badge->criteria[$crit->criteriatype]->review($userid)) {
                     $badge->criteria[$crit->criteriatype]->mark_complete($userid);
 
-                    if ($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->review($userid)) {
-                        $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->mark_complete($userid);
+                    if ($badge->criteria['overall']->review($userid)) {
+                        $badge->criteria['overall']->mark_complete($userid);
                         $badge->issue($userid);
                     }
                 }
@@ -993,11 +1039,11 @@ function badges_award_handle_activity_criteria_review(stdClass $eventdata) {
                         continue;
                     }
 
-                    if ($badge->criteria[BADGE_CRITERIA_TYPE_ACTIVITY]->review($userid)) {
-                        $badge->criteria[BADGE_CRITERIA_TYPE_ACTIVITY]->mark_complete($userid);
+                    if ($badge->criteria['activity']->review($userid)) {
+                        $badge->criteria['activity']->mark_complete($userid);
 
-                        if ($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->review($userid)) {
-                            $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->mark_complete($userid);
+                        if ($badge->criteria['overall']->review($userid)) {
+                            $badge->criteria['overall']->mark_complete($userid);
                             $badge->issue($userid);
                         }
                     }
@@ -1021,18 +1067,18 @@ function badges_award_handle_profile_criteria_review(stdClass $eventdata) {
     if (!empty($CFG->enablebadges)) {
         $userid = $eventdata->id;
 
-        if ($rs = $DB->get_records('badge_criteria', array('criteriatype' => BADGE_CRITERIA_TYPE_PROFILE))) {
+        if ($rs = $DB->get_records('badge_criteria', array('criteriatype' => 'profile'))) {
             foreach ($rs as $r) {
                 $badge = new badge($r->badgeid);
                 if (!$badge->is_active() || $badge->is_issued($userid)) {
                     continue;
                 }
 
-                if ($badge->criteria[BADGE_CRITERIA_TYPE_PROFILE]->review($userid)) {
-                    $badge->criteria[BADGE_CRITERIA_TYPE_PROFILE]->mark_complete($userid);
+                if ($badge->criteria['profile']->review($userid)) {
+                    $badge->criteria['profile']->mark_complete($userid);
 
-                    if ($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->review($userid)) {
-                        $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->mark_complete($userid);
+                    if ($badge->criteria['profile']->review($userid)) {
+                        $badge->criteria['profile']->mark_complete($userid);
                         $badge->issue($userid);
                     }
                 }
@@ -1047,9 +1093,10 @@ function badges_award_handle_profile_criteria_review(stdClass $eventdata) {
  * Triggered when badge is manually awarded.
  *
  * @param   object      $data
+ * @param bool $nobake Not baking actual badges (for testing purposes)
  * @return  boolean
  */
-function badges_award_handle_manual_criteria_review(stdClass $data) {
+function badges_award_handle_manual_criteria_review(stdClass $data, $nobake = false) {
     $criteria = $data->crit;
     $userid = $data->userid;
     $badge = new badge($criteria->badgeid);
@@ -1061,9 +1108,9 @@ function badges_award_handle_manual_criteria_review(stdClass $data) {
     if ($criteria->review($userid)) {
         $criteria->mark_complete($userid);
 
-        if ($badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->review($userid)) {
-            $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->mark_complete($userid);
-            $badge->issue($userid);
+        if ($badge->criteria['overall']->review($userid)) {
+            $badge->criteria['overall']->mark_complete($userid);
+            $badge->issue($userid, $nobake);
         }
     }
 

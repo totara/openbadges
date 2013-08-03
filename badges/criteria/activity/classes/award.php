@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This file contains the activity badge award criteria type class
+ * This file contains the activity badge criteria award class
  *
  * @package    core
  * @subpackage badges
@@ -31,10 +31,12 @@ require_once($CFG->libdir . '/completionlib.php');
  * Badge award criteria -- award on activity completion
  *
  */
-class award_criteria_activity extends award_criteria {
+class badgecriteria_activity_award extends badgecriteria_award {
 
-    /* @var int Criteria [BADGE_CRITERIA_TYPE_ACTIVITY] */
-    public $criteriatype = BADGE_CRITERIA_TYPE_ACTIVITY;
+    /* @var string Criteria ['activity'] */
+    public $criteriatype = 'activity';
+    /* @var array Supported badge types */
+    public static $supportedtypes = array(BADGE_TYPE_COURSE);
 
     private $courseid;
 
@@ -72,13 +74,13 @@ class award_criteria_activity extends award_criteria {
      *
      * @return string
      */
-    public function get_details($short = '') {
+    public function get_details($short = false) {
         global $DB, $OUTPUT;
         $output = array();
         foreach ($this->params as $p) {
             $mod = self::get_mod_instance($p['module']);
             if (!$mod) {
-                $str = $OUTPUT->error_text(get_string('error:nosuchmod', 'badges'));
+                $str = $OUTPUT->error_text(get_string('error:nosuchmod', 'badgecriteria_activity'));
             } else {
                 $str = html_writer::tag('b', '"' . ucfirst($mod->modname) . ' - ' . $mod->name . '"');
                 if (isset($p['bydate'])) {
@@ -132,7 +134,7 @@ class award_criteria_activity extends award_criteria {
             $mform->addHelpButton('category_errors', 'criterror', 'badges');
             foreach ($missing as $m) {
                 $this->config_options($mform, array('id' => $m, 'checked' => true,
-                        'name' => get_string('error:nosuchmod', 'badges'), 'error' => true));
+                        'name' => get_string('error:nosuchmod', 'badgecriteria_activity'), 'error' => true));
                 $none = false;
             }
         }
@@ -167,8 +169,8 @@ class award_criteria_activity extends award_criteria {
         if (!$none) {
             $mform->addElement('header', 'aggregation', get_string('method', 'badges'));
             $agg = array();
-            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethodactivity', 'badges'), 1);
-            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethodactivity', 'badges'), 2);
+            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('allmethod', 'badgecriteria_activity'), 1);
+            $agg[] =& $mform->createElement('radio', 'agg', '', get_string('anymethod', 'badgecriteria_activity'), 2);
             $mform->addGroup($agg, 'methodgr', '', array('<br/>'), false);
             if ($this->id !== 0) {
                 $mform->setDefault('agg', $this->method);
@@ -177,7 +179,7 @@ class award_criteria_activity extends award_criteria {
             }
         }
 
-        return array($none, get_string('error:noactivities', 'badges'));
+        return array($none, get_string('error:noactivities', 'badgecriteria_activity'));
     }
 
     /**

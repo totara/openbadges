@@ -29,7 +29,7 @@ require_once($CFG->libdir . '/badgeslib.php');
 
 $badgeid = optional_param('badgeid', 0, PARAM_INT); // Badge ID.
 $crit    = optional_param('crit', 0, PARAM_INT);
-$type    = optional_param('type', 0, PARAM_INT); // Criteria type.
+$type    = optional_param('type', 'overall', PARAM_ALPHANUM); // Criteria type.
 $delete  = optional_param('delete', 0, PARAM_BOOL);
 $confirm = optional_param('confirm', 0, PARAM_BOOL);
 
@@ -73,12 +73,14 @@ if ($delete && has_capability('moodle/badges:configurecriteria', $context)) {
     }
 
     require_sesskey();
-    if (count($badge->criteria) == 2) {
+    if ($badge->has_one_criterion()) {
         // Remove overall criterion as well.
+        $badge->criteria['overall']->delete();
+    }
+    if (isset($badge->criteria[$type])) {
         $badge->criteria[$type]->delete();
-        $badge->criteria[BADGE_CRITERIA_TYPE_OVERALL]->delete();
     } else {
-        $badge->criteria[$type]->delete();
+        $badge->delete_invalid_criteria($type);
     }
     redirect($return);
 }
