@@ -119,7 +119,7 @@ if ($user !== false or $frm !== false or $errormsg !== '') {
 
 if ($frm and isset($frm->username)) {                             // Login WITH cookies
 
-    $frm->username = trim(textlib::strtolower($frm->username));
+    $frm->username = trim(core_text::strtolower($frm->username));
 
     if (is_enabled_auth('none') ) {
         if ($frm->username !== clean_param($frm->username, PARAM_USERNAME)) {
@@ -177,8 +177,6 @@ if ($frm and isset($frm->username)) {                             // Login WITH 
         }
 
     /// Let's get them all set up.
-        add_to_log(SITEID, 'user', 'login', "view.php?id=$USER->id&course=".SITEID,
-                   $user->id, 0, $user->id);
         complete_user_login($user);
 
         // sets the username cookie
@@ -248,6 +246,9 @@ if ($frm and isset($frm->username)) {                             // Login WITH 
                 exit;
             }
         }
+
+        // Discard any errors before the last redirect.
+        unset($SESSION->loginerrormsg);
 
         // test the session actually works by redirecting to self
         $SESSION->wantsurl = $urltogo;
@@ -334,6 +335,23 @@ $potentialidps = array();
 foreach($authsequence as $authname) {
     $authplugin = get_auth_plugin($authname);
     $potentialidps = array_merge($potentialidps, $authplugin->loginpage_idp_list($SESSION->wantsurl));
+}
+
+if (!empty($SESSION->loginerrormsg)) {
+    // We had some errors before redirect, show them now.
+    $errormsg = $SESSION->loginerrormsg;
+    unset($SESSION->loginerrormsg);
+
+} else if ($testsession) {
+    // No need to redirect here.
+    unset($SESSION->loginerrormsg);
+
+} else if ($errormsg or !empty($frm->password)) {
+    // We must redirect after every password submission.
+    if ($errormsg) {
+        $SESSION->loginerrormsg = $errormsg;
+    }
+    redirect(new moodle_url('/login/index.php'));
 }
 
 $PAGE->set_title("$site->fullname: $loginsite");

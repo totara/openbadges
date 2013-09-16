@@ -2,7 +2,7 @@ YUI.add('moodle-course-dragdrop', function(Y) {
 
     var CSS = {
         ACTIVITY : 'activity',
-        COMMANDSPAN : 'span.commands',
+        COMMANDSPAN : '.commands',
         CONTENT : 'content',
         COURSECONTENT : 'course-content',
         EDITINGMOVE : 'editing_move',
@@ -295,6 +295,7 @@ YUI.add('moodle-course-dragdrop', function(Y) {
                     resources.addClass(CSS.SECTION);
                     sectionnode.one('.'+CSS.CONTENT+' div.'+CSS.SUMMARY).insert(resources, 'after');
                 }
+                resources.setAttribute('data-draggroups', this.groups.join(' '));
                 // Define empty ul as droptarget, so that item could be moved to empty list
                 var tar = new Y.DD.Drop({
                     node: resources,

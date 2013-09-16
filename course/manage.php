@@ -26,6 +26,16 @@ require_once("../config.php");
 require_once($CFG->dirroot.'/course/lib.php');
 require_once($CFG->libdir.'/coursecatlib.php');
 
+/**
+ * Limit the total number of categories where user has 'moodle/course:manage'
+ * permission in order for "Move categories" dropdown to be displayed on this page.
+ * If number of categories exceeds this limit, user can always use edit category
+ * form to change the parent. Otherwise the page size becomes too big.
+ */
+if (!defined('COURSECAT_QUICKMOVE_LIMIT')) {
+    define('COURSECAT_QUICKMOVE_LIMIT', 200);
+}
+
 // Category id.
 $id = optional_param('categoryid', 0, PARAM_INT);
 // Which page to show.
@@ -194,7 +204,7 @@ if ((!empty($moveupcat) or !empty($movedowncat)) and confirm_sesskey()) {
 if ($coursecat->id && $canmanage && $resort && confirm_sesskey()) {
     // Resort the category.
     if ($courses = get_courses($coursecat->id, '', 'c.id,c.fullname,c.sortorder')) {
-        collatorlib::asort_objects_by_property($courses, 'fullname', collatorlib::SORT_NATURAL);
+        core_collator::asort_objects_by_property($courses, 'fullname', core_collator::SORT_NATURAL);
         $i = 1;
         foreach ($courses as $course) {
             $DB->set_field('course', 'sortorder', $coursecat->sortorder + $i, array('id' => $course->id));
@@ -249,7 +259,22 @@ if ((!empty($hide) or !empty($show)) && confirm_sesskey()) {
     $params = array('id' => $course->id, 'visible' => $visible, 'visibleold' => $visible, 'timemodified' => time());
     $DB->update_record('course', $params);
     cache_helper::purge_by_event('changesincourse');
-    add_to_log($course->id, "course", ($visible ? 'show' : 'hide'), "edit.php?id=$course->id", $course->id);
+
+    // Update the course object we pass to the event class.
+    $course->visible = $params['visible'];
+    $course->visibleold = $params['visibleold'];
+    $course->timemodified = $params['timemodified'];
+
+    // Trigger a course updated event.
+    $event = \core\event\course_updated::create(array(
+        'objectid' => $course->id,
+        'context' => $coursecontext,
+        'other' => array('shortname' => $course->shortname,
+                         'fullname' => $course->fullname)
+    ));
+    $event->add_record_snapshot('course', $course);
+    $event->set_legacy_logdata(array($course->id, 'course', ($visible ? 'show' : 'hide'), 'edit.php?id=' . $course->id, $course->id));
+    $event->trigger();
 }
 
 if ((!empty($moveup) or !empty($movedown)) && confirm_sesskey()) {
@@ -277,7 +302,20 @@ if ((!empty($moveup) or !empty($movedown)) && confirm_sesskey()) {
         $DB->set_field('course', 'sortorder', $swapcourse->sortorder, array('id' => $movecourse->id));
         $DB->set_field('course', 'sortorder', $movecourse->sortorder, array('id' => $swapcourse->id));
         cache_helper::purge_by_event('changesincourse');
-        add_to_log($movecourse->id, "course", "move", "edit.php?id=$movecourse->id", $movecourse->id);
+
+        // Update $movecourse's sortorder.
+        $movecourse->sortorder = $swapcourse->sortorder;
+
+        // Trigger a course updated event.
+        $event = \core\event\course_updated::create(array(
+            'objectid' => $movecourse->id,
+            'context' => context_course::instance($movecourse->id),
+            'other' => array('shortname' => $movecourse->shortname,
+                             'fullname' => $movecourse->fullname)
+        ));
+        $event->add_record_snapshot('course', $movecourse);
+        $event->set_legacy_logdata(array($movecourse->id, 'course', 'move', 'edit.php?id=' . $movecourse->id, $movecourse->id));
+        $event->trigger();
     }
 }
 
@@ -322,6 +360,8 @@ if (!empty($searchcriteria)) {
     echo $OUTPUT->heading(new lang_string('searchresults'));
 } else if (!$coursecat->id) {
     // Print out the categories with all the knobs.
+    $manageablecategories = coursecat::make_categories_list('moodle/category:manage');
+    $displaymovecategoryto = !empty($manageablecategories) && (count($manageablecategories) <= COURSECAT_QUICKMOVE_LIMIT);
     $table = new html_table;
     $table->id = 'coursecategories';
     $table->attributes['class'] = 'admintable generaltable editcourse';
@@ -329,17 +369,21 @@ if (!empty($searchcriteria)) {
         get_string('categories'),
         get_string('courses'),
         get_string('edit'),
-        get_string('movecategoryto'),
     );
+    if ($displaymovecategoryto) {
+        $table->head[] = get_string('movecategoryto');
+    }
     $table->colclasses = array(
         'leftalign name',
         'centeralign count',
         'centeralign icons',
-        'leftalign actions'
     );
+    if ($displaymovecategoryto) {
+        $table->colclasses[] = 'leftalign actions';
+    }
     $table->data = array();
 
-    print_category_edit($table, $coursecat);
+    print_category_edit($table, $coursecat, -1, false, false, $displaymovecategoryto);
 
     echo html_writer::table($table);
 } else {
@@ -627,8 +671,9 @@ echo $OUTPUT->footer();
  * @param int $depth The depth of the category.
  * @param bool $up True if this category can be moved up.
  * @param bool $down True if this category can be moved down.
+ * @param bool $displaymovecategoryto whether to display a dropdown for quick category move.
  */
-function print_category_edit(html_table $table, coursecat $category, $depth = -1, $up = false, $down = false) {
+function print_category_edit(html_table $table, coursecat $category, $depth = -1, $up = false, $down = false, $displaymovecategoryto = true) {
     global $OUTPUT;
 
     static $str = null;
@@ -716,7 +761,7 @@ function print_category_edit(html_table $table, coursecat $category, $depth = -1
         }
 
         $actions = '';
-        if (has_capability('moodle/category:manage', $categorycontext)) {
+        if ($displaymovecategoryto && has_capability('moodle/category:manage', $categorycontext)) {
             $popupurl = new moodle_url('/course/manage.php', array('movecat' => $category->id, 'sesskey' => sesskey()));
             $tempdisplaylist = array(0 => get_string('top')) + coursecat::make_categories_list('moodle/category:manage', $category->id);
             $select = new single_select($popupurl, 'movetocat', $tempdisplaylist, $category->parent, null, "moveform$category->id");
@@ -724,16 +769,19 @@ function print_category_edit(html_table $table, coursecat $category, $depth = -1
             $actions = $OUTPUT->render($select);
         }
 
-        $table->data[] = new html_table_row(array(
+        $thisrowdata = array(
             // Category name.
             new html_table_cell($categoryname),
             // Course count.
             new html_table_cell($category->coursecount),
             // Icons.
             new html_table_cell(join(' ', $icons)),
+        );
+        if ($displaymovecategoryto) {
             // Actions.
-            new html_table_cell($actions)
-        ));
+            $thisrowdata[] = new html_table_cell($actions);
+        }
+        $table->data[] = new html_table_row($thisrowdata);
     }
 
     if ($categories = $category->get_children()) {
@@ -751,7 +799,7 @@ function print_category_edit(html_table $table, coursecat $category, $depth = -1
             $down = $last ? false : true;
             $first = false;
 
-            print_category_edit($table, $cat, $depth+1, $up, $down);
+            print_category_edit($table, $cat, $depth+1, $up, $down, $displaymovecategoryto);
         }
     }
 }

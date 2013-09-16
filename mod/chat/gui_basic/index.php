@@ -117,7 +117,11 @@ if (!empty($refresh) and data_submitted()) {
 $PAGE->set_title("$strchat: $course->shortname: ".format_string($chat->name,true)."$groupname");
 echo $OUTPUT->header();
 echo $OUTPUT->container_start(null, 'page-mod-chat-gui_basic');
-echo $OUTPUT->heading(get_string('participants'), 2, 'mdl-left');
+
+echo $OUTPUT->heading(format_string($course->shortname), 1);
+echo $OUTPUT->heading(format_string($chat->name), 2);
+
+echo $OUTPUT->heading(get_string('participants'), 3);
 
 echo $OUTPUT->box_start('generalbox', 'participants');
 echo '<ul>';
@@ -155,7 +159,7 @@ echo '</form>';
 echo '</div>';
 
 echo '<div id="messages">';
-echo $OUTPUT->heading(get_string('messages', 'chat'), 2, 'mdl-left');
+echo $OUTPUT->heading(get_string('messages', 'chat'), 3);
 
 $allmessages = array();
 $options = new stdClass();
@@ -181,7 +185,12 @@ if ($messages) {
         $allmessages[] = chat_format_message($message, $course->id, $USER);
     }
 }
-
+echo '<table class="generaltable"><tbody>';
+echo '<tr>
+        <th scope="col" class="cell">' . get_string('from') . '</th>
+        <th scope="col" class="cell">' . get_string('message', 'message') . '</th>
+        <th scope="col" class="cell">' . get_string('time') . '</th>
+      </tr>';
 if (empty($allmessages)) {
     echo get_string('nomessagesfound', 'message');
 } else {
@@ -189,7 +198,7 @@ if (empty($allmessages)) {
         echo $message->basic;
     }
 }
-
+echo '</tbody></table>';
 echo '</div>';
 echo $OUTPUT->container_end();
 echo $OUTPUT->footer();

@@ -173,7 +173,7 @@ class moodle1_mod_assignment_handler extends moodle1_mod_handler {
 
         if (is_null($this->subpluginhandlers)) {
             $this->subpluginhandlers = array();
-            $subplugins = get_plugin_list('assignment');
+            $subplugins = core_component::get_plugin_list('assignment');
             foreach ($subplugins as $name => $dir) {
                 $handlerfile  = $dir.'/backup/moodle1/lib.php';
                 $handlerclass = "moodle1_mod_assignment_{$name}_subplugin_handler";
@@ -194,7 +194,8 @@ class moodle1_mod_assignment_handler extends moodle1_mod_handler {
         }
 
         if (!isset($this->subpluginhandlers[$subplugin])) {
-            throw new moodle1_convert_exception('unsupported_subplugin', 'assignment_'.$subplugin);
+            // Generic handling, prevents breaking conversion process...
+            $this->subpluginhandlers[$subplugin] = new moodle1_assignment_unsupported_subplugin_handler($this, $subplugin);
         }
 
         return $this->subpluginhandlers[$subplugin];
@@ -236,4 +237,10 @@ abstract class moodle1_assignment_subplugin_handler extends moodle1_submod_handl
 
         //you will probably want to do stuff with $this->xmlwriter here (within your overridden method) to write plugin specific data.
     }
+}
+
+/**
+ * This class handles subplugins that do not exist or that are not supported
+ */
+class moodle1_assignment_unsupported_subplugin_handler extends moodle1_assignment_subplugin_handler {
 }

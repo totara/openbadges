@@ -90,10 +90,24 @@ if ($backup->get_stage() == backup_ui::STAGE_CONFIRMATION) {
 
 // If it's the final stage process the import
 if ($backup->get_stage() == backup_ui::STAGE_FINAL) {
+    echo $OUTPUT->header();
+
+    // Display an extra progress bar so that we can show the current stage.
+    echo html_writer::start_div('', array('id' => 'executionprogress'));
+    echo $renderer->progress_bar($backup->get_progress_bar());
+
+    // Start the progress display - we split into 2 chunks for backup and restore.
+    $progress = new core_backup_display_progress();
+    $progress->start_progress('', 2);
+    $backup->get_controller()->set_progress($progress);
+
     // First execute the backup
     $backup->execute();
     $backup->destroy();
     unset($backup);
+
+    // Note that we've done that progress.
+    $progress->progress(1);
 
     // Check whether the backup directory still exists. If missing, something
     // went really wrong in backup, throw error. Note that backup::MODE_IMPORT
@@ -106,6 +120,7 @@ if ($backup->get_stage() == backup_ui::STAGE_FINAL) {
     // Prepare the restore controller. We don't need a UI here as we will just use what
     // ever the restore has (the user has just chosen).
     $rc = new restore_controller($backupid, $course->id, backup::INTERACTIVE_YES, backup::MODE_IMPORT, $USER->id, $restoretarget);
+    $rc->set_progress($progress);
     // Convert the backup if required.... it should NEVER happed
     if ($rc->get_status() == backup::STATUS_REQUIRE_CONV) {
         $rc->convert();
@@ -113,31 +128,50 @@ if ($backup->get_stage() == backup_ui::STAGE_FINAL) {
     // Mark the UI finished.
     $rc->finish_ui();
     // Execute prechecks
+    $warnings = false;
     if (!$rc->execute_precheck()) {
         $precheckresults = $rc->get_precheck_results();
-        if (is_array($precheckresults) && !empty($precheckresults['errors'])) {
-            fulldelete($tempdestination);
+        if (is_array($precheckresults)) {
+            if (!empty($precheckresults['errors'])) { // If errors are found, terminate the import.
+                fulldelete($tempdestination);
 
-            echo $OUTPUT->header();
-            echo $renderer->precheck_notices($precheckresults);
-            echo $OUTPUT->continue_button(new moodle_url('/course/view.php', array('id'=>$course->id)));
-            echo $OUTPUT->footer();
-            die();
+                echo $OUTPUT->header();
+                echo $renderer->precheck_notices($precheckresults);
+                echo $OUTPUT->continue_button(new moodle_url('/course/view.php', array('id'=>$course->id)));
+                echo $OUTPUT->footer();
+                die();
+            }
+            if (!empty($precheckresults['warnings'])) { // If warnings are found, go ahead but display warnings later.
+                $warnings = $precheckresults['warnings'];
+            }
         }
-    } else {
-        if ($restoretarget == backup::TARGET_CURRENT_DELETING || $restoretarget == backup::TARGET_EXISTING_DELETING) {
-            restore_dbops::delete_course_content($course->id);
-        }
-        // Execute the restore
-        $rc->execute_plan();
     }
+    if ($restoretarget == backup::TARGET_CURRENT_DELETING || $restoretarget == backup::TARGET_EXISTING_DELETING) {
+        restore_dbops::delete_course_content($course->id);
+    }
+    // Execute the restore.
+    $rc->execute_plan();
 
     // Delete the temp directory now
     fulldelete($tempdestination);
 
+    // All progress complete. Hide progress area.
+    $progress->end_progress();
+    echo html_writer::end_div();
+    echo html_writer::script('document.getElementById("executionprogress").style.display = "none";');
+
     // Display a notification and a continue button
-    echo $OUTPUT->header();
-    echo $OUTPUT->notification(get_string('importsuccess', 'backup'),'notifysuccess');
+    if ($warnings) {
+        echo $OUTPUT->box_start();
+        echo $OUTPUT->notification(get_string('warning'), 'notifywarning');
+        echo html_writer::start_tag('ul', array('class'=>'list'));
+        foreach ($warnings as $warning) {
+            echo html_writer::tag('li', $warning);
+        }
+        echo html_writer::end_tag('ul');
+        echo $OUTPUT->box_end();
+    }
+    echo $OUTPUT->notification(get_string('importsuccess', 'backup'), 'notifysuccess');
     echo $OUTPUT->continue_button(new moodle_url('/course/view.php', array('id'=>$course->id)));
     echo $OUTPUT->footer();
 

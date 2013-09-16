@@ -60,6 +60,7 @@ $string['addfilehere'] = 'Add file(s) here';
 $string['addinganew'] = 'Adding a new {$a}';
 $string['addinganewto'] = 'Adding a new {$a->what} to {$a->to}';
 $string['addingdatatoexisting'] = 'Adding data to existing';
+$string['additionalnames'] = 'Additional names';
 $string['addlinkhere'] = 'Add link here';
 $string['addnewcategory'] = 'Add new category';
 $string['addnewcourse'] = 'Add a new course';
@@ -135,6 +136,7 @@ $string['allparticipants'] = 'All participants';
 $string['allteachers'] = 'All teachers';
 $string['alphanumerical'] = 'Can only contain alphanumeric characters, hyphen (-) or period (.)';
 $string['alreadyconfirmed'] = 'Registration has already been confirmed';
+$string['alternatename'] = 'Alternate name';
 $string['always'] = 'Always';
 $string['and'] = '{$a->one} and {$a->two}';
 $string['answer'] = 'Answer';
@@ -331,6 +333,7 @@ $string['courselegacyfiles_help'] = 'The course files area provides some backwar
 
 If you use this area to store course files, you can expose yourself to a number of privacy and security issues, as well as experiencing missing files in backups, course imports and any time content is shared or re-used.  It is therefore recommended that you do not use this area unless you really know what you are doing.';
 $string['courselegacyfiles_link'] = 'coursefiles2';
+$string['courselegacyfilesofcourse'] = 'Legacy course files: {$a}';
 $string['courseoverview'] = 'Course overview';
 $string['courseoverviewgraph'] = 'Course overview graph';
 $string['courseprofiles'] = 'Course profiles';
@@ -556,6 +559,13 @@ $string['emailconfirmsent'] = '<p>An email should have been sent to your address
    <p>It contains easy instructions to complete your registration.</p>
    <p>If you continue to have difficulty, contact the site administrator.</p>';
 $string['emaildigest'] = 'Email digest type';
+$string['emaildigest_help'] = 'This is the daily digest setting that forums will use by default.
+
+* No digest - you will receive one e-mail per forum post;
+* Digest - complete posts - you will receive one digest e-mail per day containing the complete contents of each forum post;
+* Digest - subjects only - you will receive one digest e-mail per day containing just the subject of each forum post.
+
+You can also choose a different setting for each forum if you wish.';
 $string['emaildigestcomplete'] = 'Complete (daily email with full posts)';
 $string['emaildigestoff'] = 'No digest (single email per forum post)';
 $string['emaildigestsubjects'] = 'Subjects (daily email with subjects only)';
@@ -636,6 +646,7 @@ $string['emailpasswordsent'] = 'Thank you for confirming the change of password.
 An email containing your new password has been sent to your address at<br /><b>{$a->email}</b>.<br />
 The new password was automatically generated - you might like to
 <a href="{$a->link}">change your password</a> to something easier to remember.';
+$string['emptydragdropregion'] = 'empty region';
 $string['enable'] = 'Enable';
 $string['encryptedcode'] = 'Encrypted code';
 $string['english'] = 'English';
@@ -650,6 +661,17 @@ $string['errorcreatingactivity'] = 'Unable to create an instance of activity \'{
 $string['errorfiletoobig'] = 'The file was bigger than the limit of {$a} bytes';
 $string['errornouploadrepo'] = 'There is no upload repository enabled for this site';
 $string['errorwhenconfirming'] = 'You are not confirmed yet because an error occurred.  If you clicked on a link in an email to get here, make sure that the line in your email wasn\'t broken or wrapped. You may have to use cut and paste to reconstruct the link properly.';
+$string['eventcoursecategorydeleted'] = 'Category deleted';
+$string['eventcoursecontentdeleted'] = 'Course content deleted';
+$string['eventcoursecreated'] = 'Course created';
+$string['eventcoursedeleted'] = 'Course deleted';
+$string['eventcourserestored'] = 'Course restored';
+$string['eventcourseupdated'] = 'Course updated';
+$string['eventcoursesectionupdated'] = ' Course section updated';
+$string['eventusercreated'] = 'User created';
+$string['eventuserdeleted'] = 'User deleted';
+$string['eventuserloggedout'] = 'User logged out';
+$string['eventuserupdated'] = 'User updated';
 $string['everybody'] = 'Everybody';
 $string['executeat'] = 'Execute at';
 $string['existing'] = 'Existing';
@@ -680,6 +702,7 @@ $string['filter'] = 'Filter';
 $string['findmorecourses'] = 'Find more courses...';
 $string['firstaccess'] = 'First access';
 $string['firstname'] = 'First name';
+$string['firstnamephonetic'] = 'First name - phonetic';
 $string['firsttime'] = 'Is this your first time here?';
 $string['folder'] = 'Folder';
 $string['folderclosed'] = 'Closed folder';
@@ -851,6 +874,7 @@ $string['chooselogs'] = 'Choose which logs you want to see';
 $string['choosereportfilter'] = 'Choose a filter for the report';
 $string['choosetheme'] = 'Choose theme';
 $string['chooseuser'] = 'Choose a user';
+$string['eventcontentviewed'] = 'Content viewed';
 $string['icqnumber'] = 'ICQ number';
 $string['icon'] = 'Icon';
 $string['idnumber'] = 'ID number';
@@ -910,6 +934,7 @@ $string['lastedited'] = 'Last edited';
 $string['lastlogin'] = 'Last login';
 $string['lastmodified'] = 'Last modified';
 $string['lastname'] = 'Surname';
+$string['lastnamephonetic'] = 'Surname - phonetic';
 $string['lastyear'] = 'Last year';
 $string['latestlanguagepack'] = 'Check for latest language pack on moodle.org';
 $string['layouttable'] = 'Layout table';
@@ -1019,6 +1044,7 @@ $string['messageprovider:instantmessage'] = 'Personal messages between users';
 $string['messageprovider:instantmessage_help'] = 'This section configures what happens to messages that are sent to you directly from other users on this site.';
 $string['messageselect'] = 'Select this user as a message recipient';
 $string['messageselectadd'] = 'Send a message';
+$string['middlename'] = 'Middle name';
 $string['migratinggrades'] = 'Migrating grades';
 $string['min'] = 'min';
 $string['mins'] = 'mins';
@@ -1068,6 +1094,7 @@ $string['moreinformation'] = 'More information about this error';
 $string['moreprofileinfoneeded'] = 'Please tell us more about yourself';
 $string['mostrecently'] = 'most recently';
 $string['move'] = 'Move';
+$string['movecontent'] = 'Move {$a}';
 $string['movecategorycontentto'] = 'Move into';
 $string['movecategoryto'] = 'Move category to:';
 $string['movecontentstoanothercategory'] = 'Move contents to another category';
@@ -1661,6 +1688,7 @@ $string['time'] = 'Time';
 $string['timezone'] = 'Timezone';
 $string['to'] = 'To';
 $string['tocreatenewaccount'] = 'Skip to create new account';
+$string['tocontent'] = 'To item "{$a}"';
 $string['today'] = 'Today';
 $string['todaylogs'] = 'Today\'s logs';
 $string['toeveryone'] = 'to everyone';

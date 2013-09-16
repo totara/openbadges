@@ -37,7 +37,8 @@
  *  - $CFG->dirroot  - Path to moodle's library folder on server's filesystem.
  *  - $CFG->libdir   - Path to moodle's library folder on server's filesystem.
  *  - $CFG->tempdir  - Path to moodle's temp file directory on server's filesystem.
- *  - $CFG->cachedir - Path to moodle's cache directory on server's filesystem.
+ *  - $CFG->cachedir - Path to moodle's cache directory on server's filesystem (shared by cluster nodes).
+ *  - $CFG->localcachedir - Path to moodle's local cache directory (not shared by cluster nodes).
  *
  * @global object $CFG
  * @name $CFG
@@ -131,11 +132,20 @@ if (!defined('BEHAT_SITE_RUNNING') && !empty($CFG->behat_dataroot) &&
         // actions like reset the site or use data generators.
         define('BEHAT_SITE_RUNNING', true);
 
+        // Clean extra config.php settings.
+        require_once(__DIR__ . '/../lib/behat/lib.php');
+        behat_clean_init_config();
+
         $CFG->wwwroot = $CFG->behat_wwwroot;
         $CFG->passwordsaltmain = 'moodle';
         $CFG->prefix = $CFG->behat_prefix;
         $CFG->dataroot = $CFG->behat_dataroot;
     }
+}
+
+// Make sure there is some database table prefix.
+if (!isset($CFG->prefix)) {
+    $CFG->prefix = '';
 }
 
 // Define admin directory
@@ -156,6 +166,21 @@ if (!isset($CFG->cachedir)) {
     $CFG->cachedir = "$CFG->dataroot/cache";
 }
 
+// Allow overriding of localcachedir.
+if (!isset($CFG->localcachedir)) {
+    $CFG->localcachedir = "$CFG->dataroot/localcache";
+}
+
+// Location of all languages except core English pack.
+if (!isset($CFG->langotherroot)) {
+    $CFG->langotherroot = $CFG->dataroot.'/lang';
+}
+
+// Location of local lang pack customisations (dirs with _local suffix).
+if (!isset($CFG->langlocalroot)) {
+    $CFG->langlocalroot = $CFG->dataroot.'/lang';
+}
+
 // The current directory in PHP version 4.3.0 and above isn't necessarily the
 // directory of the script when run from the command line. The require_once()
 // would fail, so we'll have to chdir()
@@ -173,7 +198,13 @@ ini_set('precision', 14); // needed for upgrades and gradebook
 // please note it must be defined before including the config.php script
 // and in some cases you also need to set custom default exception handler
 if (!defined('NO_DEBUG_DISPLAY')) {
-    define('NO_DEBUG_DISPLAY', false);
+    if (defined('AJAX_SCRIPT') and AJAX_SCRIPT) {
+        // Moodle AJAX scripts are expected to return json data, any PHP notices or errors break it badly,
+        // developers simply must learn to watch error log.
+        define('NO_DEBUG_DISPLAY', true);
+    } else {
+        define('NO_DEBUG_DISPLAY', false);
+    }
 }
 
 // Some scripts such as upgrade may want to prevent output buffering
@@ -276,18 +307,44 @@ if (!defined('AJAX_SCRIPT')) {
 }
 
 // File permissions on created directories in the $CFG->dataroot
-if (empty($CFG->directorypermissions)) {
+if (!isset($CFG->directorypermissions)) {
     $CFG->directorypermissions = 02777;      // Must be octal (that's why it's here)
 }
-if (empty($CFG->filepermissions)) {
+if (!isset($CFG->filepermissions)) {
     $CFG->filepermissions = ($CFG->directorypermissions & 0666); // strip execute flags
 }
-// better also set default umask because recursive mkdir() does not apply permissions recursively otherwise
-umask(0000);
+// Better also set default umask because developers often forget to include directory
+// permissions in mkdir() and chmod() after creating new files.
+if (!isset($CFG->umaskpermissions)) {
+    $CFG->umaskpermissions = (($CFG->directorypermissions & 0777) ^ 0777);
+}
+umask($CFG->umaskpermissions);
 
 // exact version of currently used yui2 and 3 library
 $CFG->yui2version = '2.9.0';
 $CFG->yui3version = '3.9.1';
+
+// Store settings from config.php in array in $CFG - we can use it later to detect problems and overrides.
+if (!isset($CFG->config_php_settings)) {
+    $CFG->config_php_settings = (array)$CFG;
+    // Forced plugin settings override values from config_plugins table.
+    unset($CFG->config_php_settings['forced_plugin_settings']);
+    if (!isset($CFG->forced_plugin_settings)) {
+        $CFG->forced_plugin_settings = array();
+    }
+}
+
+if (isset($CFG->debug)) {
+    $CFG->debug = (int)$CFG->debug;
+} else {
+    $CFG->debug = 0;
+}
+$CFG->debugdeveloper = (($CFG->debug & (E_ALL | E_STRICT)) === (E_ALL | E_STRICT)); // DEBUG_DEVELOPER is not available yet.
+
+if (!defined('MOODLE_INTERNAL')) { // Necessary because cli installer has to define it earlier.
+    /** Used by library scripts to check they are being called by Moodle. */
+    define('MOODLE_INTERNAL', true);
+}
 
 // core_component can be used in any scripts, it does not need anything else.
 require_once($CFG->libdir .'/classes/component.php');
@@ -296,11 +353,7 @@ require_once($CFG->libdir .'/classes/component.php');
 if (defined('ABORT_AFTER_CONFIG')) {
     if (!defined('ABORT_AFTER_CONFIG_CANCEL')) {
         // hide debugging if not enabled in config.php - we do not want to disclose sensitive info
-        if (isset($CFG->debug)) {
-            error_reporting($CFG->debug);
-        } else {
-            error_reporting(0);
-        }
+        error_reporting($CFG->debug);
         if (NO_DEBUG_DISPLAY) {
             // Some parts of Moodle cannot display errors and debug at all.
             ini_set('display_errors', '0');
@@ -314,11 +367,6 @@ if (defined('ABORT_AFTER_CONFIG')) {
         require_once("$CFG->dirroot/lib/configonlylib.php");
         return;
     }
-}
-
-/** Used by library scripts to check they are being called by Moodle */
-if (!defined('MOODLE_INTERNAL')) { // necessary because cli installer has to define it earlier
-    define('MOODLE_INTERNAL', true);
 }
 
 // Early profiling start, based exclusively on config.php $CFG settings
@@ -434,13 +482,6 @@ global $FULLSCRIPT;
  */
 global $SCRIPT;
 
-// Store settings from config.php in array in $CFG - we can use it later to detect problems and overrides
-$CFG->config_php_settings = (array)$CFG;
-// Forced plugin settings override values from config_plugins table
-unset($CFG->config_php_settings['forced_plugin_settings']);
-if (!isset($CFG->forced_plugin_settings)) {
-    $CFG->forced_plugin_settings = array();
-}
 // Set httpswwwroot default value (this variable will replace $CFG->wwwroot
 // inside some URLs used in HTTPSPAGEREQUIRED pages.
 $CFG->httpswwwroot = $CFG->wwwroot;
@@ -483,20 +524,6 @@ if (!empty($_SERVER['HTTP_X_moz']) && $_SERVER['HTTP_X_moz'] === 'prefetch'){
     header($_SERVER['SERVER_PROTOCOL'] . ' 404 Prefetch Forbidden');
     echo('Prefetch request forbidden.');
     exit(1);
-}
-
-if (!isset($CFG->prefix)) {   // Just in case it isn't defined in config.php
-    $CFG->prefix = '';
-}
-
-// location of all languages except core English pack
-if (!isset($CFG->langotherroot)) {
-    $CFG->langotherroot = $CFG->dataroot.'/lang';
-}
-
-// location of local lang pack customisations (dirs with _local suffix)
-if (!isset($CFG->langlocalroot)) {
-    $CFG->langlocalroot = $CFG->dataroot.'/lang';
 }
 
 //point pear include path to moodles lib/pear so that includes and requires will search there for files before anywhere else
@@ -559,20 +586,40 @@ if (PHPUNIT_TEST and !PHPUNIT_UTIL) {
     unset($dbhash);
 }
 
-// Disable errors for now - needed for installation when debug enabled in config.php
-if (isset($CFG->debug)) {
-    $originalconfigdebug = $CFG->debug;
-    unset($CFG->debug);
-} else {
-    $originalconfigdebug = null;
-}
-
-// Load up any configuration from the config table
-
+// Load up any configuration from the config table or MUC cache.
 if (PHPUNIT_TEST) {
     phpunit_util::initialise_cfg();
 } else {
     initialise_cfg();
+}
+
+if (isset($CFG->debug)) {
+    $CFG->debug = (int)$CFG->debug;
+    error_reporting($CFG->debug);
+}  else {
+    $CFG->debug = 0;
+}
+$CFG->debugdeveloper = (($CFG->debug & DEBUG_DEVELOPER) === DEBUG_DEVELOPER);
+
+// Find out if PHP configured to display warnings,
+// this is a security problem because some moodle scripts may
+// disclose sensitive information.
+if (ini_get_bool('display_errors')) {
+    define('WARN_DISPLAY_ERRORS_ENABLED', true);
+}
+// If we want to display Moodle errors, then try and set PHP errors to match.
+if (!isset($CFG->debugdisplay)) {
+    // Keep it "as is" during installation.
+} else if (NO_DEBUG_DISPLAY) {
+    // Some parts of Moodle cannot display errors and debug at all.
+    ini_set('display_errors', '0');
+    ini_set('log_errors', '1');
+} else if (empty($CFG->debugdisplay)) {
+    ini_set('display_errors', '0');
+    ini_set('log_errors', '1');
+} else {
+    // This is very problematic in XHTML strict mode!
+    ini_set('display_errors', '1');
 }
 
 // Verify upgrade is not running unless we are in a script that needs to execute in any case
@@ -589,14 +636,6 @@ if (!empty($CFG->logsql)) {
     $DB->set_logging(true);
 }
 
-// Prevent warnings from roles when upgrading with debug on
-if (isset($CFG->debug)) {
-    $originaldatabasedebug = $CFG->debug;
-    unset($CFG->debug);
-} else {
-    $originaldatabasedebug = null;
-}
-
 // enable circular reference collector in PHP 5.3,
 // it helps a lot when using large complex OOP structures such as in amos or gradebook
 if (function_exists('gc_enable')) {
@@ -606,40 +645,6 @@ if (function_exists('gc_enable')) {
 // Register default shutdown tasks - such as Apache memory release helper, perf logging, etc.
 if (function_exists('register_shutdown_function')) {
     register_shutdown_function('moodle_request_shutdown');
-}
-
-// Set error reporting back to normal
-if ($originaldatabasedebug === null) {
-    $CFG->debug = DEBUG_MINIMAL;
-} else {
-    $CFG->debug = $originaldatabasedebug;
-}
-if ($originalconfigdebug !== null) {
-    $CFG->debug = $originalconfigdebug;
-}
-unset($originalconfigdebug);
-unset($originaldatabasedebug);
-error_reporting($CFG->debug);
-
-// find out if PHP configured to display warnings,
-// this is a security problem because some moodle scripts may
-// disclose sensitive information
-if (ini_get_bool('display_errors')) {
-    define('WARN_DISPLAY_ERRORS_ENABLED', true);
-}
-// If we want to display Moodle errors, then try and set PHP errors to match
-if (!isset($CFG->debugdisplay)) {
-    // keep it "as is" during installation
-} else if (NO_DEBUG_DISPLAY) {
-    // some parts of Moodle cannot display errors and debug at all.
-    ini_set('display_errors', '0');
-    ini_set('log_errors', '1');
-} else if (empty($CFG->debugdisplay)) {
-    ini_set('display_errors', '0');
-    ini_set('log_errors', '1');
-} else {
-    // This is very problematic in XHTML strict mode!
-    ini_set('display_errors', '1');
 }
 
 // detect unsupported upgrade jump as soon as possible - do not change anything, do not use system functions
@@ -717,7 +722,7 @@ initialise_fullme();
 // define SYSCONTEXTID in config.php if you want to save some queries,
 // after install it must match the system context record id.
 if (!defined('SYSCONTEXTID')) {
-    get_system_context();
+    context_system::instance();
 }
 
 // Defining the site - aka frontpage course

@@ -8,7 +8,6 @@
 @import "moodle/calendar";
 @import "moodle/course";
 @import "moodle/filemanager";
-@import "moodle/grade";
 @import "moodle/message";
 @import "moodle/question";
 @import "moodle/user";
@@ -16,6 +15,9 @@
 
 // Upstream Bootstrap.
 @import "bootstrap/bootstrap";
+
+// Override Bootstrap defaults.
+@import "moodle/bootstrapoverride";
 
 // Set image location.
 @iconSpritePath:          ~"[[pix:theme|glyphicons-halflings]]";
@@ -26,7 +28,6 @@
 // On Wider screens.
 @horizontalComponentOffset980: 220px;
 @horizontalComponentOffset1200: 265px;
-
 
 // Roll back nameclashes.
 @import "moodle/undo";

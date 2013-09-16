@@ -64,6 +64,8 @@ class file_storage {
      * @param int $filepermissions new file permissions
      */
     public function __construct($filedir, $trashdir, $tempdir, $dirpermissions, $filepermissions) {
+        global $CFG;
+
         $this->filedir         = $filedir;
         $this->trashdir        = $trashdir;
         $this->tempdir         = $tempdir;
@@ -79,6 +81,7 @@ class file_storage {
             if (!file_exists($this->filedir.'/warning.txt')) {
                 file_put_contents($this->filedir.'/warning.txt',
                                   'This directory contains the content of uploaded files and is controlled by Moodle code. Do not manually move, change or rename any of the files and subdirectories here.');
+                chmod($this->filedir.'/warning.txt', $CFG->filepermissions);
             }
         }
         // make sure the file pool directory exists
@@ -644,10 +647,12 @@ class file_storage {
     protected function sort_area_tree($tree) {
         foreach ($tree as $key => &$value) {
             if ($key == 'subdirs') {
-                $value = $this->sort_area_tree($value);
-                collatorlib::ksort($value, collatorlib::SORT_NATURAL);
+                core_collator::ksort($value, core_collator::SORT_NATURAL);
+                foreach ($value as $subdirname => &$subtree) {
+                    $subtree = $this->sort_area_tree($subtree);
+                }
             } else if ($key == 'files') {
-                collatorlib::ksort($value, collatorlib::SORT_NATURAL);
+                core_collator::ksort($value, core_collator::SORT_NATURAL);
             }
         }
         return $tree;
@@ -678,7 +683,7 @@ class file_storage {
         if ($recursive) {
 
             $dirs = $includedirs ? "" : "AND filename <> '.'";
-            $length = textlib::strlen($filepath);
+            $length = core_text::strlen($filepath);
 
             $sql = "SELECT ".self::instance_sql_fields('f', 'r')."
                       FROM {files} f
@@ -707,7 +712,7 @@ class file_storage {
             $result = array();
             $params = array('contextid'=>$contextid, 'component'=>$component, 'filearea'=>$filearea, 'itemid'=>$itemid, 'filepath'=>$filepath, 'dirid'=>$directory->get_id());
 
-            $length = textlib::strlen($filepath);
+            $length = core_text::strlen($filepath);
 
             if ($includedirs) {
                 $sql = "SELECT ".self::instance_sql_fields('f', 'r')."
@@ -1619,6 +1624,8 @@ class file_storage {
      * @return array (contenthash, filesize, newfile)
      */
     public function add_file_to_pool($pathname, $contenthash = NULL) {
+        global $CFG;
+
         if (!is_readable($pathname)) {
             throw new file_exception('storedfilecannotread', '', $pathname);
         }
@@ -1630,14 +1637,14 @@ class file_storage {
 
         if (is_null($contenthash)) {
             $contenthash = sha1_file($pathname);
-        } else if (debugging('', DEBUG_DEVELOPER)) {
+        } else if ($CFG->debugdeveloper) {
             $filehash = sha1_file($pathname);
             if ($filehash === false) {
                 throw new file_exception('storedfilecannotread', '', $pathname);
             }
             if ($filehash !== $contenthash) {
                 // Hopefully this never happens, if yes we need to fix calling code.
-                debugging("Invalid contenthash submitted for file $pathname");
+                debugging("Invalid contenthash submitted for file $pathname", DEBUG_DEVELOPER);
                 $contenthash = $filehash;
             }
         }

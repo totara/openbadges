@@ -81,6 +81,31 @@ function file_encode_url($urlbase, $path, $forcedownload=false, $https=false) {
 }
 
 /**
+ * Detects if area contains subdirs,
+ * this is intended for file areas that are attached to content
+ * migrated from 1.x where subdirs were allowed everywhere.
+ *
+ * @param context $context
+ * @param string $component
+ * @param string $filearea
+ * @param string $itemid
+ * @return bool
+ */
+function file_area_contains_subdirs(context $context, $component, $filearea, $itemid) {
+    global $DB;
+
+    if (!isset($itemid)) {
+        // Not initialised yet.
+        return false;
+    }
+
+    // Detect if any directories are already present, this is necessary for content upgraded from 1.x.
+    $select = "contextid = :contextid AND component = :component AND filearea = :filearea AND itemid = :itemid AND filepath <> '/' AND filename = '.'";
+    $params = array('contextid'=>$context->id, 'component'=>$component, 'filearea'=>$filearea, 'itemid'=>$itemid);
+    return $DB->record_exists_select('files', $select, $params);
+}
+
+/**
  * Prepares 'editor' formslib element from data in database
  *
  * The passed $data record must contain field foobar, foobarformat and optionally foobartrust. This
@@ -1955,11 +1980,7 @@ function readfile_accel($file, $mimetype, $accelerate) {
     header('Last-Modified: '. gmdate('D, d M Y H:i:s', $lastmodified) .' GMT');
 
     if (is_object($file)) {
-        if (empty($_SERVER['HTTP_RANGE'])) {
-            // Use Etag only when not byteserving,
-            // is it tag of this range or whole file?
-            header('Etag: ' . $file->get_contenthash());
-        }
+        header('Etag: "' . $file->get_contenthash() . '"');
         if (isset($_SERVER['HTTP_IF_NONE_MATCH']) and $_SERVER['HTTP_IF_NONE_MATCH'] === $file->get_contenthash()) {
             header('HTTP/1.1 304 Not Modified');
             return;
@@ -2105,7 +2126,7 @@ function readstring_accel($string, $mimetype, $accelerate) {
 function send_temp_file($path, $filename, $pathisstring=false) {
     global $CFG;
 
-    if (check_browser_version('Firefox', '1.5')) {
+    if (core_useragent::check_firefox_version('1.5')) {
         // only FF is known to correctly save to disk before opening...
         $mimetype = mimeinfo('type', $filename);
     } else {
@@ -2125,7 +2146,7 @@ function send_temp_file($path, $filename, $pathisstring=false) {
     }
 
     // if user is using IE, urlencode the filename so that multibyte file name will show up correctly on popup
-    if (check_browser_version('MSIE')) {
+    if (core_useragent::check_ie_version()) {
         $filename = urlencode($filename);
     }
 
@@ -2201,12 +2222,12 @@ function send_file($path, $filename, $lifetime = 'default' , $filter=0, $pathiss
     // Use given MIME type if specified, otherwise guess it using mimeinfo.
     // IE, Konqueror and Opera open html file directly in browser from web even when directed to save it to disk :-O
     // only Firefox saves all files locally before opening when content-disposition: attachment stated
-    $isFF         = check_browser_version('Firefox', '1.5'); // only FF > 1.5 properly tested
+    $isFF         = core_useragent::check_firefox_version('1.5'); // only FF > 1.5 properly tested
     $mimetype     = ($forcedownload and !$isFF) ? 'application/x-forcedownload' :
                          ($mimetype ? $mimetype : mimeinfo('type', $filename));
 
     // if user is using IE, urlencode the filename so that multibyte file name will show up correctly on popup
-    if (check_browser_version('MSIE')) {
+    if (core_useragent::check_ie_version()) {
         $filename = rawurlencode($filename);
     }
 
@@ -2365,12 +2386,12 @@ function send_stored_file($stored_file, $lifetime=86400 , $filter=0, $forcedownl
     // IE, Konqueror and Opera open html file directly in browser from web even when directed to save it to disk :-O
     // only Firefox saves all files locally before opening when content-disposition: attachment stated
     $filename     = is_null($filename) ? $stored_file->get_filename() : $filename;
-    $isFF         = check_browser_version('Firefox', '1.5'); // only FF > 1.5 properly tested
+    $isFF         = core_useragent::check_firefox_version('1.5'); // only FF > 1.5 properly tested
     $mimetype     = ($forcedownload and !$isFF) ? 'application/x-forcedownload' :
                          ($stored_file->get_mimetype() ? $stored_file->get_mimetype() : mimeinfo('type', $filename));
 
     // if user is using IE, urlencode the filename so that multibyte file name will show up correctly on popup
-    if (check_browser_version('MSIE')) {
+    if (core_useragent::check_ie_version()) {
         $filename = rawurlencode($filename);
     }
 
@@ -2548,6 +2569,7 @@ function put_records_csv($file, $records, $table = NULL) {
     }
 
     fclose($fp);
+    @chmod($CFG->tempdir.'/'.$file, $CFG->filepermissions);
     return true;
 }
 
@@ -2608,10 +2630,6 @@ function fulldelete($location) {
 function byteserving_send_file($handle, $mimetype, $ranges, $filesize) {
     // better turn off any kind of compression and buffering
     @ini_set('zlib.output_compression', 'Off');
-
-    // Remove Etag because is is not strictly defined for byteserving,
-    // is it tag of this range or whole file?
-    header_remove('Etag');
 
     $chunksize = 1*(1024*1024); // 1MB chunks - must be less than 2MB!
     if ($handle === false) {
@@ -3722,6 +3740,7 @@ class curl_cache {
         $fp = fopen($this->dir.$filename, 'w');
         fwrite($fp, serialize($val));
         fclose($fp);
+        @chmod($this->dir.$filename, $CFG->filepermissions);
     }
 
     /**
@@ -4551,7 +4570,7 @@ function file_pluginfile($relativepath, $forcedownload, $preview = null) {
 
     } else {
         // try to serve general plugin file in arbitrary context
-        $dir = get_component_directory($component);
+        $dir = core_component::get_component_directory($component);
         if (!file_exists("$dir/lib.php")) {
             send_file_not_found();
         }

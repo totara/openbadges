@@ -143,8 +143,10 @@ if (($action == 'edit') || ($action == 'new')) {
             $success = $repositorytype->update_options($settings);
         } else {
             $type = new repository_type($plugin, (array)$fromform, $visible);
-            $type->create();
             $success = true;
+            if (!$repoid = $type->create()) {
+                $success = false;
+            }
             $data = data_submitted();
         }
         if ($success) {
@@ -390,7 +392,7 @@ if (($action == 'edit') || ($action == 'new')) {
     }
 
     // Get all the plugins that exist on disk
-    $plugins = get_plugin_list('repository');
+    $plugins = core_component::get_plugin_list('repository');
     if (!empty($plugins)) {
         foreach ($plugins as $plugin => $dir) {
             // Check that it has not already been listed

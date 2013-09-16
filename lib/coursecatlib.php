@@ -28,6 +28,21 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Class to store, cache, render and manage course category
  *
+ * @property-read int $id
+ * @property-read string $name
+ * @property-read string $idnumber
+ * @property-read string $description
+ * @property-read int $descriptionformat
+ * @property-read int $parent
+ * @property-read int $sortorder
+ * @property-read int $coursecount
+ * @property-read int $visible
+ * @property-read int $visibleold
+ * @property-read int $timemodified
+ * @property-read int $depth
+ * @property-read string $path
+ * @property-read string $theme
+ *
  * @package    core
  * @subpackage course
  * @copyright  2013 Marina Glancy
@@ -48,7 +63,7 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
         'descriptionformat' => null, // not cached
         'parent' => array('pa', 0),
         'sortorder' => array('so', 0),
-        'coursecount' => null, // not cached
+        'coursecount' => array('cc', 0),
         'visible' => array('vi', 1),
         'visibleold' => null, // not cached
         'timemodified' => null, // not cached
@@ -310,14 +325,14 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
         if (empty($data->name)) {
             throw new moodle_exception('categorynamerequired');
         }
-        if (textlib::strlen($data->name) > 255) {
+        if (core_text::strlen($data->name) > 255) {
             throw new moodle_exception('categorytoolong');
         }
         $newcategory->name = $data->name;
 
         // validate and set idnumber
         if (!empty($data->idnumber)) {
-            if (textlib::strlen($data->idnumber) > 100) {
+            if (core_text::strlen($data->idnumber) > 100) {
                 throw new moodle_exception('idnumbertoolong');
             }
             if ($DB->record_exists('course_categories', array('idnumber' => $data->idnumber))) {
@@ -427,14 +442,14 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
         }
 
         if (!empty($data->name) && $data->name !== $this->name) {
-            if (textlib::strlen($data->name) > 255) {
+            if (core_text::strlen($data->name) > 255) {
                 throw new moodle_exception('categorytoolong');
             }
             $newcategory->name = $data->name;
         }
 
         if (isset($data->idnumber) && $data->idnumber != $this->idnumber) {
-            if (textlib::strlen($data->idnumber) > 100) {
+            if (core_text::strlen($data->idnumber) > 100) {
                 throw new moodle_exception('idnumbertoolong');
             }
             if ($DB->record_exists('course_categories', array('idnumber' => $data->idnumber))) {
@@ -712,9 +727,10 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
         list($sql2, $params2) = $DB->get_in_or_equal($managerroles, SQL_PARAMS_NAMED, 'rid');
         list($sort, $sortparams) = users_order_by_sql('u');
         $notdeleted = array('notdeleted'=>0);
+        $allnames = get_all_user_name_fields(true, 'u');
         $sql = "SELECT ra.contextid, ra.id AS raid,
                        r.id AS roleid, r.name AS rolename, r.shortname AS roleshortname,
-                       rn.name AS rolecoursealias, u.id, u.username, u.firstname, u.lastname
+                       rn.name AS rolecoursealias, u.id, u.username, $allnames
                   FROM {role_assignments} ra
                   JOIN {user} u ON ra.userid = u.id
                   JOIN {role} r ON ra.roleid = r.id
@@ -828,7 +844,7 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
         $ctxselect = context_helper::get_preload_record_columns_sql('ctx');
         $fields = array('c.id', 'c.category', 'c.sortorder',
                         'c.shortname', 'c.fullname', 'c.idnumber',
-                        'c.startdate', 'c.visible');
+                        'c.startdate', 'c.visible', 'c.cacherev');
         if (!empty($options['summary'])) {
             $fields[] = 'c.summary';
             $fields[] = 'c.summaryformat';
@@ -920,17 +936,17 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
                 }
             }
         }
-        // sorting by one field - use collatorlib
+        // sorting by one field - use core_collator
         if (count($sortfields) == 1) {
             $property = key($sortfields);
             if (in_array($property, array('sortorder', 'id', 'visible', 'parent', 'depth'))) {
-                $sortflag = collatorlib::SORT_NUMERIC;
+                $sortflag = core_collator::SORT_NUMERIC;
             } else if (in_array($property, array('idnumber', 'displayname', 'name', 'shortname', 'fullname'))) {
-                $sortflag = collatorlib::SORT_STRING;
+                $sortflag = core_collator::SORT_STRING;
             } else {
-                $sortflag = collatorlib::SORT_REGULAR;
+                $sortflag = core_collator::SORT_REGULAR;
             }
-            collatorlib::asort_objects_by_property($records, $property, $sortflag);
+            core_collator::asort_objects_by_property($records, $property, $sortflag);
             if ($sortfields[$property] < 0) {
                 $records = array_reverse($records, true);
             }
@@ -1074,7 +1090,7 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
      *     - modulelist - name of module (if we are searching for courses containing specific module
      *     - tagid - id of tag
      * @param array $options display options, same as in get_courses() except 'recursive' is ignored - search is always category-independent
-     * @return array
+     * @return course_in_list[]
      */
     public static function search_courses($search, $options = array()) {
         global $DB;
@@ -1207,7 +1223,7 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
      *             Only cached fields may be used for sorting!
      *    - offset
      *    - limit - maximum number of children to return, 0 or null for no limit
-     * @return array array of instances of course_in_list
+     * @return course_in_list[]
      */
     public function get_courses($options = array()) {
         global $DB;
@@ -1365,6 +1381,7 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
      */
     public function delete_full($showfeedback = true) {
         global $CFG, $DB;
+
         require_once($CFG->libdir.'/gradelib.php');
         require_once($CFG->libdir.'/questionlib.php');
         require_once($CFG->dirroot.'/cohort/lib.php');
@@ -1399,12 +1416,20 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
 
         // finally delete the category and it's context
         $DB->delete_records('course_categories', array('id' => $this->id));
-        delete_context(CONTEXT_COURSECAT, $this->id);
-        add_to_log(SITEID, "category", "delete", "index.php", "$this->name (ID $this->id)");
+
+        $coursecatcontext = context_coursecat::instance($this->id);
+        $coursecatcontext->delete();
 
         cache_helper::purge_by_event('changesincoursecat');
 
-        events_trigger('course_category_deleted', $this);
+        // Trigger a course category deleted event.
+        $event = \core\event\course_category_deleted::create(array(
+            'objectid' => $this->id,
+            'context' => $coursecatcontext,
+            'other' => array('name' => $this->name)
+        ));
+        $event->set_legacy_eventdata($this);
+        $event->trigger();
 
         // If we deleted $CFG->defaultrequestcategory, make it point somewhere else.
         if ($this->id == $CFG->defaultrequestcategory) {
@@ -1494,6 +1519,7 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
      */
     public function delete_move($newparentid, $showfeedback = false) {
         global $CFG, $DB, $OUTPUT;
+
         require_once($CFG->libdir.'/gradelib.php');
         require_once($CFG->libdir.'/questionlib.php');
         require_once($CFG->dirroot.'/cohort/lib.php');
@@ -1542,9 +1568,15 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
         // finally delete the category and it's context
         $DB->delete_records('course_categories', array('id' => $this->id));
         $context->delete();
-        add_to_log(SITEID, "category", "delete", "index.php", "$this->name (ID $this->id)");
 
-        events_trigger('course_category_deleted', $this);
+        // Trigger a course category deleted event.
+        $event = \core\event\course_category_deleted::create(array(
+            'objectid' => $this->id,
+            'context' => $context,
+            'other' => array('name' => $this->name)
+        ));
+        $event->set_legacy_eventdata($this);
+        $event->trigger();
 
         cache_helper::purge_by_event('changesincoursecat');
 
@@ -1895,6 +1927,7 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
             foreach ($rs as $record) {
                 // If the category's parent is not visible to the user, it is not visible as well.
                 if (!$record->parent || isset($baselist[$record->parent])) {
+                    context_helper::preload_from_record($record);
                     $context = context_coursecat::instance($record->id);
                     if (!$record->visible && !has_capability('moodle/category:viewhiddencategories', $context)) {
                         // No cap to view category, added to neither $baselist nor $thislist
@@ -1919,7 +1952,7 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
         } else if ($thislist === false) {
             // We have $baselist cached but not $thislist. Simplier query is used to retrieve.
             $ctxselect = context_helper::get_preload_record_columns_sql('ctx');
-            $sql = "SELECT ctx.instanceid id, $ctxselect
+            $sql = "SELECT ctx.instanceid AS id, $ctxselect
                     FROM {context} ctx WHERE ctx.contextlevel = :contextcoursecat";
             $contexts = $DB->get_records_sql($sql, array('contextcoursecat' => CONTEXT_COURSECAT));
             $thislist = array();
@@ -2011,6 +2044,38 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
  * and
  * {@link coursecat::get_courses()}
  *
+ * @property-read int $id
+ * @property-read int $category Category ID
+ * @property-read int $sortorder
+ * @property-read string $fullname
+ * @property-read string $shortname
+ * @property-read string $idnumber
+ * @property-read string $summary Course summary. Field is present if coursecat::get_courses()
+ *     was called with option 'summary'. Otherwise will be retrieved from DB on first request
+ * @property-read int $summaryformat Summary format. Field is present if coursecat::get_courses()
+ *     was called with option 'summary'. Otherwise will be retrieved from DB on first request
+ * @property-read string $format Course format. Retrieved from DB on first request
+ * @property-read int $showgrades Retrieved from DB on first request
+ * @property-read int $newsitems Retrieved from DB on first request
+ * @property-read int $startdate
+ * @property-read int $marker Retrieved from DB on first request
+ * @property-read int $maxbytes Retrieved from DB on first request
+ * @property-read int $legacyfiles Retrieved from DB on first request
+ * @property-read int $showreports Retrieved from DB on first request
+ * @property-read int $visible
+ * @property-read int $visibleold Retrieved from DB on first request
+ * @property-read int $groupmode Retrieved from DB on first request
+ * @property-read int $groupmodeforce Retrieved from DB on first request
+ * @property-read int $defaultgroupingid Retrieved from DB on first request
+ * @property-read string $lang Retrieved from DB on first request
+ * @property-read string $theme Retrieved from DB on first request
+ * @property-read int $timecreated Retrieved from DB on first request
+ * @property-read int $timemodified Retrieved from DB on first request
+ * @property-read int $requested Retrieved from DB on first request
+ * @property-read int $enablecompletion Retrieved from DB on first request
+ * @property-read int $completionnotify Retrieved from DB on first request
+ * @property-read int $cacherev
+ *
  * @package    core
  * @subpackage course
  * @copyright  2013 Marina Glancy
@@ -2033,7 +2098,7 @@ class course_in_list implements IteratorAggregate {
      *     context preloading
      */
     public function __construct(stdClass $record) {
-        context_instance_preload($record);
+        context_helper::preload_from_record($record);
         $this->record = new stdClass();
         foreach ($record as $key => $value) {
             $this->record->$key = $value;
@@ -2109,8 +2174,9 @@ class course_in_list implements IteratorAggregate {
                 $user = new stdClass();
                 $user->id = $ruser->id;
                 $user->username = $ruser->username;
-                $user->firstname = $ruser->firstname;
-                $user->lastname = $ruser->lastname;
+                foreach (get_all_user_name_fields() as $addname) {
+                    $user->$addname = $ruser->$addname;
+                }
                 $role = new stdClass();
                 $role->id = $ruser->roleid;
                 $role->name = $ruser->rolename;
@@ -2136,12 +2202,11 @@ class course_in_list implements IteratorAggregate {
     public function has_course_overviewfiles() {
         global $CFG;
         if (empty($CFG->courseoverviewfileslimit)) {
-            return 0;
+            return false;
         }
-        require_once($CFG->libdir. '/filestorage/file_storage.php');
         $fs = get_file_storage();
         $context = context_course::instance($this->id);
-        return $fs->is_area_empty($context->id, 'course', 'overviewfiles');
+        return !$fs->is_area_empty($context->id, 'course', 'overviewfiles');
     }
 
     /**

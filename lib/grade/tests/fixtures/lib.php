@@ -80,10 +80,6 @@ abstract class grade_base_testcase extends advanced_testcase {
         $this->load_grade_outcomes();
     }
 
-    public function test_void () {
-        // empty method to keep PHPUnit happy
-    }
-
     private function load_modules() {
         $this->activities[0] = $this->getDataGenerator()->create_module('assignment', array('course'=>$this->course->id));
         $this->course_module[0] = get_coursemodule_from_instance('assignment', $this->activities[0]->id);
@@ -105,6 +101,9 @@ abstract class grade_base_testcase extends advanced_testcase {
 
         $this->activities[6] = $this->getDataGenerator()->create_module('forum', array('course'=>$this->course->id));
         $this->course_module[6] = get_coursemodule_from_instance('forum', $this->activities[6]->id);
+
+        $this->activities[7] = $this->getDataGenerator()->create_module('quiz', array('course'=>$this->course->id));
+        $this->course_module[7] = get_coursemodule_from_instance('quiz', $this->activities[7]->id);
     }
 
     private function load_scales() {
@@ -235,7 +234,7 @@ abstract class grade_base_testcase extends advanced_testcase {
         $DB->update_record('grade_categories', $grade_category);
         $this->grade_categories[2] = $grade_category;
 
-        // A category with no parent, but grade_items as children
+        // A category with no parent, but grade_items as children.
 
         $grade_category = new stdClass();
 
@@ -262,7 +261,7 @@ abstract class grade_base_testcase extends advanced_testcase {
     protected function load_grade_items() {
         global $DB;
 
-        // purge all items created by module generators
+        // Purge all items created by module generators.
         $DB->delete_records('grade_items', array('itemtype'=>'mod'));
 
         $course_category = grade_category::fetch_course_category($this->course->id);
@@ -332,7 +331,7 @@ abstract class grade_base_testcase extends advanced_testcase {
         $grade_item->id = $DB->insert_record('grade_items', $grade_item);
         $this->grade_items[2] = $grade_item;
 
-        // Load grade_items associated with the 3 categories
+        // Load grade_items associated with the 3 categories.
         // id = 3
         $grade_item = new stdClass();
 
@@ -390,7 +389,7 @@ abstract class grade_base_testcase extends advanced_testcase {
         $grade_item->id = $DB->insert_record('grade_items', $grade_item);
         $this->grade_items[5] = $grade_item;
 
-        // Orphan grade_item
+        // Orphan grade_item.
         // id = 6
         $grade_item = new stdClass();
 
@@ -413,7 +412,7 @@ abstract class grade_base_testcase extends advanced_testcase {
         $grade_item->id = $DB->insert_record('grade_items', $grade_item);
         $this->grade_items[6] = $grade_item;
 
-        // 2 grade items under level1category
+        // 2 grade items under level1category.
         // id = 7
         $grade_item = new stdClass();
 
@@ -455,7 +454,7 @@ abstract class grade_base_testcase extends advanced_testcase {
         $grade_item->id = $DB->insert_record('grade_items', $grade_item);
         $this->grade_items[8] = $grade_item;
 
-        // Grade_item for level1category
+        // Grade_item for level1category.
         // id = 9
         $grade_item = new stdClass();
 
@@ -475,7 +474,7 @@ abstract class grade_base_testcase extends advanced_testcase {
         $grade_item->id = $DB->insert_record('grade_items', $grade_item);
         $this->grade_items[9] = $grade_item;
 
-        // Manual grade_item
+        // Manual grade_item.
         // id = 10
         $grade_item = new stdClass();
 
@@ -494,6 +493,29 @@ abstract class grade_base_testcase extends advanced_testcase {
 
         $grade_item->id = $DB->insert_record('grade_items', $grade_item);
         $this->grade_items[10] = $grade_item;
+
+        // Quiz grade_item (course_module = 7).
+        // id = 11
+        $grade_item = new stdClass();
+
+        $grade_item->courseid = $this->course->id;
+        $grade_item->categoryid = $course_category->id;
+        $grade_item->itemname = 'Quiz grade item';
+        $grade_item->itemtype = 'mod';
+        $grade_item->itemmodule = $this->course_module[7]->modname;
+        $grade_item->iteminstance = $this->course_module[7]->instance;
+        $grade_item->itemnumber = 0;
+        $grade_item->gradetype = GRADE_TYPE_VALUE;
+        $grade_item->grademin = 0;
+        $grade_item->grademax = 100;
+        $grade_item->locked = 0;
+        $grade_item->iteminfo = 'Quiz grade item used for unit testing';
+        $grade_item->timecreated = time();
+        $grade_item->timemodified = time();
+        $grade_item->sortorder = 11;
+
+        $grade_item->id = $DB->insert_record('grade_items', $grade_item);
+        $this->grade_items[11] = $grade_item;
     }
 
     /**
@@ -502,10 +524,10 @@ abstract class grade_base_testcase extends advanced_testcase {
     private function load_grade_grades() {
         global $DB;
 
-        //this method is called once for each test method. Avoid adding things to $this->grade_grades multiple times
+        // This method is called once for each test method. Avoid adding things to $this->grade_grades multiple times.
         $this->grade_grades = array();
 
-        // Grades for grade_item 1
+        // Grades for grade_item 1.
         $grade = new stdClass();
         $grade->itemid = $this->grade_items[0]->id;
         $grade->userid = $this->user[1]->id;
@@ -546,7 +568,7 @@ abstract class grade_base_testcase extends advanced_testcase {
         $this->grade_grades[2] = $grade;
 
 
-        // No raw grades for grade_item 2 - it is calculated
+        // No raw grades for grade_item 2 - it is calculated.
 
         $grade = new stdClass();
         $grade->itemid = $this->grade_items[1]->id;
@@ -582,7 +604,7 @@ abstract class grade_base_testcase extends advanced_testcase {
         $this->grade_grades[5] = $grade;
 
 
-        // Grades for grade_item 3
+        // Grades for grade_item 3.
 
         $grade = new stdClass();
         $grade->itemid = $this->grade_items[2]->id;
@@ -623,7 +645,7 @@ abstract class grade_base_testcase extends advanced_testcase {
         $grade->id = $DB->insert_record('grade_grades', $grade);
         $this->grade_grades[] = $grade;
 
-        // Grades for grade_item 7
+        // Grades for grade_item 7.
 
         $grade = new stdClass();
         $grade->itemid = $this->grade_items[6]->id;
@@ -661,7 +683,7 @@ abstract class grade_base_testcase extends advanced_testcase {
         $grade->id = $DB->insert_record('grade_grades', $grade);
         $this->grade_grades[] = $grade;
 
-        // Grades for grade_item 8
+        // Grades for grade_item 8.
 
         $grade = new stdClass();
         $grade->itemid = $this->grade_items[7]->id;
@@ -687,7 +709,7 @@ abstract class grade_base_testcase extends advanced_testcase {
         $grade->id = $DB->insert_record('grade_grades', $grade);
         $this->grade_grades[] = $grade;
 
-        // Grades for grade_item 9
+        // Grades for grade_item 9.
 
         $grade = new stdClass();
         $grade->itemid = $this->grade_items[8]->id;
@@ -732,10 +754,10 @@ abstract class grade_base_testcase extends advanced_testcase {
     private function load_grade_outcomes() {
         global $DB;
 
-        //this method is called once for each test method. Avoid adding things to $this->grade_outcomes multiple times
+        // This method is called once for each test method. Avoid adding things to $this->grade_outcomes multiple times.
         $this->grade_outcomes = array();
 
-        // Calculation for grade_item 1
+        // Calculation for grade_item 1.
         $grade_outcome = new stdClass();
         $grade_outcome->fullname = 'Team work';
         $grade_outcome->shortname = 'Team work';
@@ -747,7 +769,7 @@ abstract class grade_base_testcase extends advanced_testcase {
         $grade_outcome->id = $DB->insert_record('grade_outcomes', $grade_outcome);
         $this->grade_outcomes[] = $grade_outcome;
 
-        // Calculation for grade_item 2
+        // Calculation for grade_item 2.
         $grade_outcome = new stdClass();
         $grade_outcome->fullname = 'Complete circuit board';
         $grade_outcome->shortname = 'Complete circuit board';
@@ -759,7 +781,7 @@ abstract class grade_base_testcase extends advanced_testcase {
         $grade_outcome->id = $DB->insert_record('grade_outcomes', $grade_outcome);
         $this->grade_outcomes[] = $grade_outcome;
 
-        // Calculation for grade_item 3
+        // Calculation for grade_item 3.
         $grade_outcome = new stdClass();
         $grade_outcome->fullname = 'Debug Java program';
         $grade_outcome->shortname = 'Debug Java program';
@@ -772,5 +794,3 @@ abstract class grade_base_testcase extends advanced_testcase {
         $this->grade_outcomes[] = $grade_outcome;
     }
 }
-
-

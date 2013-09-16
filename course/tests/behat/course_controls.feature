@@ -40,6 +40,7 @@ Feature: Course activity controls works as expected
     And I should see "Turn editing on"
     And "Turn editing on" "button" should exists
     And I turn editing mode on
+    And I click on "Actions" "link" in the "Recent activity" "block"
     And I click on "Delete Recent activity block" "link"
     And I press "Yes"
     And "#section-2" "css_element" <should_see_other_sections> exists
@@ -54,11 +55,13 @@ Feature: Course activity controls works as expected
     And "#section-2" "css_element" <should_see_other_sections> exists
     And I indent left "Test forum name 1" activity
     And "#section-2" "css_element" <should_see_other_sections> exists
+    And I click on "Actions" "link" in the "Test forum name 1" activity
     And I click on "Update" "link" in the "Test forum name 1" activity
     And I should see "Updating Forum"
     And I should see "Display description on course page"
     And I press "Save and return to course"
     And "#section-2" "css_element" <should_see_other_sections> exists
+    And I click on "Actions" "link" in the "Test forum name 1" activity
     And I click on "Hide" "link" in the "Test forum name 1" activity
     And "#section-2" "css_element" <should_see_other_sections> exists
     And I duplicate "Test forum name 2" activity editing the new copy with:
@@ -74,8 +77,8 @@ Feature: Course activity controls works as expected
     And section "1" should be visible
     And I add the "Section links" block
     And "#section-2" "css_element" <should_see_other_sections> exists
-    And I should see "1 2 3 4 5" in the ".block_section_links" "css_element"
-    And I click on "2" "link" in the ".block_section_links" "css_element"
+    And I should see "1 2 3 4 5" in the "Section links" "block"
+    And I click on "2" "link" in the "Section links" "block"
     And I <should_see_other_sections_following_block_sections_links> see "Test forum name 2"
 
     Examples:
@@ -111,6 +114,7 @@ Feature: Course activity controls works as expected
     And I should see "Turn editing on"
     And "Turn editing on" "button" should exists
     And I turn editing mode on
+    And I click on "Actions" "link" in the "Recent activity" "block"
     And I click on "Delete Recent activity block" "link"
     And I press "Yes"
     And "#section-2" "css_element" <should_see_other_sections> exists
@@ -125,11 +129,13 @@ Feature: Course activity controls works as expected
     And "#section-2" "css_element" <should_see_other_sections> exists
     And I indent left "Test forum name 1" activity
     And "#section-2" "css_element" <should_see_other_sections> exists
+    And I click on "Actions" "link" in the "Test forum name 1" activity
     And I click on "Update" "link" in the "Test forum name 1" activity
     And I should see "Updating Forum"
     And I should see "Display description on course page"
     And I press "Save and return to course"
     And "#section-2" "css_element" <should_see_other_sections> exists
+    And I click on "Actions" "link" in the "Test forum name 1" activity
     And I click on "Hide" "link" in the "Test forum name 1" activity
     And "#section-2" "css_element" <should_see_other_sections> exists
     And I delete "Test forum name 1" activity
@@ -148,8 +154,8 @@ Feature: Course activity controls works as expected
     And section "1" should be visible
     And I add the "Section links" block
     And "#section-2" "css_element" <should_see_other_sections> exists
-    And I should see "1 2 3 4 5" in the ".block_section_links" "css_element"
-    And I click on "2" "link" in the ".block_section_links" "css_element"
+    And I should see "1 2 3 4 5" in the "Section links" "block"
+    And I click on "2" "link" in the "Section links" "block"
     And I <should_see_other_sections_following_block_sections_links> see "Test forum name 2"
 
     Examples:

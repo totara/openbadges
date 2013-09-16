@@ -154,7 +154,7 @@ class moodle_simplepie_file extends SimplePie_File {
 
         if ($parser->parse()) {
             $this->headers = $parser->headers;
-            $this->body = $parser->body;
+            $this->body = trim($parser->body);
             $this->status_code = $parser->status_code;
 
 
@@ -198,6 +198,7 @@ class moodle_simplepie_sanitize extends SimplePie_Sanitize {
             if ($absolute !== false) {
                 $data = $absolute;
             }
+            $data = clean_param($data, PARAM_URL);
         }
 
         if ($type & (SIMPLEPIE_CONSTRUCT_TEXT | SIMPLEPIE_CONSTRUCT_IRI)) {
@@ -214,7 +215,7 @@ class moodle_simplepie_sanitize extends SimplePie_Sanitize {
         }
 
         if ($this->output_encoding !== 'UTF-8') {
-            textlib::convert($data, 'UTF-8', $this->output_encoding);
+            core_text::convert($data, 'UTF-8', $this->output_encoding);
         }
 
         return $data;

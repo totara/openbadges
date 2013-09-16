@@ -485,6 +485,14 @@ $functions = array(
         'capabilities'=> 'moodle/course:viewparticipants',
     ),
 
+    'core_enrol_get_course_enrolment_methods' => array(
+        'classname'   => 'core_enrol_external',
+        'methodname'  => 'get_course_enrolment_methods',
+        'classpath'   => 'enrol/externallib.php',
+        'description' => 'Get the list of course enrolment methods',
+        'type'        => 'read',
+    ),
+
     // === Role related functions ===
 
     'moodle_role_assign' => array(
@@ -774,13 +782,29 @@ $functions = array(
         'capabilities'=> 'moodle/notes:manage',
     ),
 
-    // === grade related functions ===
+    // === grading related functions ===
+
+    'core_grading_get_definitions' => array(
+        'classname'   => 'core_grading_external',
+        'methodname'  => 'get_definitions',
+        'classpath'   => 'grade/externallib.php',
+        'description' => 'Get grading definitions',
+        'type'        => 'read'
+    ),
 
     'core_grade_get_definitions' => array(
         'classname'   => 'core_grade_external',
         'methodname'  => 'get_definitions',
         'classpath'   => 'grade/externallib.php',
-        'description' => 'Get grading definitions',
+        'description' => 'DEPRECATED: this deprecated function will be removed in a future version. This function has been renamed as core_grading_get_definitions()',
+        'type'        => 'read'
+    ),
+
+    'core_grading_get_gradingform_instances' => array(
+        'classname'   => 'core_grading_external',
+        'methodname'  => 'get_gradingform_instances',
+        'classpath'   => 'grade/externallib.php',
+        'description' => 'Get grading form instances',
         'type'        => 'read'
     ),
 
@@ -875,6 +899,7 @@ $services = array(
         'enabled' => 0,
         'restrictedusers' => 0,
         'shortname' => MOODLE_OFFICIAL_MOBILE_SERVICE,
-        'downloadfiles' => 1
+        'downloadfiles' => 1,
+        'uploadfiles' => 1
     ),
 );

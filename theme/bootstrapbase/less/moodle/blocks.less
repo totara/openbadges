@@ -8,7 +8,7 @@
     margin: 0;
 }
 .block .header .title h2,
-.block h3.main {
+.block h3 {
   .nav-header;
   font-size: 1.1em;
 }
@@ -17,9 +17,10 @@
 .block_adminblock .content,
 .block .footer {
     display: block;
-    padding: 3px 15px;
+    padding: 3px 5px;
 }
 .block .header .block_action {
+    padding:4px;
     float: right;
 }
 .block .header .commands {
@@ -118,6 +119,9 @@
 }
 #searchform_search {
     width: auto;
+}
+.block_rss_client .list li {
+    border-top-color: darken(@wellBackground, 7%);
 }
 
 // Overide for RTL layout.

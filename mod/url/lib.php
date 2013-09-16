@@ -109,7 +109,6 @@ function url_add_instance($data, $mform) {
         $displayoptions['popupheight'] = $data->popupheight;
     }
     if (in_array($data->display, array(RESOURCELIB_DISPLAY_AUTO, RESOURCELIB_DISPLAY_EMBED, RESOURCELIB_DISPLAY_FRAME))) {
-        $displayoptions['printheading'] = (int)!empty($data->printheading);
         $displayoptions['printintro']   = (int)!empty($data->printintro);
     }
     $data->displayoptions = serialize($displayoptions);
@@ -150,7 +149,6 @@ function url_update_instance($data, $mform) {
         $displayoptions['popupheight'] = $data->popupheight;
     }
     if (in_array($data->display, array(RESOURCELIB_DISPLAY_AUTO, RESOURCELIB_DISPLAY_EMBED, RESOURCELIB_DISPLAY_FRAME))) {
-        $displayoptions['printheading'] = (int)!empty($data->printheading);
         $displayoptions['printintro']   = (int)!empty($data->printintro);
     }
     $data->displayoptions = serialize($displayoptions);
@@ -243,7 +241,7 @@ function url_user_complete($course, $user, $mod, $url) {
  * See {@link get_array_of_activities()} in course/lib.php
  *
  * @param object $coursemodule
- * @return object info
+ * @return cached_cm_info info
  */
 function url_get_coursemodule_info($coursemodule) {
     global $CFG, $DB;
@@ -362,7 +360,6 @@ function url_dndupload_handle($uploadinfo) {
     $data->display = $config->display;
     $data->popupwidth = $config->popupwidth;
     $data->popupheight = $config->popupheight;
-    $data->printheading = $config->printheading;
     $data->printintro = $config->printintro;
 
     return url_add_instance($data, null);

@@ -114,7 +114,7 @@ function editors_get_enabled() {
     global $CFG;
 
     if (empty($CFG->texteditors)) {
-        $CFG->texteditors = 'tinymce,textarea';
+        $CFG->texteditors = 'tinymce,atto,textarea';
     }
     $active = array();
     foreach(explode(',', $CFG->texteditors) as $e) {
@@ -158,7 +158,7 @@ function get_texteditor($editorname) {
  */
 function editors_get_available() {
     $editors = array();
-    foreach (get_plugin_list('editor') as $editorname => $dir) {
+    foreach (core_component::get_plugin_list('editor') as $editorname => $dir) {
         $editors[$editorname] = get_string('pluginname', 'editor_'.$editorname);
     }
     return $editors;

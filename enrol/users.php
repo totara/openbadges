@@ -33,6 +33,8 @@ $action  = optional_param('action', '', PARAM_ALPHANUMEXT);
 $filter  = optional_param('ifilter', 0, PARAM_INT);
 $search  = optional_param('search', '', PARAM_RAW);
 $role    = optional_param('role', 0, PARAM_INT);
+$fgroup  = optional_param('filtergroup', 0, PARAM_INT);
+$status  = optional_param('status', -1, PARAM_INT);
 
 // When users reset the form, redirect back to first page without other params.
 if (optional_param('resetbutton', '', PARAM_RAW) !== '') {
@@ -50,7 +52,7 @@ require_login($course);
 require_capability('moodle/course:enrolreview', $context);
 $PAGE->set_pagelayout('admin');
 
-$manager = new course_enrolment_manager($PAGE, $course, $filter, $role, $search);
+$manager = new course_enrolment_manager($PAGE, $course, $filter, $role, $search, $fgroup, $status);
 $table = new course_enrolment_users_table($manager, $PAGE);
 $PAGE->set_url('/enrol/users.php', $manager->get_url_params()+$table->get_url_params());
 navigation_node::override_active_url(new moodle_url('/enrol/users.php', array('id' => $id)));
@@ -73,7 +75,7 @@ if ($action) {
          */
         case 'unassign':
             if (has_capability('moodle/role:assign', $manager->get_context())) {
-                $role = required_param('role', PARAM_INT);
+                $role = required_param('roleid', PARAM_INT);
                 $user = required_param('user', PARAM_INT);
                 if ($confirm && $manager->unassign_role_from_user($user, $role)) {
                     redirect($PAGE->url);
@@ -81,7 +83,7 @@ if ($action) {
                     $user = $DB->get_record('user', array('id'=>$user), '*', MUST_EXIST);
                     $allroles = $manager->get_all_roles();
                     $role = $allroles[$role];
-                    $yesurl = new moodle_url($PAGE->url, array('action'=>'unassign', 'role'=>$role->id, 'user'=>$user->id, 'confirm'=>1, 'sesskey'=>sesskey()));
+                    $yesurl = new moodle_url($PAGE->url, array('action'=>'unassign', 'roleid'=>$role->id, 'user'=>$user->id, 'confirm'=>1, 'sesskey'=>sesskey()));
                     $message = get_string('unassignconfirm', 'role', array('user'=>fullname($user, true), 'role'=>$role->localname));
                     $pagetitle = get_string('unassignarole', 'role', $role->localname);
                     $pagecontent = $OUTPUT->confirm($message, $yesurl, $PAGE->url);

@@ -57,6 +57,11 @@ class restore_controller extends backup implements loggable {
 
     protected $logger;      // Logging chain object (moodle, inline, fs, db, syslog)
 
+    /**
+     * @var core_backup_progress Progress reporting object.
+     */
+    protected $progress;
+
     protected $checksum; // Cache @checksumable results for lighter @is_checksum_correct() uses
 
     /**
@@ -100,6 +105,10 @@ class restore_controller extends backup implements loggable {
 
         // Default logger chain (based on interactive/execution)
         $this->logger = backup_factory::get_logger_chain($this->interactive, $this->execution, $this->restoreid);
+
+        // By default there is no progress reporter. Interfaces that wish to
+        // display progress must set it.
+        $this->progress = new core_backup_null_progress();
 
         // Instantiate the output_controller singleton and active it if interactive and inmediate
         $oc = output_controller::get_instance();
@@ -300,6 +309,25 @@ class restore_controller extends backup implements loggable {
         return $this->logger;
     }
 
+    /**
+     * Gets the progress reporter, which can be used to report progress within
+     * the backup or restore process.
+     *
+     * @return core_backup_progress Progress reporting object
+     */
+    public function get_progress() {
+        return $this->progress;
+    }
+
+    /**
+     * Sets the progress reporter.
+     *
+     * @param core_backup_progress $progress Progress reporting object
+     */
+    public function set_progress(core_backup_progress $progress) {
+        $this->progress = $progress;
+    }
+
     public function execute_plan() {
         // Basic/initial prevention against time/memory limits
         set_time_limit(1 * 60 * 60); // 1 hour for 1 course initially granted
@@ -335,6 +363,9 @@ class restore_controller extends backup implements loggable {
         if ($this->status != backup::STATUS_NEED_PRECHECK) {
             throw new restore_controller_exception('cannot_precheck_wrong_status', $this->status);
         }
+        // Basic/initial prevention against time/memory limits
+        set_time_limit(1 * 60 * 60); // 1 hour for 1 course initially granted
+        raise_memory_limit(MEMORY_EXTRA);
         $this->precheck = restore_prechecks_helper::execute_prechecks($this, $droptemptablesafter);
         if (!array_key_exists('errors', $this->precheck)) { // No errors, can be executed
             $this->set_status(backup::STATUS_AWAITING);

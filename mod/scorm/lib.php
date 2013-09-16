@@ -113,20 +113,24 @@ function scorm_add_instance($scorm, $mform=null) {
 
     $id = $DB->insert_record('scorm', $scorm);
 
-    /// update course module record - from now on this instance properly exists and all function may be used
+    // Update course module record - from now on this instance properly exists and all function may be used.
     $DB->set_field('course_modules', 'instance', $id, array('id'=>$cmid));
 
-    /// reload scorm instance
+    // Reload scorm instance.
     $record = $DB->get_record('scorm', array('id'=>$id));
 
-    /// store the package and verify
+    // Store the package and verify.
     if ($record->scormtype === SCORM_TYPE_LOCAL) {
-        if ($mform) {
-            $filename = $mform->get_new_filename('packagefile');
+        if ($data = $mform->get_data()) {
+            $fs = get_file_storage();
+            $fs->delete_area_files($context->id, 'mod_scorm', 'package');
+            file_save_draft_area_files($data->packagefile, $context->id, 'mod_scorm', 'package',
+                0, array('subdirs' => 0, 'maxfiles' => 1));
+            // Get filename of zip that was uploaded.
+            $files = $fs->get_area_files($context->id, 'mod_scorm', 'package', 0, '', false);
+            $file = reset($files);
+            $filename = $file->get_filename();
             if ($filename !== false) {
-                $fs = get_file_storage();
-                $fs->delete_area_files($context->id, 'mod_scorm', 'package');
-                $mform->save_stored_file('packagefile', $context->id, 'mod_scorm', 'package', 0, '/', $filename);
                 $record->reference = $filename;
             }
         }
@@ -137,14 +141,15 @@ function scorm_add_instance($scorm, $mform=null) {
         $record->reference = $scorm->packageurl;
     } else if ($record->scormtype === SCORM_TYPE_AICCURL) {
         $record->reference = $scorm->packageurl;
+        $record->hidetoc = SCORM_TOC_DISABLED; // TOC is useless for direct AICCURL so disable it.
     } else {
         return false;
     }
 
-    // save reference
+    // Save reference.
     $DB->update_record('scorm', $record);
 
-    /// extra fields required in grade related functions
+    // Extra fields required in grade related functions.
     $record->course     = $courseid;
     $record->cmidnumber = $cmidnumber;
     $record->cmid       = $cmid;
@@ -192,13 +197,17 @@ function scorm_update_instance($scorm, $mform=null) {
     $context = context_module::instance($cmid);
 
     if ($scorm->scormtype === SCORM_TYPE_LOCAL) {
-        if ($mform) {
-            $filename = $mform->get_new_filename('packagefile');
+        if ($data = $mform->get_data()) {
+            $fs = get_file_storage();
+            $fs->delete_area_files($context->id, 'mod_scorm', 'package');
+            file_save_draft_area_files($data->packagefile, $context->id, 'mod_scorm', 'package',
+                0, array('subdirs' => 0, 'maxfiles' => 1));
+            // Get filename of zip that was uploaded.
+            $files = $fs->get_area_files($context->id, 'mod_scorm', 'package', 0, '', false);
+            $file = reset($files);
+            $filename = $file->get_filename();
             if ($filename !== false) {
                 $scorm->reference = $filename;
-                $fs = get_file_storage();
-                $fs->delete_area_files($context->id, 'mod_scorm', 'package');
-                $mform->save_stored_file('packagefile', $context->id, 'mod_scorm', 'package', 0, '/', $filename);
             }
         }
 
@@ -208,6 +217,7 @@ function scorm_update_instance($scorm, $mform=null) {
         $scorm->reference = $scorm->packageurl;
     } else if ($scorm->scormtype === SCORM_TYPE_AICCURL) {
         $scorm->reference = $scorm->packageurl;
+        $scorm->hidetoc = SCORM_TOC_DISABLED; // TOC is useless for direct AICCURL so disable it.
     } else {
         return false;
     }
@@ -509,9 +519,9 @@ function scorm_cron () {
     require_once($CFG->dirroot.'/mod/scorm/locallib.php');
 
     $sitetimezone = $CFG->timezone;
-    /// Now see if there are any scorm updates to be done
+    // Now see if there are any scorm updates to be done.
 
-    if (!isset($CFG->scorm_updatetimelast)) {    // To catch the first time
+    if (!isset($CFG->scorm_updatetimelast)) {    // To catch the first time.
         set_config('scorm_updatetimelast', 0);
     }
 
@@ -522,17 +532,17 @@ function scorm_cron () {
 
         set_config('scorm_updatetimelast', $timenow);
 
-        mtrace('Updating scorm packages which require daily update');//We are updating
+        mtrace('Updating scorm packages which require daily update');// We are updating.
 
-        $scormsupdate = $DB->get_records_select('scorm', 'updatefreq = ? AND scormtype <> ?', array(SCORM_UPDATE_EVERYDAY, SCORM_TYPE_LOCAL));
+        $scormsupdate = $DB->get_records('scorm', array('updatefreq' => SCORM_UPDATE_EVERYDAY));
         foreach ($scormsupdate as $scormupdate) {
             scorm_parse($scormupdate, true);
         }
 
-        //now clear out AICC session table with old session data
-        $cfg_scorm = get_config('scorm');
-        if (!empty($cfg_scorm->allowaicchacp)) {
-            $expiretime = time() - ($cfg_scorm->aicchacpkeepsessiondata*24*60*60);
+        // Now clear out AICC session table with old session data.
+        $cfgscorm = get_config('scorm');
+        if (!empty($cfgscorm->allowaicchacp)) {
+            $expiretime = time() - ($cfgscorm->aicchacpkeepsessiondata*24*60*60);
             $DB->delete_records_select('scorm_aicc_session', 'timemodified < ?', array($expiretime));
         }
     }
@@ -1012,6 +1022,7 @@ function scorm_debug_log_filename($type, $scoid) {
  * @param integer $scoid - scoid of object this log entry is for.
  */
 function scorm_debug_log_write($type, $text, $scoid) {
+    global $CFG;
 
     $debugenablelog = get_config('scorm', 'allowapidebug');
     if (!$debugenablelog || empty($text)) {
@@ -1020,6 +1031,7 @@ function scorm_debug_log_write($type, $text, $scoid) {
     if (make_temp_directory('scormlogs/')) {
         $logfile = scorm_debug_log_filename($type, $scoid);
         @file_put_contents($logfile, date('Y/m/d H:i:s O')." DEBUG $text\r\n", FILE_APPEND);
+        @chmod($logfile, $CFG->filepermissions);
     }
 }
 
@@ -1267,32 +1279,10 @@ function scorm_dndupload_handle($uploadinfo) {
     $file = reset($files);
 
     // Validate the file, make sure it's a valid SCORM package!
-    $packer = get_file_packer('application/zip');
-    $filelist = $file->list_files($packer);
-
-    if (!is_array($filelist)) {
+    $errors = scorm_validate_package($file);
+    if (!empty($errors)) {
         return false;
-    } else {
-        $manifestpresent = false;
-        $aiccfound = false;
-
-        foreach ($filelist as $info) {
-            if ($info->pathname == 'imsmanifest.xml') {
-                $manifestpresent = true;
-                break;
-            }
-
-            if (preg_match('/\.cst$/', $info->pathname)) {
-                $aiccfound = true;
-                break;
-            }
-        }
-
-        if (!$manifestpresent && !$aiccfound) {
-            return false;
-        }
     }
-
     // Create a default scorm object to pass to scorm_add_instance()!
     $scorm = get_config('scorm');
     $scorm->course = $uploadinfo->course->id;
@@ -1338,4 +1328,45 @@ function scorm_set_completion($scorm, $userid, $completionstate = COMPLETION_COM
     } else {
         $completion->update_state($cm, $completionstate, $userid);
     }
+}
+
+/**
+ * Check that a Zip file contains a valid SCORM package
+ *
+ * @param $file stored_file a Zip file.
+ * @return array empty if no issue is found. Array of error message otherwise
+ */
+function scorm_validate_package($file) {
+    $packer = get_file_packer('application/zip');
+    $errors = array();
+    if ($file->is_external_file()) { // Get zip file so we can check it is correct.
+        $file->import_external_file_contents();
+    }
+    $filelist = $file->list_files($packer);
+
+    if (!is_array($filelist)) {
+        $errors['packagefile'] = get_string('badarchive', 'scorm');
+    } else {
+        $aiccfound = false;
+        $badmanifestpresent = false;
+        foreach ($filelist as $info) {
+            if ($info->pathname == 'imsmanifest.xml') {
+                return array();
+            } else if (strpos($info->pathname, 'imsmanifest.xml') !== false) {
+                // This package has an imsmanifest file inside a folder of the package.
+                $badmanifestpresent = true;
+            }
+            if (preg_match('/\.cst$/', $info->pathname)) {
+                return array();
+            }
+        }
+        if (!$aiccfound) {
+            if ($badmanifestpresent) {
+                $errors['packagefile'] = get_string('badimsmanifestlocation', 'scorm');
+            } else {
+                $errors['packagefile'] = get_string('nomanifest', 'scorm');
+            }
+        }
+    }
+    return $errors;
 }

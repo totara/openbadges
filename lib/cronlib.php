@@ -46,8 +46,7 @@ function cron_run() {
         $DB->set_debug(true);
     }
     if (!empty($CFG->showcrondebugging)) {
-        $CFG->debug = DEBUG_DEVELOPER;
-        $CFG->debugdisplay = true;
+        set_debugging(DEBUG_DEVELOPER, true);
     }
 
     set_time_limit(0);
@@ -99,6 +98,9 @@ function cron_run() {
                                                   AND (lastname = '' OR firstname = '' OR email = '')",
                                           array($cuttime));
             foreach ($rs as $user) {
+                if (isguestuser($user) or is_siteadmin($user)) {
+                    continue;
+                }
                 delete_user($user);
                 mtrace(" Deleted not fully setup user $user->username ($user->id)");
             }
@@ -167,6 +169,9 @@ function cron_run() {
             $DB->delete_records_select('message_read', 'notification=1 AND timeread<:notificationdeletetime', array('notificationdeletetime'=>$notificationdeletetime));
             mtrace(' Cleaned up read notifications');
         }
+
+        mtrace(' Deleting temporary files...');
+        cron_delete_from_temp();
 
         mtrace("...finished clean-up tasks");
 
@@ -440,7 +445,7 @@ function cron_run() {
 
 
     // and finally run any local cronjobs, if any
-    if ($locals = get_plugin_list('local')) {
+    if ($locals = core_component::get_plugin_list('local')) {
         mtrace('Processing customized cron scripts ...', '');
         // new cron functions in lib.php first
         cron_execute_plugin_type('local');
@@ -529,7 +534,7 @@ function cron_execute_plugin_type($plugintype, $description = null) {
     }
 
     foreach ($plugins as $component=>$cronfunction) {
-        $dir = get_component_directory($component);
+        $dir = core_component::get_component_directory($component);
 
         // Get cron period if specified in version.php, otherwise assume every cron
         $cronperiod = 0;
@@ -586,7 +591,7 @@ function cron_bc_hack_plugin_functions($plugintype, $plugins) {
     if ($plugintype === 'report') {
         // Admin reports only - not course report because course report was
         // never implemented before, so doesn't need BC
-        foreach (get_plugin_list($plugintype) as $pluginname=>$dir) {
+        foreach (core_component::get_plugin_list($plugintype) as $pluginname=>$dir) {
             $component = $plugintype . '_' . $pluginname;
             if (isset($plugins[$component])) {
                 // We already have detected the function using the new API
@@ -609,7 +614,7 @@ function cron_bc_hack_plugin_functions($plugintype, $plugins) {
         // Detect old style cron function names
         // Plugin gradeexport_frog used to use grade_export_frog_cron() instead of
         // new standard API gradeexport_frog_cron(). Also applies to gradeimport, gradereport
-        foreach(get_plugin_list($plugintype) as $pluginname=>$dir) {
+        foreach(core_component::get_plugin_list($plugintype) as $pluginname=>$dir) {
             $component = $plugintype.'_'.$pluginname;
             if (isset($plugins[$component])) {
                 // We already have detected the function using the new API
@@ -762,6 +767,51 @@ function notify_login_failures() {
 
     // Finally, delete all the temp records we have created in cache_flags
     $DB->delete_records_select('cache_flags', "flagtype IN ('login_failure_by_ip', 'login_failure_by_info')");
+
+    return true;
+}
+
+/**
+ * Delete files and directories older than one week from directory provided by $CFG->tempdir.
+ *
+ * @exception Exception Failed reading/accessing file or directory
+ * @return bool True on successful file and directory deletion; otherwise, false on failure
+ */
+function cron_delete_from_temp() {
+    global $CFG;
+
+    $tmpdir = $CFG->tempdir;
+    // Default to last weeks time.
+    $time = strtotime('-1 week');
+
+    try {
+        $dir = new RecursiveDirectoryIterator($tmpdir);
+        // Show all child nodes prior to their parent.
+        $iter = new RecursiveIteratorIterator($dir, RecursiveIteratorIterator::CHILD_FIRST);
+
+        for ($iter->rewind(); $iter->valid(); $iter->next()) {
+            $node = $iter->getRealPath();
+            if (!is_readable($node)) {
+                continue;
+            }
+            // Check if file or directory is older than the given time.
+            if ($iter->getMTime() < $time) {
+                if ($iter->isDir() && !$iter->isDot()) {
+                    if (@rmdir($node) === false) {
+                        mtrace("Failed removing directory '$node'.");
+                    }
+                }
+                if ($iter->isFile()) {
+                    if (@unlink($node) === false) {
+                        mtrace("Failed removing file '$node'.");
+                    }
+                }
+            }
+        }
+    } catch (Exception $e) {
+        mtrace('Failed reading/accessing file or directory.');
+        return false;
+    }
 
     return true;
 }

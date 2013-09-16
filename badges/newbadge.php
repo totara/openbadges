@@ -80,7 +80,6 @@ if ($form->is_cancelled()) {
     $fordb->timemodified = $now;
     $fordb->usercreated = $USER->id;
     $fordb->usermodified = $USER->id;
-    $fordb->image = 0;
     $fordb->issuername = $data->issuername;
     $fordb->issuerurl = $data->issuerurl;
     $fordb->issuercontact = $data->issuercontact;
@@ -99,7 +98,11 @@ if ($form->is_cancelled()) {
 
     $newbadge = new badge($newid);
     badges_process_badge_image($newbadge, $form->save_temp_file('image'));
-    redirect(new moodle_url('/badges/criteria.php', array('id' => $newid)));
+    // If a user can configure badge criteria, they will be redirected to the criteria page.
+    if (has_capability('moodle/badges:configurecriteria', $PAGE->context)) {
+        redirect(new moodle_url('/badges/criteria.php', array('id' => $newid)));
+    }
+    redirect(new moodle_url('/badges/overview.php', array('id' => $newid)));
 }
 
 echo $OUTPUT->header();

@@ -72,12 +72,13 @@ $strglossary     = get_string("modulename", "glossary");
 $PAGE->navbar->add($strglossaries, new moodle_url('/mod/glossary/index.php', array('id'=>$course->id)));
 $PAGE->navbar->add(get_string("categories","glossary"));
 if (!empty($action)) {
-    $navaction = get_string($action). " " . textlib::strtolower(get_string("category","glossary"));
+    $navaction = get_string($action). " " . core_text::strtolower(get_string("category","glossary"));
     $PAGE->navbar->add($navaction);
 }
 $PAGE->set_title(format_string($glossary->name));
 $PAGE->set_heading($course->fullname);
 echo $OUTPUT->header();
+echo $OUTPUT->heading(format_string($glossary->name), 2);
 
 // Prepare format_string/text options
 $fmtoptions = array(
@@ -106,7 +107,7 @@ if ( $hook >0 ) {
             add_to_log($course->id, "glossary", "edit category", "editcategories.php?id=$cm->id", $hook,$cm->id);
 
         } else {
-            echo "<h3 class=\"main\">" . get_string("edit"). " " . get_string("category","glossary") . "</h3>";
+            echo $OUTPUT->heading(format_string(get_string("edit"). " " . get_string("category","glossary")), 3);
 
             $name = $category->name;
             $usedynalink = $category->usedynalink;
@@ -128,7 +129,7 @@ if ( $hook >0 ) {
 
             redirect("editcategories.php?id=$cm->id");
         } else {
-            echo "<p>" . get_string("delete"). " " . get_string("category","glossary"). "</p>";
+            echo $OUTPUT->heading(format_string(get_string("delete"). " " . get_string("category","glossary")), 3);
 
             echo $OUTPUT->box_start('generalbox boxaligncenter errorboxcontent boxwidthnarrow');
             echo "<div class=\"boxaligncenter deletecatconfirm\">".format_string($category->name, true, $fmtoptions)."<br/>";

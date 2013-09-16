@@ -86,7 +86,7 @@ function enrol_get_plugins($enabled) {
         }
     } else {
         // sorted alphabetically
-        $plugins = get_plugin_list('enrol');
+        $plugins = core_component::get_plugin_list('enrol');
         ksort($plugins);
     }
 
@@ -276,7 +276,9 @@ function enrol_get_shared_courses($user1, $user2, $preloadcontexts = false, $che
     $ctxselect = '';
     $ctxjoin = '';
     if ($preloadcontexts) {
-        list($ctxselect, $ctxjoin) = context_instance_preload_sql('c.id', CONTEXT_COURSE, 'ctx');
+        $ctxselect = ', ' . context_helper::get_preload_record_columns_sql('ctx');
+        $ctxjoin = "LEFT JOIN {context} ctx ON (ctx.instanceid = c.id AND ctx.contextlevel = :contextlevel)";
+        $params['contextlevel'] = CONTEXT_COURSE;
     }
 
     $sql = "SELECT c.* $ctxselect
@@ -296,7 +298,7 @@ function enrol_get_shared_courses($user1, $user2, $preloadcontexts = false, $che
     } else {
         $courses = $DB->get_records_sql($sql, $params);
         if ($preloadcontexts) {
-            array_map('context_instance_preload', $courses);
+            array_map('context_helper::preload_from_record', $courses);
         }
         return $courses;
     }
@@ -528,7 +530,7 @@ function enrol_get_my_courses($fields = NULL, $sort = 'visible DESC,sortorder AS
     $basefields = array('id', 'category', 'sortorder',
                         'shortname', 'fullname', 'idnumber',
                         'startdate', 'visible',
-                        'groupmode', 'groupmodeforce');
+                        'groupmode', 'groupmodeforce', 'cacherev');
 
     if (empty($fields)) {
         $fields = $basefields;
@@ -572,7 +574,9 @@ function enrol_get_my_courses($fields = NULL, $sort = 'visible DESC,sortorder AS
     }
 
     $coursefields = 'c.' .join(',c.', $fields);
-    list($ccselect, $ccjoin) = context_instance_preload_sql('c.id', CONTEXT_COURSE, 'ctx');
+    $ccselect = ', ' . context_helper::get_preload_record_columns_sql('ctx');
+    $ccjoin = "LEFT JOIN {context} ctx ON (ctx.instanceid = c.id AND ctx.contextlevel = :contextlevel)";
+    $params['contextlevel'] = CONTEXT_COURSE;
     $wheres = implode(" AND ", $wheres);
 
     //note: we can not use DISTINCT + text fields due to Oracle and MS limitations, that is why we have the subselect there
@@ -596,7 +600,7 @@ function enrol_get_my_courses($fields = NULL, $sort = 'visible DESC,sortorder AS
 
     // preload contexts and check visibility
     foreach ($courses as $id=>$course) {
-        context_instance_preload($course);
+        context_helper::preload_from_record($course);
         if (!$course->visible) {
             if (!$context = context_course::instance($id, IGNORE_MISSING)) {
                 unset($courses[$id]);
@@ -692,7 +696,7 @@ function enrol_get_users_courses($userid, $onlyactive = false, $fields = NULL, $
     // preload contexts and check visibility
     if ($onlyactive) {
         foreach ($courses as $id=>$course) {
-            context_instance_preload($course);
+            context_helper::preload_from_record($course);
             if (!$course->visible) {
                 if (!$context = context_course::instance($id)) {
                     unset($courses[$id]);
@@ -830,7 +834,9 @@ function enrol_get_all_users_courses($userid, $onlyactive = false, $fields = NUL
     }
 
     $coursefields = 'c.' .join(',c.', $fields);
-    list($ccselect, $ccjoin) = context_instance_preload_sql('c.id', CONTEXT_COURSE, 'ctx');
+    $ccselect = ', ' . context_helper::get_preload_record_columns_sql('ctx');
+    $ccjoin = "LEFT JOIN {context} ctx ON (ctx.instanceid = c.id AND ctx.contextlevel = :contextlevel)";
+    $params['contextlevel'] = CONTEXT_COURSE;
 
     //note: we can not use DISTINCT + text fields due to Oracle and MS limitations, that is why we have the subselect there
     $sql = "SELECT $coursefields $ccselect
@@ -1270,16 +1276,7 @@ abstract class enrol_plugin {
         if ($ue = $DB->get_record('user_enrolments', array('enrolid'=>$instance->id, 'userid'=>$userid))) {
             //only update if timestart or timeend or status are different.
             if ($ue->timestart != $timestart or $ue->timeend != $timeend or (!is_null($status) and $ue->status != $status)) {
-                $ue->timestart    = $timestart;
-                $ue->timeend      = $timeend;
-                if (!is_null($status)) {
-                    $ue->status   = $status;
-                }
-                $ue->modifierid   = $USER->id;
-                $ue->timemodified = time();
-                $DB->update_record('user_enrolments', $ue);
-
-                $updated = true;
+                $this->update_user_enrol($instance, $userid, $status, $timestart, $timeend);
             }
         } else {
             $ue = new stdClass();
@@ -1297,16 +1294,17 @@ abstract class enrol_plugin {
         }
 
         if ($inserted) {
-            // add extra info and trigger event
-            $ue->courseid  = $courseid;
-            $ue->enrol     = $name;
-            events_trigger('user_enrolled', $ue);
-        } else if ($updated) {
-            $ue->courseid  = $courseid;
-            $ue->enrol     = $name;
-            events_trigger('user_enrol_modified', $ue);
-            // resets current enrolment caches
-            $context->mark_dirty();
+            // Trigger event.
+            $event = \core\event\user_enrolment_created::create(
+                    array(
+                        'objectid' => $ue->id,
+                        'courseid' => $courseid,
+                        'context' => $context,
+                        'relateduserid' => $ue->userid,
+                        'other' => array('enrol' => $name)
+                        )
+                    );
+            $event->trigger();
         }
 
         if ($roleid) {
@@ -1383,10 +1381,17 @@ abstract class enrol_plugin {
         $DB->update_record('user_enrolments', $ue);
         context_course::instance($instance->courseid)->mark_dirty(); // reset enrol caches
 
-        // trigger event
-        $ue->courseid  = $instance->courseid;
-        $ue->enrol     = $instance->name;
-        events_trigger('user_enrol_modified', $ue);
+        // Trigger event.
+        $event = \core\event\user_enrolment_updated::create(
+                array(
+                    'objectid' => $ue->id,
+                    'courseid' => $instance->courseid,
+                    'context' => context_course::instance($instance->courseid),
+                    'relateduserid' => $ue->userid,
+                    'other' => array('enrol' => $name)
+                    )
+                );
+        $event->trigger();
     }
 
     /**
@@ -1434,8 +1439,6 @@ abstract class enrol_plugin {
                  WHERE ue.userid = :userid AND e.courseid = :courseid";
         if ($DB->record_exists_sql($sql, array('userid'=>$userid, 'courseid'=>$courseid))) {
             $ue->lastenrol = false;
-            events_trigger('user_unenrolled', $ue);
-            // user still has some enrolments, no big cleanup yet
 
         } else {
             // the big cleanup IS necessary!
@@ -1452,9 +1455,20 @@ abstract class enrol_plugin {
             $DB->delete_records('user_lastaccess', array('userid'=>$userid, 'courseid'=>$courseid));
 
             $ue->lastenrol = true; // means user not enrolled any more
-            events_trigger('user_unenrolled', $ue);
         }
-
+        // Trigger event.
+        $event = \core\event\user_enrolment_deleted::create(
+                array(
+                    'courseid' => $courseid,
+                    'context' => $context,
+                    'relateduserid' => $ue->userid,
+                    'other' => array(
+                        'userenrolment' => (array)$ue,
+                        'enrol' => $name
+                        )
+                    )
+                );
+        $event->trigger();
         // reset all enrol caches
         $context->mark_dirty();
 

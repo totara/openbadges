@@ -528,7 +528,7 @@ class core_course_external extends external_api {
         $params = self::validate_parameters(self::create_courses_parameters(),
                         array('courses' => $courses));
 
-        $availablethemes = get_plugin_list('theme');
+        $availablethemes = core_component::get_plugin_list('theme');
         $availablelangs = get_string_manager()->get_list_of_translations();
 
         $transaction = $DB->start_delegated_transaction();
@@ -692,7 +692,7 @@ class core_course_external extends external_api {
         $params = self::validate_parameters(self::update_courses_parameters(),
                         array('courses' => $courses));
 
-        $availablethemes = get_plugin_list('theme');
+        $availablethemes = core_component::get_plugin_list('theme');
         $availablelangs = get_string_manager()->get_list_of_translations();
 
         foreach ($params['courses'] as $course) {
@@ -717,20 +717,14 @@ class core_course_external extends external_api {
                     require_capability('moodle/course:changefullname', $context);
                 }
 
-                // Check if the shortname already exist and user have capability.
+                // Check if the user can change shortname.
                 if (array_key_exists('shortname', $course) && ($oldcourse->shortname != $course['shortname'])) {
                     require_capability('moodle/course:changeshortname', $context);
-                    if ($DB->record_exists('course', array('shortname' => $course['shortname']))) {
-                        throw new moodle_exception('shortnametaken');
-                    }
                 }
 
-                // Check if the id number already exist and user have capability.
+                // Check if the user can change the idnumber.
                 if (array_key_exists('idnumber', $course) && ($oldcourse->idnumber != $course['idnumber'])) {
                     require_capability('moodle/course:changeidnumber', $context);
-                    if ($DB->record_exists('course', array('idnumber' => $course['idnumber']))) {
-                        throw new moodle_exception('idnumbertaken');
-                    }
                 }
 
                 // Check if user can change summary.
@@ -1166,7 +1160,7 @@ class core_course_external extends external_api {
         );
 
         if ($params['deletecontent'] !== 0 and $params['deletecontent'] !== 1) {
-            throw new moodle_exception('invalidextparam', 'webservice', '', $option['deletecontent']);
+            throw new moodle_exception('invalidextparam', 'webservice', '', $params['deletecontent']);
         }
 
         // Context validation.

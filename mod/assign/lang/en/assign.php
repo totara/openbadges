@@ -140,6 +140,19 @@ $string['editsubmission'] = 'Edit submission';
 $string['editsubmission_help'] = 'Make changes to your submission';
 $string['editingstatus'] = 'Editing status';
 $string['editaction'] = 'Actions...';
+$string['event_assessable_submitted'] = 'A submission has been submitted.';
+$string['event_all_submissions_downloaded'] = 'All the submissions are being downloaded.';
+$string['event_extension_granted'] = 'An extension has been granted.';
+$string['event_identities_revealed'] = 'The identities have been revealed.';
+$string['event_marker_updated'] = 'The allocated marker has been updated.';
+$string['event_statement_accepted'] = 'The user has accepted the statement of the submission.';
+$string['event_submission_duplicated'] = 'The user duplicated his submission.';
+$string['event_submission_graded'] = 'The submission has been graded.';
+$string['event_submission_locked'] = 'The submissions have been locked for a user.';
+$string['event_submission_status_updated'] = 'The status of the submission has been updated.';
+$string['event_submission_unlocked'] = 'The submissions have been unlocked for a user.';
+$string['event_submission_updated'] = 'The user has saved a submission.';
+$string['event_workflow_state_updated'] = 'The state of the workflow has been updated.';
 $string['extensionduedate'] = 'Extension due date';
 $string['extensionnotafterduedate'] = 'Extension date must be after the due date';
 $string['extensionnotafterfromdate'] = 'Extension date must be after the allow submissions from date';
@@ -187,6 +200,7 @@ $string['graded'] = 'Graded';
 $string['gradedon'] = 'Graded on';
 $string['gradebelowzero'] = 'Grade must be greater than or equal to zero.';
 $string['gradeabovemaximum'] = 'Grade must be less than or equal to {$a}.';
+$string['gradelocked'] = 'This grade is locked or overridden in the gradebook.';
 $string['gradeoutof'] = 'Grade out of {$a}';
 $string['gradeoutofhelp'] = 'Grade';
 $string['gradeoutofhelp_help'] = 'Enter the grade for the student\'s submission here. You may include decimals.';
@@ -308,6 +322,7 @@ $string['setmarkingworkflowstateforlog'] = 'Set marking workflow state : (id={$a
 $string['setmarkerallocationforlog'] = 'Set marking allocation : (id={$a->id}, fullname={$a->fullname}, marker={$a->marker}). ';
 $string['settings'] = 'Assignment settings';
 $string['showrecentsubmissions'] = 'Show recent submissions';
+$string['status'] = 'Status';
 $string['submissioncopiedtext'] = 'You have made a copy of your previous
 assignment submission for \'{$a->assignment}\'
 

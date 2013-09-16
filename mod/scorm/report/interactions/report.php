@@ -158,10 +158,10 @@ class scorm_interactions_report extends scorm_default_report {
 
             $params = array();
             list($usql, $params) = $DB->get_in_or_equal($allowedlist, SQL_PARAMS_NAMED);
-                                    // Construct the SQL
+            // Construct the SQL
             $select = 'SELECT DISTINCT '.$DB->sql_concat('u.id', '\'#\'', 'COALESCE(st.attempt, 0)').' AS uniqueid, ';
             $select .= 'st.scormid AS scormid, st.attempt AS attempt, ' .
-                    'u.id AS userid, u.idnumber, u.firstname, u.lastname, u.picture, u.imagealt, u.email'.
+                    user_picture::fields('u', array('idnumber'), 'userid') .
                     get_extra_user_fields_sql($coursecontext, 'u', '', array('email', 'idnumber')) . ' ';
 
             // This part is the same for all cases - join users and scorm_scoes_track tables
@@ -419,9 +419,10 @@ class scorm_interactions_report extends scorm_default_report {
                                     'id'=>$scouser->userid,
                                     'picture'=>$scouser->picture,
                                     'imagealt'=>$scouser->imagealt,
-                                    'email'=>$scouser->email,
-                                    'firstname'=>$scouser->firstname,
-                                    'lastname'=>$scouser->lastname);
+                                    'email'=>$scouser->email);
+                        foreach (get_all_user_name_fields() as $addname) {
+                            $user->$addname = $scouser->$addname;
+                        }
                         $row[] = $OUTPUT->user_picture($user, array('courseid'=>$course->id));
                     }
                     if (!$download) {
@@ -439,7 +440,8 @@ class scorm_interactions_report extends scorm_default_report {
                         $row[] = '-';
                     } else {
                         if (!$download) {
-                            $row[] = '<a href="userreport.php?a='.$scorm->id.'&amp;user='.$scouser->userid.'&amp;attempt='.$scouser->attempt.'">'.$scouser->attempt.'</a>';
+                            $row[] = '<a href="'.$CFG->wwwroot.'/mod/scorm/report/userreport.php?id='.$cm->id.
+                                     '&amp;user='.$scouser->userid.'&amp;attempt='.$scouser->attempt.'">'.$scouser->attempt.'</a>';
                         } else {
                             $row[] = $scouser->attempt;
                         }
@@ -476,8 +478,8 @@ class scorm_interactions_report extends scorm_default_report {
                                 }
                                 if (!$download) {
                                     $row[] = '<img src="'.$OUTPUT->pix_url($trackdata->status, 'scorm').'" alt="'.$strstatus.'" title="'.$strstatus.'" /><br/>
-                                            <a href="userreport.php?b='.$sco->id.'&amp;user='.$scouser->userid.'&amp;attempt='.$scouser->attempt.
-                                            '" title="'.get_string('details', 'scorm').'">'.$score.'</a>';
+                                            <a href="'.$CFG->wwwroot.'/mod/scorm/report/userreporttracks.php?id='.$cm->id.'&amp;scoid='.$sco->id.'&amp;user='.$scouser->userid.
+                                            '&amp;attempt='.$scouser->attempt.'" title="'.get_string('details', 'scorm').'">'.$score.'</a>';
                                 } else {
                                     $row[] = $score;
                                 }

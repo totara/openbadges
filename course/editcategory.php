@@ -57,7 +57,7 @@ if ($id) {
         }
         $context = context_coursecat::instance($parent);
     } else {
-        $context = get_system_context();
+        $context = context_system::instance();
     }
     $PAGE->set_context($context);
     $category = new stdClass();
@@ -77,7 +77,8 @@ $editoroptions = array(
     'maxfiles'  => EDITOR_UNLIMITED_FILES,
     'maxbytes'  => $CFG->maxbytes,
     'trusttext' => true,
-    'context'   => $editorcontext
+    'context'   => $editorcontext,
+    'subdirs'   => file_area_contains_subdirs($editorcontext, 'coursecat', 'description', $itemid),
 );
 $category = file_prepare_standard_editor($category, 'description', $editoroptions, $editorcontext, 'coursecat', 'description', $itemid);
 

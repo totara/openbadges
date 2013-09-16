@@ -33,6 +33,16 @@
 abstract class backup_controller_dbops extends backup_dbops {
 
     /**
+     * @var string Backup id for cached backup_includes_files result.
+     */
+    protected static $includesfilescachebackupid;
+
+    /**
+     * @var int Cached backup_includes_files result
+     */
+    protected static $includesfilescache;
+
+    /**
      * Send one backup controller to DB
      *
      * @param backup_controller $controller controller to send to DB
@@ -152,6 +162,44 @@ abstract class backup_controller_dbops extends backup_dbops {
         $targettablename = 'backup_ids_temp';
         $table = new xmldb_table($targettablename);
         $dbman->drop_table($table); // And drop it
+    }
+
+    /**
+     * Decode the info field from backup_ids_temp or backup_files_temp.
+     *
+     * @param mixed $info The info field data to decode, may be an object or a simple integer.
+     * @return mixed The decoded information.  For simple types it returns, for complex ones we decode.
+     */
+    public static function decode_backup_temp_info($info) {
+        // We encode all data except null.
+        if ($info != null) {
+            if (extension_loaded('zlib')) {
+                return unserialize(gzuncompress(base64_decode($info)));
+            } else {
+                return unserialize(base64_decode($info));
+            }
+        }
+        return $info;
+    }
+
+    /**
+     * Encode the info field for backup_ids_temp or backup_files_temp.
+     *
+     * @param mixed $info string The info field data to encode.
+     * @return string An encoded string of data or null if the input is null.
+     */
+    public static function encode_backup_temp_info($info) {
+        // We encode if there is any information to keep the translations simpler.
+        if ($info != null) {
+            // We compress if possible. It reduces db, network and memory storage. The saving is greater than CPU compression cost.
+            // Compression level 1 is chosen has it produces good compression with the smallest possible overhead, see MDL-40618.
+            if (extension_loaded('zlib')) {
+                return base64_encode(gzcompress(serialize($info), 1));
+            } else {
+                return base64_encode(serialize($info));
+            }
+        }
+        return $info;
     }
 
     /**
@@ -403,9 +451,20 @@ abstract class backup_controller_dbops extends backup_dbops {
      * @return int Indicates whether files should be included in backups.
      */
     public static function backup_includes_files($backupid) {
-        // Load controller
+        // This function is called repeatedly in a backup with many files.
+        // Loading the controller is a nontrivial operation (in a large test
+        // backup it took 0.3 seconds), so we do a temporary cache of it within
+        // this request.
+        if (self::$includesfilescachebackupid === $backupid) {
+            return self::$includesfilescache;
+        }
+
+        // Load controller, get value, then destroy controller and return result.
+        self::$includesfilescachebackupid = $backupid;
         $bc = self::load_controller($backupid);
-        return $bc->get_include_files();
+        self::$includesfilescache = $bc->get_include_files();
+        $bc->destroy();
+        return self::$includesfilescache;
     }
 
     /**

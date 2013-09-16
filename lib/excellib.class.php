@@ -120,7 +120,7 @@ class MoodleExcelWorkbook {
             header('Pragma: no-cache');
         }
 
-        if (check_browser_version('MSIE')) {
+        if (core_useragent::check_ie_version()) {
             $filename = rawurlencode($filename);
         } else {
             $filename = s($filename);
@@ -166,7 +166,7 @@ class MoodleExcelWorksheet {
         // Replace any characters in the name that Excel cannot cope with.
         $name = strtr($name, '[]*/\?:', '       ');
         // Shorten the title if necessary.
-        $name = textlib::substr($name, 0, 31);
+        $name = core_text::substr($name, 0, 31);
 
         if ($name === '') {
             // Name is required!

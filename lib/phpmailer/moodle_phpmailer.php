@@ -69,11 +69,11 @@ class moodle_phpmailer extends PHPMailer {
     }
 
     /**
-     * Use internal moodles own textlib to encode mimeheaders.
+     * Use internal moodles own core_text to encode mimeheaders.
      * Fall back to phpmailers inbuilt functions if not 
      */
     public function EncodeHeader($str, $position = 'text') {
-        $encoded = textlib::encode_mimeheader($str, $this->CharSet);
+        $encoded = core_text::encode_mimeheader($str, $this->CharSet);
         if ($encoded !== false) {
             $encoded = str_replace("\n", $this->LE, $encoded);
             if ($position == 'phrase') {
@@ -124,5 +124,27 @@ class moodle_phpmailer extends PHPMailer {
         $out = preg_replace('/^\./m', '=2E', $out); //Encode . if it is first char on a line, workaround for bug in Exchange
         fclose($fp);
         return $out;
+    }
+
+    /**
+     * Sends this mail.
+     *
+     * This function has been overridden to facilitate unit testing.
+     *
+     * @return bool
+     */
+    protected function PostSend() {
+        // Now ask phpunit if it wants to catch this message.
+        if (PHPUNIT_TEST && phpunit_util::is_redirecting_messages()) {
+            $mail = new stdClass();
+            $mail->header = $this->MIMEHeader;
+            $mail->body = $this->MIMEBody;
+            $mail->subject = $this->Subject;
+            $mail->from = $this->From;
+            phpunit_util::phpmailer_sent($mail);
+            return true;
+        } else {
+            return parent::PostSend();
+        }
     }
 }
