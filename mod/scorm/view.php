@@ -16,6 +16,7 @@
 
 require_once("../../config.php");
 require_once($CFG->dirroot.'/mod/scorm/locallib.php');
+require_once($CFG->dirroot.'/course/lib.php');
 
 $id = optional_param('id', '', PARAM_INT);       // Course Module ID, or
 $a = optional_param('a', '', PARAM_INT);         // scorm ID
@@ -23,7 +24,7 @@ $organization = optional_param('organization', '', PARAM_INT); // organization I
 $action = optional_param('action', '', PARAM_ALPHA);
 
 if (!empty($id)) {
-    if (! $cm = get_coursemodule_from_id('scorm', $id)) {
+    if (! $cm = get_coursemodule_from_id('scorm', $id, 0, true)) {
         print_error('invalidcoursemodule');
     }
     if (! $course = $DB->get_record("course", array("id"=>$cm->course))) {
@@ -39,7 +40,7 @@ if (!empty($id)) {
     if (! $course = $DB->get_record("course", array("id"=>$scorm->course))) {
         print_error('coursemisconf');
     }
-    if (! $cm = get_coursemodule_from_instance("scorm", $scorm->id, $course->id)) {
+    if (! $cm = get_coursemodule_from_instance("scorm", $scorm->id, $course->id, true)) {
         print_error('invalidcoursemodule');
     }
 } else {
@@ -83,11 +84,19 @@ if (!empty($scorm->popup)) {
             $launch = true;
         }
     }
+    // Redirect back to the section with one section per page ?
+
+    $courseformat = course_get_format($course)->get_course();
+    $sectionid = '';
+    if (isset($courseformat->coursedisplay) && $courseformat->coursedisplay == COURSE_DISPLAY_MULTIPAGE) {
+        $sectionid = $cm->sectionnum;
+    }
+
     $PAGE->requires->data_for_js('scormplayerdata', Array('launch' => $launch,
                                                            'currentorg' => $orgidentifier,
                                                            'sco' => $scoid,
                                                            'scorm' => $scorm->id,
-                                                           'courseid' => $scorm->course,
+                                                           'courseurl' => course_get_url($course, $sectionid)->out(false),
                                                            'cwidth' => $scorm->width,
                                                            'cheight' => $scorm->height,
                                                            'popupoptions' => $scorm->options), true);
@@ -116,6 +125,7 @@ if (empty($launch) && (has_capability('mod/scorm:skipview', $contextmodule))) {
 $PAGE->set_title($pagetitle);
 $PAGE->set_heading($course->fullname);
 echo $OUTPUT->header();
+echo $OUTPUT->heading(format_string($scorm->name));
 
 if (!empty($action) && confirm_sesskey() && has_capability('mod/scorm:deleteownresponses', $contextmodule)) {
     if ($action == 'delete') {
@@ -135,7 +145,6 @@ $currenttab = 'info';
 require($CFG->dirroot . '/mod/scorm/tabs.php');
 
 // Print the main part of the page
-echo $OUTPUT->heading(format_string($scorm->name));
 $attemptstatus = '';
 if (empty($launch) && ($scorm->displayattemptstatus == SCORM_DISPLAY_ATTEMPTSTATUS_ALL ||
          $scorm->displayattemptstatus == SCORM_DISPLAY_ATTEMPTSTATUS_ENTRY)) {

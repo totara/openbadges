@@ -864,10 +864,8 @@ function xmldb_main_upgrade($oldversion) {
         upgrade_main_savepoint(true, 2012062000.01);
     }
 
-
     // Moodle v2.3.0 release upgrade line
     // Put any upgrade step following this
-
 
     if ($oldversion < 2012062500.02) {
         // Drop some old backup tables, not used anymore
@@ -1496,7 +1494,6 @@ function xmldb_main_upgrade($oldversion) {
 
     // Moodle v2.4.0 release upgrade line
     // Put any upgrade step following this
-
 
     if ($oldversion < 2012120300.01) {
         // Make sure site-course has format='site' //MDL-36840
@@ -2422,6 +2419,161 @@ function xmldb_main_upgrade($oldversion) {
 
         // Main savepoint reached.
         upgrade_main_savepoint(true, 2013091000.03);
+    }
+
+    if ($oldversion < 2013091300.01) {
+
+        $table = new xmldb_table('user');
+
+        // Changing precision of field institution on table user to (255).
+        $field = new xmldb_field('institution', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, 'phone2');
+
+        // Launch change of precision for field institution.
+        $dbman->change_field_precision($table, $field);
+
+        // Changing precision of field department on table user to (255).
+        $field = new xmldb_field('department', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, 'institution');
+
+        // Launch change of precision for field department.
+        $dbman->change_field_precision($table, $field);
+
+        // Changing precision of field address on table user to (255).
+        $field = new xmldb_field('address', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, 'department');
+
+        // Launch change of precision for field address.
+        $dbman->change_field_precision($table, $field);
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2013091300.01);
+    }
+
+    if ($oldversion < 2013092000.01) {
+
+        // Define table question_statistics to be created.
+        $table = new xmldb_table('question_statistics');
+
+        // Adding fields to table question_statistics.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('hashcode', XMLDB_TYPE_CHAR, '40', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('questionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('slot', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('subquestion', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('s', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('effectiveweight', XMLDB_TYPE_NUMBER, '15, 5', null, null, null, null);
+        $table->add_field('negcovar', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('discriminationindex', XMLDB_TYPE_NUMBER, '15, 5', null, null, null, null);
+        $table->add_field('discriminativeefficiency', XMLDB_TYPE_NUMBER, '15, 5', null, null, null, null);
+        $table->add_field('sd', XMLDB_TYPE_NUMBER, '15, 10', null, null, null, null);
+        $table->add_field('facility', XMLDB_TYPE_NUMBER, '15, 10', null, null, null, null);
+        $table->add_field('subquestions', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('maxmark', XMLDB_TYPE_NUMBER, '12, 7', null, null, null, null);
+        $table->add_field('positions', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('randomguessscore', XMLDB_TYPE_NUMBER, '12, 7', null, null, null, null);
+
+        // Adding keys to table question_statistics.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+
+        // Conditionally launch create table for question_statistics.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Define table question_response_analysis to be created.
+        $table = new xmldb_table('question_response_analysis');
+
+        // Adding fields to table question_response_analysis.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('hashcode', XMLDB_TYPE_CHAR, '40', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('questionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('subqid', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('aid', XMLDB_TYPE_CHAR, '100', null, null, null, null);
+        $table->add_field('response', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('rcount', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('credit', XMLDB_TYPE_NUMBER, '15, 5', null, XMLDB_NOTNULL, null, null);
+
+        // Adding keys to table question_response_analysis.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+
+        // Conditionally launch create table for question_response_analysis.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2013092000.01);
+    }
+
+    if ($oldversion < 2013092001.01) {
+        // Force uninstall of deleted tool.
+        if (!file_exists("$CFG->dirroot/$CFG->admin/tool/bloglevelupgrade")) {
+            // Remove capabilities.
+            capabilities_cleanup('tool_bloglevelupgrade');
+            // Remove all other associated config.
+            unset_all_config_for_plugin('tool_bloglevelupgrade');
+        }
+        upgrade_main_savepoint(true, 2013092001.01);
+    }
+
+    if ($oldversion < 2013092001.02) {
+        // Define field version to be dropped from modules.
+        $table = new xmldb_table('modules');
+        $field = new xmldb_field('version');
+
+        // Conditionally launch drop field version.
+        if ($dbman->field_exists($table, $field)) {
+            // Migrate all plugin version info to config_plugins table.
+            $modules = $DB->get_records('modules');
+            foreach ($modules as $module) {
+                set_config('version', $module->version, 'mod_'.$module->name);
+            }
+            unset($modules);
+
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field version to be dropped from block.
+        $table = new xmldb_table('block');
+        $field = new xmldb_field('version');
+
+        // Conditionally launch drop field version.
+        if ($dbman->field_exists($table, $field)) {
+            $blocks = $DB->get_records('block');
+            foreach ($blocks as $block) {
+                set_config('version', $block->version, 'block_'.$block->name);
+            }
+            unset($blocks);
+
+            $dbman->drop_field($table, $field);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2013092001.02);
+    }
+
+    if ($oldversion < 2013092700.01) {
+
+        $table = new xmldb_table('files');
+
+        // Define field referencelastsync to be dropped from files.
+        $field = new xmldb_field('referencelastsync');
+
+        // Conditionally launch drop field referencelastsync.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Define field referencelifetime to be dropped from files.
+        $field = new xmldb_field('referencelifetime');
+
+        // Conditionally launch drop field referencelifetime.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2013092700.01);
     }
 
     return true;

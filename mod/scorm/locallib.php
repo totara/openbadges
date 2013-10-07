@@ -71,16 +71,14 @@ class scorm_package_file_info extends file_info_stored {
  * @return array an array of popup options as the key and their defaults as the value
  */
 function scorm_get_popup_options_array() {
-    global $CFG;
-    $cfg_scorm = get_config('scorm');
+    $cfgscorm = get_config('scorm');
 
-    return array('resizable'=> isset($cfg_scorm->resizable) ? $cfg_scorm->resizable : 0,
-                 'scrollbars'=> isset($cfg_scorm->scrollbars) ? $cfg_scorm->scrollbars : 0,
-                 'directories'=> isset($cfg_scorm->directories) ? $cfg_scorm->directories : 0,
-                 'location'=> isset($cfg_scorm->location) ? $cfg_scorm->location : 0,
-                 'menubar'=> isset($cfg_scorm->menubar) ? $cfg_scorm->menubar : 0,
-                 'toolbar'=> isset($cfg_scorm->toolbar) ? $cfg_scorm->toolbar : 0,
-                 'status'=> isset($cfg_scorm->status) ? $cfg_scorm->status : 0);
+    return array('scrollbars'=> isset($cfgscorm->scrollbars) ? $cfgscorm->scrollbars : 0,
+                 'directories'=> isset($cfgscorm->directories) ? $cfgscorm->directories : 0,
+                 'location'=> isset($cfgscorm->location) ? $cfgscorm->location : 0,
+                 'menubar'=> isset($cfgscorm->menubar) ? $cfgscorm->menubar : 0,
+                 'toolbar'=> isset($cfgscorm->toolbar) ? $cfgscorm->toolbar : 0,
+                 'status'=> isset($cfgscorm->status) ? $cfgscorm->status : 0);
 }
 
 /**
@@ -152,6 +150,17 @@ function scorm_get_popup_display_array() {
 }
 
 /**
+ * Returns an array of the array of navigation buttons display options
+ *
+ * @return array an array of navigation buttons display options
+ */
+function scorm_get_navigation_display_array() {
+    return array(SCORM_NAV_DISABLED => get_string('no'),
+                 SCORM_NAV_UNDER_CONTENT => get_string('undercontent', 'scorm'),
+                 SCORM_NAV_FLOATING => get_string('floating', 'scorm'));
+}
+
+/**
  * Returns an array of the array of attempt options
  *
  * @return array an array of attempt options
@@ -201,6 +210,7 @@ function scorm_parse($scorm, $full) {
 
         $fs = get_file_storage();
         $packagefile = false;
+        $packagefileimsmanifest = false;
 
         if ($scorm->scormtype === SCORM_TYPE_LOCAL) {
             if ($packagefile = $fs->get_file($context->id, 'mod_scorm', 'package', 0, '/', $scorm->reference)) {
@@ -208,6 +218,9 @@ function scorm_parse($scorm, $full) {
                     $packagefile->import_external_file_contents();
                 }
                 $newhash = $packagefile->get_contenthash();
+                if (strtolower($packagefile->get_filename()) == 'imsmanifest.xml') {
+                    $packagefileimsmanifest = true;
+                }
             } else {
                 $newhash = null;
             }
@@ -230,8 +243,8 @@ function scorm_parse($scorm, $full) {
         if ($packagefile) {
             if (!$full and $packagefile and $scorm->sha1hash === $newhash) {
                 if (strpos($scorm->version, 'SCORM') !== false) {
-                    if ($fs->get_file($context->id, 'mod_scorm', 'content', 0, '/', 'imsmanifest.xml')) {
-                        // no need to update
+                    if ($packagefileimsmanifest || $fs->get_file($context->id, 'mod_scorm', 'content', 0, '/', 'imsmanifest.xml')) {
+                        // No need to update.
                         return;
                     }
                 } else if (strpos($scorm->version, 'AICC') !== false) {
@@ -239,18 +252,25 @@ function scorm_parse($scorm, $full) {
                     return;
                 }
             }
+            if (!$packagefileimsmanifest) {
+                // Now extract files.
+                $fs->delete_area_files($context->id, 'mod_scorm', 'content');
 
-            // now extract files
-            $fs->delete_area_files($context->id, 'mod_scorm', 'content');
-
-            $packer = get_file_packer('application/zip');
-            $packagefile->extract_to_storage($packer, $context->id, 'mod_scorm', 'content', 0, '/');
+                $packer = get_file_packer('application/zip');
+                $packagefile->extract_to_storage($packer, $context->id, 'mod_scorm', 'content', 0, '/');
+            }
 
         } else if (!$full) {
             return;
         }
+        if ($packagefileimsmanifest) {
+            require_once("$CFG->dirroot/mod/scorm/datamodels/scormlib.php");
+            // Direct link to imsmanifest.xml file.
+            if (!scorm_parse_scorm($scorm, $packagefile)) {
+                $scorm->version = 'ERROR';
+            }
 
-        if ($manifest = $fs->get_file($context->id, 'mod_scorm', 'content', 0, '/', 'imsmanifest.xml')) {
+        } else if ($manifest = $fs->get_file($context->id, 'mod_scorm', 'content', 0, '/', 'imsmanifest.xml')) {
             require_once("$CFG->dirroot/mod/scorm/datamodels/scormlib.php");
             // SCORM
             if (!scorm_parse_scorm($scorm, $manifest)) {
@@ -367,13 +387,12 @@ function scorm_get_sco($id, $what=SCO_ALL) {
 function scorm_get_scoes($id, $organisation=false) {
     global $DB;
 
-    $organizationsql = '';
     $queryarray = array('scorm'=>$id);
     if (!empty($organisation)) {
         $queryarray['organization'] = $organisation;
     }
-    if ($scoes = $DB->get_records('scorm_scoes', $queryarray, 'id ASC')) {
-        // drop keys so that it is a simple array as expected
+    if ($scoes = $DB->get_records('scorm_scoes', $queryarray, 'sortorder, id')) {
+        // Drop keys so that it is a simple array as expected.
         $scoes = array_values($scoes);
         foreach ($scoes as $sco) {
             if ($scodatas = $DB->get_records('scorm_scoes_data', array('scoid'=>$sco->id))) {
@@ -627,7 +646,7 @@ function scorm_grade_user_attempt($scorm, $userid, $attempt=1) {
     $attemptscore->sum = 0;
     $attemptscore->lastmodify = 0;
 
-    if (!$scoes = $DB->get_records('scorm_scoes', array('scorm'=>$scorm->id))) {
+    if (!$scoes = $DB->get_records('scorm_scoes', array('scorm' => $scorm->id), 'sortorder, id')) {
         return null;
     }
 
@@ -814,7 +833,7 @@ function scorm_view_display ($user, $scorm, $action, $cm) {
     if ($orgs = $DB->get_records_select_menu('scorm_scoes', 'scorm = ? AND '.
                                          $DB->sql_isempty('scorm_scoes', 'launch', false, true).' AND '.
                                          $DB->sql_isempty('scorm_scoes', 'organization', false, false),
-                                         array($scorm->id), 'id', 'id,title')) {
+                                         array($scorm->id), 'sortorder, id', 'id,title')) {
         if (count($orgs) > 1) {
             $select = new single_select(new moodle_url($action), 'organization', $orgs, $organization, null);
             $select->label = get_string('organizations', 'scorm');
@@ -900,7 +919,8 @@ function scorm_simple_play($scorm, $user, $context, $cmid) {
     if ($scorm->scormtype != SCORM_TYPE_LOCAL && $scorm->updatefreq == SCORM_UPDATE_EVERYTIME) {
         scorm_parse($scorm, false);
     }
-    $scoes = $DB->get_records_select('scorm_scoes', 'scorm = ? AND '.$DB->sql_isnotempty('scorm_scoes', 'launch', false, true), array($scorm->id), 'id', 'id');
+    $scoes = $DB->get_records_select('scorm_scoes', 'scorm = ? AND '.
+        $DB->sql_isnotempty('scorm_scoes', 'launch', false, true), array($scorm->id), 'sortorder, id', 'id');
 
     if ($scoes) {
         $orgidentifier = '';
@@ -1338,8 +1358,8 @@ function scorm_get_toc_object($user, $scorm, $currentorg='', $scoid='', $mode='n
     global $CFG, $DB, $PAGE, $OUTPUT;
 
     $modestr = '';
-    if ($mode == 'browse') {
-        $modestr = '&amp;mode='.$mode;
+    if ($mode != 'normal') {
+        $modestr = '&mode='.$mode;
     }
 
     $result = array();
@@ -1447,7 +1467,7 @@ function scorm_get_toc_object($user, $scorm, $currentorg='', $scoid='', $mode='n
     }
 
     // Get the parent scoes!
-    $result = scorm_get_toc_get_parent_child($result);
+    $result = scorm_get_toc_get_parent_child($result, $currentorg);
 
     // Be safe, prevent warnings from showing up while returning array
     if (!isset($scoid)) {
@@ -1457,11 +1477,15 @@ function scorm_get_toc_object($user, $scorm, $currentorg='', $scoid='', $mode='n
     return array('scoes' => $result, 'usertracks' => $usertracks, 'scoid' => $scoid);
 }
 
-function scorm_get_toc_get_parent_child(&$result) {
+function scorm_get_toc_get_parent_child(&$result, $currentorg) {
     $final = array();
     $level = 0;
-    $prevparent = '/';
-    ksort($result);
+    // Organization is always the root, prevparent.
+    if (!empty($currentorg)) {
+        $prevparent = $currentorg;
+    } else {
+        $prevparent = '/';
+    }
 
     foreach ($result as $sco) {
         if ($sco->parent == '/') {
@@ -1590,7 +1614,7 @@ function scorm_format_toc_for_treeview($user, $scorm, $scoes, $usertracks, $cmid
                             if ($sco->scormtype == 'sco') {
                                 $result->toc .= $sco->statusicon.'&nbsp;<a href="'.$url.'">'.format_string($sco->title).'</a>'.$score."\n";
                             } else {
-                                $result->toc .= '&nbsp;<a href="'.$url.'">'.format_string($sco->title).'</a>'.$score."\n";
+                                $result->toc .= '&nbsp;<a data-scoid="'.$sco->id.'" href="'.$url.'">'.format_string($sco->title).'</a>'.$score."\n";
                             }
                         } else {
                             if ($sco->scormtype == 'sco') {
@@ -1602,9 +1626,9 @@ function scorm_format_toc_for_treeview($user, $scorm, $scoes, $usertracks, $cmid
                     } else {
                         if (!empty($sco->launch)) {
                             if ($sco->scormtype == 'sco') {
-                                $result->toc .= '<a title="'.$sco->url.'">'.$sco->statusicon.'&nbsp;'.format_string($sco->title).'&nbsp;'.$score.'</a>';
+                                $result->toc .= '<a data-scoid="'.$sco->id.'" title="'.$sco->url.'">'.$sco->statusicon.'&nbsp;'.format_string($sco->title).'&nbsp;'.$score.'</a>';
                             } else {
-                                $result->toc .= '<a title="'.$sco->url.'">&nbsp;'.format_string($sco->title).'&nbsp;'.$score.'</a>';
+                                $result->toc .= '<a data-scoid="'.$sco->id.'" title="'.$sco->url.'">&nbsp;'.format_string($sco->title).'&nbsp;'.$score.'</a>';
                             }
                         } else {
                             if ($sco->scormtype == 'sco') {
@@ -1713,8 +1737,9 @@ function scorm_get_toc($user, $scorm, $cmid, $toclink=TOCJSLINK, $currentorg='',
     $organizationsco = null;
 
     if ($tocheader) {
-        $result->toc = "<div id=\"scorm_layout\">\n";
-        $result->toc .= "<div id=\"scorm_toc\">\n";
+        $result->toc = "<div id=\"scorm_layout\" class=\"yui3-g-r\">\n";
+        $result->toc .= "<div id=\"scorm_toc\" class=\"yui3-u-1-5\">\n";
+        $result->toc .= "<div id=\"scorm_toc_title\"></div>\n";
         $result->toc .= "<div id=\"scorm_tree\">\n";
     }
 
@@ -1751,8 +1776,8 @@ function scorm_get_toc($user, $scorm, $cmid, $toclink=TOCJSLINK, $currentorg='',
         $tocmenu = scorm_format_toc_for_droplist($scorm, $scoes['scoes'][0]->children, $scoes['usertracks'], $currentorg, $organizationsco);
 
         $modestr = '';
-        if ($mode == 'browse') {
-            $modestr = '&amp;mode='.$mode;
+        if ($mode != 'normal') {
+            $modestr = '&mode='.$mode;
         }
 
         $url = new moodle_url('/mod/scorm/player.php?a='.$scorm->id.'&currentorg='.$currentorg.$modestr);
@@ -1764,8 +1789,12 @@ function scorm_get_toc($user, $scorm, $cmid, $toclink=TOCJSLINK, $currentorg='',
     $result->attemptleft = $treeview->attemptleft;
 
     if ($tocheader) {
-        $result->toc .= "</div></div></div>\n";
+        $result->toc .= "</div></div>\n";
+        $result->toc .= "<div id=\"scorm_toc_toggle\">\n";
+        $result->toc .= "<button id=\"scorm_toc_toggle_btn\"></button></div>\n";
+        $result->toc .= "<div id=\"scorm_content\">";
         $result->toc .= "<div id=\"scorm_navpanel\"></div>\n";
+        $result->toc .= "</div></div>\n";
     }
 
     return $result;

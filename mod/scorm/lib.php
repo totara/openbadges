@@ -34,6 +34,11 @@ define('SCORM_TOC_HIDDEN', 1);
 define('SCORM_TOC_POPUP', 2);
 define('SCORM_TOC_DISABLED', 3);
 
+// Used to show/hide navigation buttons and set their position.
+define('SCORM_NAV_DISABLED', 0);
+define('SCORM_NAV_UNDER_CONTENT', 1);
+define('SCORM_NAV_FLOATING', 2);
+
 //used to check what SCORM version is being used.
 define('SCORM_12', 1);
 define('SCORM_13', 2);
@@ -121,7 +126,7 @@ function scorm_add_instance($scorm, $mform=null) {
 
     // Store the package and verify.
     if ($record->scormtype === SCORM_TYPE_LOCAL) {
-        if ($data = $mform->get_data()) {
+        if ($mform && $data = $mform->get_data()) {
             $fs = get_file_storage();
             $fs->delete_area_files($context->id, 'mod_scorm', 'package');
             file_save_draft_area_files($data->packagefile, $context->id, 'mod_scorm', 'package',
@@ -197,7 +202,7 @@ function scorm_update_instance($scorm, $mform=null) {
     $context = context_module::instance($cmid);
 
     if ($scorm->scormtype === SCORM_TYPE_LOCAL) {
-        if ($data = $mform->get_data()) {
+        if ($mform && $data = $mform->get_data()) {
             $fs = get_file_storage();
             $fs->delete_area_files($context->id, 'mod_scorm', 'package');
             file_save_draft_area_files($data->packagefile, $context->id, 'mod_scorm', 'package',
@@ -388,7 +393,7 @@ function scorm_user_complete($course, $user, $mod, $scorm) {
     if ($orgs = $DB->get_records_select('scorm_scoes', 'scorm = ? AND '.
                                          $DB->sql_isempty('scorm_scoes', 'launch', false, true).' AND '.
                                          $DB->sql_isempty('scorm_scoes', 'organization', false, false),
-                                         array($scorm->id), 'id', 'id,identifier,title')) {
+                                         array($scorm->id), 'sortorder, id', 'id, identifier, title')) {
         if (count($orgs) <= 1) {
             unset($orgs);
             $orgs = array();
@@ -407,7 +412,7 @@ function scorm_user_complete($course, $user, $mod, $scorm) {
             }
             $report .= "<ul id='0' class='$liststyle'>";
                 $conditions['scorm'] = $scorm->id;
-            if ($scoes = $DB->get_records('scorm_scoes', $conditions, "id ASC")) {
+            if ($scoes = $DB->get_records('scorm_scoes', $conditions, "sortorder, id")) {
                 // drop keys so that we can access array sequentially
                 $scoes = array_values($scoes);
                 $level=0;
@@ -953,6 +958,22 @@ function scorm_pluginfile($course, $cm, $context, $filearea, $args, $forcedownlo
         $fullpath = "/$context->id/mod_scorm/package/0/$relativepath";
         $lifetime = 0; // no caching here
 
+    } else if ($filearea === 'imsmanifest') { // This isn't a real filearea, it's a url parameter for this type of package.
+        $revision = (int)array_shift($args); // Prevents caching problems - ignored here.
+        $relativepath = implode('/', $args);
+
+        // Get imsmanifest file.
+        $fs = get_file_storage();
+        $files = $fs->get_area_files($context->id, 'mod_scorm', 'package', 0, '', false);
+        $file = reset($files);
+
+        // Check that the package file is an imsmanifest.xml file - if not then this method is not allowed.
+        $packagefilename = $file->get_filename();
+        if (strtolower($packagefilename) !== 'imsmanifest.xml') {
+            return false;
+        }
+
+        $file->send_relative_file($relativepath);
     } else {
         return false;
     }
@@ -1369,4 +1390,38 @@ function scorm_validate_package($file) {
         }
     }
     return $errors;
+}
+
+/**
+ * Check and set the correct mode and attempt when entering a SCORM package.
+ *
+ * @param object $scorm object
+ * @param string $newattempt should a new attempt be generated here.
+ * @param int $attempt the attempt number this is for.
+ * @param int $userid the userid of the user.
+ * @param string $mode the current mode that has been selected.
+ */
+function scorm_check_mode($scorm, $newattempt, &$attempt, $userid, &$mode) {
+    global $DB;
+    if (($newattempt == 'on') && (($attempt < $scorm->maxattempt) || ($scorm->maxattempt == 0))) {
+        $attempt++;
+        $mode = 'normal';
+    } else if ($mode != 'browse') { // Check if review mode should be set.
+        $mode = 'normal'; // Set to normal mode by default.
+
+        // If all tracks == passed, failed or completed then use review mode.
+        $tracks = $DB->get_recordset('scorm_scoes_track', array('scormid' => $scorm->id, 'userid' => $userid,
+            'attempt' => $attempt, 'element' => 'cmi.core.lesson_status'));
+        foreach ($tracks as $track) {
+            if (($track->value == 'completed') || ($track->value == 'passed') || ($track->value == 'failed')) {
+                $mode = 'review';
+            } else { // Found an incomplete sco so exit and use normal mode.
+                $mode = 'normal';
+                break;
+            }
+        }
+        $tracks->close();
+    } else if (($mode == 'browse') && ($scorm->hidebrowse == 1)) { // Prevent Browse mode if hidebrowse is set.
+        $mode = 'normal';
+    }
 }

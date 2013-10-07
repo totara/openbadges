@@ -1289,8 +1289,11 @@ function get_module_metadata($course, $modnames, $sectionreturn = null) {
 
         // NOTE: this is legacy stuff, module subtypes are very strongly discouraged!!
         $gettypesfunc =  $modname.'_get_types';
+        $types = MOD_SUBTYPE_NO_CHILDREN;
         if (function_exists($gettypesfunc)) {
             $types = $gettypesfunc();
+        }
+        if ($types !== MOD_SUBTYPE_NO_CHILDREN) {
             if (is_array($types) && count($types) > 0) {
                 $group = new stdClass();
                 $group->name = $modname;
@@ -1314,7 +1317,9 @@ function get_module_metadata($course, $modnames, $sectionreturn = null) {
                     // should have the same archetype
                     $group->archetype = $subtype->archetype;
 
-                    if (get_string_manager()->string_exists('help' . $subtype->name, $modname)) {
+                    if (!empty($type->help)) {
+                        $subtype->help = $type->help;
+                    } else if (get_string_manager()->string_exists('help' . $subtype->name, $modname)) {
                         $subtype->help = get_string('help' . $subtype->name, $modname);
                     }
                     $subtype->link = new moodle_url($urlbase, array('add' => $modname, 'type' => $subtype->name));
@@ -1619,7 +1624,7 @@ function set_coursemodule_visible($id, $visible) {
  * @since 2.5
  */
 function course_delete_module($cmid) {
-    global $CFG, $DB, $USER;
+    global $CFG, $DB;
 
     require_once($CFG->libdir.'/gradelib.php');
     require_once($CFG->dirroot.'/blog/lib.php');
@@ -1702,18 +1707,18 @@ function course_delete_module($cmid) {
             "Cannot delete the module $modulename (instance) from section.");
     }
 
-    // Trigger a mod_deleted event with information about this module.
-    $eventdata = new stdClass();
-    $eventdata->modulename = $modulename;
-    $eventdata->cmid       = $cm->id;
-    $eventdata->courseid   = $cm->course;
-    $eventdata->userid     = $USER->id;
-    events_trigger('mod_deleted', $eventdata);
-
-    add_to_log($cm->course, 'course', "delete mod",
-               "view.php?id=$cm->course",
-               "$modulename $cm->instance", $cm->id);
-
+    // Trigger event for course module delete action.
+    $event = \core\event\course_module_deleted::create(array(
+        'courseid' => $cm->course,
+        'context'  => $modcontext,
+        'objectid' => $cm->id,
+        'other'    => array(
+            'modulename' => $modulename,
+            'instanceid'   => $cm->instance,
+        )
+    ));
+    $event->add_record_snapshot('course_modules', $cm);
+    $event->trigger();
     rebuild_course_cache($cm->course, true);
 }
 
@@ -2186,7 +2191,7 @@ function move_courses($courseids, $categoryid) {
     $i = 1;
 
     list($where, $params) = $DB->get_in_or_equal($courseids);
-    $dbcourses = $DB->get_records_select('course', 'id ' . $where, $params);
+    $dbcourses = $DB->get_records_select('course', 'id ' . $where, $params, '', 'id, category, shortname, fullname');
     foreach ($dbcourses as $dbcourse) {
         $course = new stdClass();
         $course->id = $dbcourse->id;
@@ -2200,28 +2205,19 @@ function move_courses($courseids, $categoryid) {
 
         $DB->update_record('course', $course);
 
-        // Store the context.
+        // Update context, so it can be passed to event.
         $context = context_course::instance($course->id);
-
-        // Update the course object we are passing to the event.
-        $dbcourse->category = $course->category;
-        $dbcourse->sortorder = $course->sortorder;
-        if (isset($course->visible)) {
-            $dbcourse->visible = $course->visible;
-        }
+        $context->update_moved($newparent);
 
         // Trigger a course updated event.
         $event = \core\event\course_updated::create(array(
             'objectid' => $course->id,
-            'context' => $context,
+            'context' => context_course::instance($course->id),
             'other' => array('shortname' => $dbcourse->shortname,
                              'fullname' => $dbcourse->fullname)
         ));
-        $event->add_record_snapshot('course', $dbcourse);
         $event->set_legacy_logdata(array($course->id, 'course', 'move', 'edit.php?id=' . $course->id, $course->id));
         $event->trigger();
-
-        $context->update_moved($newparent);
     }
     fix_course_sortorder();
     cache_helper::purge_by_event('changesincourse');
@@ -2474,7 +2470,6 @@ function create_course($data, $editoroptions = NULL) {
         'other' => array('shortname' => $course->shortname,
                          'fullname' => $course->fullname)
     ));
-    $event->add_record_snapshot('course', $course);
     $event->trigger();
 
     return $course;
@@ -2558,8 +2553,8 @@ function update_course($data, $editoroptions = NULL) {
         $newparent = context_coursecat::instance($course->category);
         $context->update_moved($newparent);
     }
-
-    if ($movecat || (isset($data->sortorder) && $oldcourse->sortorder != $data->sortorder)) {
+    $fixcoursesortorder = $movecat || (isset($data->sortorder) && ($oldcourse->sortorder != $data->sortorder));
+    if ($fixcoursesortorder) {
         fix_course_sortorder();
     }
 
@@ -2581,11 +2576,11 @@ function update_course($data, $editoroptions = NULL) {
     // Trigger a course updated event.
     $event = \core\event\course_updated::create(array(
         'objectid' => $course->id,
-        'context' => $context,
+        'context' => context_course::instance($course->id),
         'other' => array('shortname' => $course->shortname,
                          'fullname' => $course->fullname)
     ));
-    $event->add_record_snapshot('course', $course);
+
     $event->set_legacy_logdata(array($course->id, 'course', 'update', 'edit.php?id=' . $course->id, $course->id));
     $event->trigger();
 

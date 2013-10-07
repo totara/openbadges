@@ -200,7 +200,7 @@ if ($usernew = $userform->get_data()) {
 
         // force logout if user just suspended
         if (isset($usernew->suspended) and $usernew->suspended and !$user->suspended) {
-            session_kill_user($user->id);
+            \core\session\manager::kill_user_sessions($user->id);
         }
     }
 
@@ -240,6 +240,10 @@ if ($usernew = $userform->get_data()) {
     if ($user->id == $USER->id) {
         // Override old $USER session variable
         foreach ((array)$usernew as $variable => $value) {
+            if ($variable === 'description' or $variable === 'password') {
+                // These are not set for security nad perf reasons.
+                continue;
+            }
             $USER->$variable = $value;
         }
         // preload custom fields
@@ -255,7 +259,7 @@ if ($usernew = $userform->get_data()) {
             redirect("$CFG->wwwroot/user/view.php?id=$USER->id&course=$course->id");
         }
     } else {
-        session_gc(); // remove stale sessions
+        \core\session\manager::gc(); // Remove stale sessions.
         redirect("$CFG->wwwroot/$CFG->admin/user.php");
     }
     //never reached

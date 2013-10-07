@@ -31,27 +31,28 @@ defined('MOODLE_INTERNAL') || die();
 function atto_link_init_editor($elementid) {
     global $PAGE, $OUTPUT;
 
-    $icon = $OUTPUT->pix_icon('link',
+    $icon = $OUTPUT->pix_icon('e/insert_edit_link',
                               get_string('link', 'atto_link'),
-                              'atto_link',
+                              'moodle',
                               array('class'=>'icon'));
 
     $PAGE->requires->strings_for_js(array('createlink',
                                           'enterurl',
                                           'browserepositories',
+                                          'openinnewwindow',
                                           'accessibilityhint'),
                                     'atto_link');
 
     $PAGE->requires->yui_module('moodle-atto_link-button',
                                 'M.atto_link.init',
-                                array(array('elementid'=>$elementid, 'icon'=>$icon)),
+                                array(array('elementid'=>$elementid, 'icon'=>$icon, 'group'=>'link')),
                                 true);
 
 }
 
 /**
  * Return the order this plugin should be displayed in the toolbar
- * @return int
+ * @return int the absolute position within the toolbar
  */
 function atto_link_sort_order() {
     return 11;

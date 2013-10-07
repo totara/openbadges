@@ -190,9 +190,10 @@ function cron_run() {
     mtrace(' Created missing context instances');
 
 
-    // Session gc
-    session_gc();
-    mtrace("Cleaned up stale user sessions");
+    // Session gc.
+    mtrace("Running session gc tasks...");
+    \core\session\manager::gc();
+    mtrace("...finished stale session cleanup");
 
 
     // Run the auth cron, if any before enrolments
@@ -758,7 +759,7 @@ function notify_login_failures() {
         mtrace('Emailing admins about '. $count .' failed login attempts');
         foreach ($recip as $admin) {
             //emailing the admins directly rather than putting these through the messaging system
-            email_to_user($admin, generate_email_supportuser(), $subject, $body);
+            email_to_user($admin, core_user::get_support_user(), $subject, $body);
         }
     }
 

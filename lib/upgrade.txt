@@ -32,6 +32,15 @@ information provided here is intended especially for developers.
   get_fast_modinfo(). Purging all caches and every core upgrade purges course modinfo cache as well.
   If function get_fast_modinfo() is called for multiple courses make sure to include field cacherev in course
   object.
+* Internal (noreply and support) user support has been added for sending/receiving message.
+  Use core_user::get_noreply_user() and core_user::get_support_user() to get noreply and support user's respectively.
+  Real users can be used as noreply/support users by setting $CFG->noreplyuserid and $CFG->supportuserid
+* New function readfile_allow_large() in filelib.php for use when very large files may need sending to user.
+* Use plugin_manager::reset_caches() when changing visibility of plugins.
+* Implement new method get_enabled_plugins() method in subplugin info classes.
+* Each plugin should include version information in version.php.
+* Module and block tables do not contain version column any more, use get_config('xx_yy', 'version') instead.
+* $USER->password field is intentionally unset so that session data does not contain password hashes.
 
 DEPRECATIONS:
 Various previously deprecated functions have now been altered to throw DEBUG_DEVELOPER debugging notices
@@ -88,6 +97,8 @@ Navigation:
     * print_navigation()                    -> $OUTPUT->navbar()
     * build_navigation()                    -> $PAGE->navbar methods
     * navmenu()                             -> (no replacement)
+    * settings_navigation::
+          get_course_modules()              -> (no replacement)
 
 Calendar:
     * add_event()                           -> calendar_event::create()
@@ -104,6 +115,19 @@ Misc:
     * js_minify()                           -> core_minify::js_files()
     * css_minify_css()                      -> core_minify::css_files()
     * course_modinfo::build_section_cache() -> (no replacement)
+    * generate_email_supportuser()          -> core_user::get_support_user()
+
+Sessions:
+    * session_get_instance()->xxx()         -> \core\session\manager::xxx()
+    * session_kill_all()                    -> \core\session\manager::kill_all_sessions()
+    * session_touch()                       -> \core\session\manager::touch_session()
+    * session_kill()                        -> \core\session\manager::kill_session()
+    * session_kill_user()                   -> \core\session\manager::kill_user_sessions()
+    * session_gc()                          -> \core\session\manager::gc()
+    * session_set_user()                    -> \core\session\manager::set_user()
+    * session_is_loggedinas()               -> \core\session\manager::is_loggedinas()
+    * session_get_realuser()                -> \core\session\manager::get_realuser()
+    * session_loginas()                     -> \core\session\manager::loginas()
 
 User-agent related functions:
     * check_browser_operating_system()      -> core_useragent::check_browser_operating_system()
@@ -136,6 +160,7 @@ Event triggering and event handlers:
       * groups_groupings_groups_removed -> (no replacement)
       * groups_groups_deleted           -> \core\event\group_deleted
       * groups_groupings_deleted        -> \core\event\grouping_deleted
+    * edit_module_post_actions() does not trigger events any more.
 
 === 2.5.1 ===
 

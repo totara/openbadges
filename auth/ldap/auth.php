@@ -808,7 +808,7 @@ class auth_plugin_ldap extends auth_plugin_base {
                     $updateuser->suspended = 1;
                     user_update_user($updateuser, false);
                     echo "\t"; print_string('auth_dbsuspenduser', 'auth_db', array('name'=>$user->username, 'id'=>$user->id)); echo "\n";
-                    session_kill_user($user->id);
+                    \core\session\manager::kill_user_sessions($user->id);
                 }
             } else {
                 print_string('nouserentriestoremove', 'auth_ldap');
@@ -1645,7 +1645,7 @@ class auth_plugin_ldap extends auth_plugin_base {
             // Now start the whole NTLM machinery.
             if($this->config->ntlmsso_ie_fastpath == AUTH_NTLM_FASTPATH_YESATTEMPT ||
                 $this->config->ntlmsso_ie_fastpath == AUTH_NTLM_FASTPATH_YESFORM) {
-                if (core_useragent::check_ie_version()) {
+                if (core_useragent::is_ie()) {
                     $sesskey = sesskey();
                     redirect($CFG->wwwroot.'/auth/ldap/ntlmsso_magic.php?sesskey='.$sesskey);
                 } else if ($this->config->ntlmsso_ie_fastpath == AUTH_NTLM_FASTPATH_YESFORM) {

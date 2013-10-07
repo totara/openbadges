@@ -17,7 +17,7 @@
 /**
  * Quiz attempt walk through using data from csv file.
  *
- * @package    mod_quiz
+ * @package    quiz_statistics
  * @category   phpunit
  * @copyright  2013 The Open University
  * @author     Jamie Pratt <me@jamiep.org>
@@ -42,17 +42,17 @@ class testable_quiz_statistics_report extends quiz_statistics_report {
 
     public function get_stats($quiz, $useallattempts = true,
                               $currentgroup = 0, $groupstudents = array(), $nostudentsingroup = false) {
-        $this->clear_cached_data($quiz->id, $currentgroup, $useallattempts);
+        $qubaids = quiz_statistics_qubaids_condition($quiz->id, $currentgroup, $groupstudents, $useallattempts);
+        $this->clear_cached_data($qubaids);
         $questions = $this->load_and_initialise_questions_for_calculations($quiz);
-        return $this->get_quiz_and_questions_stats($quiz, $currentgroup, $nostudentsingroup,
-                                                   $useallattempts, $groupstudents, $questions);
+        return $this->get_quiz_and_questions_stats($quiz, $currentgroup, $useallattempts, $groupstudents, $questions);
     }
 }
 
 /**
  * Quiz attempt walk through using data from csv file.
  *
- * @package    mod_quiz
+ * @package    quiz_statistics
  * @category   phpunit
  * @copyright  2013 The Open University
  * @author     Jamie Pratt <me@jamiep.org>
@@ -79,7 +79,7 @@ class quiz_report_statistics_from_steps extends mod_quiz_attempt_walkthrough_fro
      *                                                                                  "stepsXX.csv" and "resultsXX.csv".
      * @dataProvider get_data_for_walkthrough
      */
-    public function test_walkthrough_from_csv($csvdata) {
+    public function test_walkthrough_from_csv($quizsettings, $csvdata) {
 
         // CSV data files for these tests were generated using :
         // https://github.com/jamiepratt/moodle-quiz-tools/tree/master/responsegenerator
@@ -87,14 +87,14 @@ class quiz_report_statistics_from_steps extends mod_quiz_attempt_walkthrough_fro
         $this->resetAfterTest(true);
         question_bank::get_qtype('random')->clear_caches_before_testing();
 
-        $this->create_quiz($csvdata['questions']);
+        $this->create_quiz($quizsettings, $csvdata['questions']);
 
         $attemptids = $this->walkthrough_attempts($csvdata['steps']);
 
         $this->check_attempts_results($csvdata['results'], $attemptids);
 
         $this->report = new testable_quiz_statistics_report();
-        list($quizstats, $questions, $subquestions, $s) = $this->report->get_stats($this->quiz);
+        list($quizstats, $questionstats, $subquestionstats) = $this->report->get_stats($this->quiz);
 
         // These quiz stats and the question stats found in qstats00.csv were calculated independently in spreadsheet which is
         // available in open document or excel format here :
@@ -133,7 +133,7 @@ class quiz_report_statistics_from_steps extends mod_quiz_attempt_walkthrough_fro
                     }
                     $slot = $slotqstats['slot'];
                     $delta = abs($slotqstat) * $precision;
-                    $actual = $questions[$slot]->_stats->{$statname};
+                    $actual = $questionstats[$slot]->{$statname};
                     $this->assertEquals(floatval($slotqstat), $actual, "$statname for slot $slot", $delta);
                 }
             }

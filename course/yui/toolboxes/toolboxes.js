@@ -123,38 +123,6 @@ YUI.add('moodle-course-toolboxes', function(Y) {
             // Send the request
             Y.io(uri, config);
             return responsetext;
-        },
-        /**
-         * Return the name of the activity instance
-         *
-         * If activity has no name (for example label) null is returned
-         *
-         * @param element The <li> element to determine a name for
-         * @return string|null Instance name
-         */
-        get_instance_name : function(target) {
-            if (target.one(SELECTOR.INSTANCENAME)) {
-                return target.one(SELECTOR.INSTANCENAME).get('firstChild').get('data');
-            }
-            return null;
-        },
-        /**
-         * Return the module ID for the specified element
-         *
-         * @param element The <li> element to determine a module-id number for
-         * @return string The module ID
-         */
-        get_element_id : function(element) {
-            return element.get('id').replace(CSS.MODULEIDPREFIX, '');
-        },
-        /**
-         * Return the module ID for the specified element
-         *
-         * @param element The <li> element to determine a module-id number for
-         * @return string The module ID
-         */
-        get_section_id : function(section) {
-            return section.get('id').replace(CSS.SECTIONIDPREFIX, '');
         }
     },
     {
@@ -343,7 +311,7 @@ YUI.add('moodle-course-toolboxes', function(Y) {
                 'class' : 'resource',
                 'field' : 'indent',
                 'value' : newindent,
-                'id'    : this.get_element_id(activity)
+                'id'    : Y.Moodle.core_course.util.cm.getId(activity)
             };
             var commands = activity.one(SELECTOR.COMMANDSPAN);
             var spinner = M.util.add_spinner(Y, commands).setStyles({
@@ -395,8 +363,8 @@ YUI.add('moodle-course-toolboxes', function(Y) {
             var plugindata = {
                 type : M.util.get_string('pluginname', element.getAttribute('class').match(/modtype_([^\s]*)/)[1])
             }
-            if (this.get_instance_name(element) != null) {
-                plugindata.name = this.get_instance_name(element)
+            if (Y.Moodle.core_course.util.cm.getName(element) != null) {
+                plugindata.name = Y.Moodle.core_course.util.cm.getName(element)
                 confirmstring = M.util.get_string('deletechecktypename', 'moodle', plugindata);
             } else {
                 confirmstring = M.util.get_string('deletechecktype', 'moodle', plugindata)
@@ -412,7 +380,7 @@ YUI.add('moodle-course-toolboxes', function(Y) {
             var data = {
                 'class' : 'resource',
                 'action' : 'DELETE',
-                'id'    : this.get_element_id(element)
+                'id'    : Y.Moodle.core_course.util.cm.getId(element)
             };
             this.send_request(data);
             if (M.core.actionmenu && M.core.actionmenu.instance) {
@@ -450,7 +418,7 @@ YUI.add('moodle-course-toolboxes', function(Y) {
                 'class' : 'resource',
                 'field' : 'visible',
                 'value' : value,
-                'id'    : this.get_element_id(element)
+                'id'    : Y.Moodle.core_course.util.cm.getId(element)
             };
             var spinner = M.util.add_spinner(Y, element.one(SELECTOR.COMMANDSPAN));
             this.send_request(data, spinner);
@@ -464,27 +432,27 @@ YUI.add('moodle-course-toolboxes', function(Y) {
          * @method handle_resource_dim
          * @param {Node} button The button that triggered the action.
          * @param {Node} activity The activity node that this action will be performed on.
-         * @param {String} status Whether the activity was shown or hidden.
-         * @returns {number} 1 if we were changing to visible, 0 if we were hiding.
+         * @param {String} action 'show' or 'hide'.
+         * @returns {number} 1 if we changed to visible, 0 if we were hiding.
          */
-        handle_resource_dim : function(button, activity, status) {
+        handle_resource_dim : function(button, activity, action) {
             var toggleclass = CSS.DIMCLASS,
                 dimarea = activity.one('a'),
                 availabilityinfo = activity.one(CSS.AVAILABILITYINFODIV),
-                newstatus = (status === 'hide') ? 'show' : 'hide',
-                newstring = M.util.get_string(newstatus, 'moodle');
+                nextaction = (action === 'hide') ? 'show' : 'hide';
+                newstring = M.util.get_string(nextaction, 'moodle');
 
             // Update button info.
             button.one('img').setAttrs({
                 'alt' : newstring,
-                'src'   : M.util.image_url('t/' + newstatus)
+                'src'   : M.util.image_url('t/' + nextaction)
             });
             button.set('title', newstring);
-            button.replaceClass('editing_'+status, 'editing_'+newstatus)
-            button.setData('action', newstatus);
+            button.replaceClass('editing_'+action, 'editing_'+nextaction);
+            button.setData('action', nextaction);
 
             // If activity is conditionally hidden, then don't toggle.
-            if (this.get_instance_name(activity) == null) {
+            if (Y.Moodle.core_course.util.cm.getName(activity) == null) {
                 toggleclass = CSS.DIMMEDTEXT;
                 dimarea = activity.all(SELECTOR.MODINDENTDIV + ' > div').item(1);
             }
@@ -498,7 +466,7 @@ YUI.add('moodle-course-toolboxes', function(Y) {
             if (availabilityinfo) {
                 availabilityinfo.toggleClass(CSS.HIDE);
             }
-            return (status === 'hide') ? 0 : 1;
+            return (action === 'hide') ? 0 : 1;
         },
 
         /**
@@ -554,7 +522,7 @@ YUI.add('moodle-course-toolboxes', function(Y) {
                 'class' : 'resource',
                 'field' : 'groupmode',
                 'value' : groupmode,
-                'id'    : this.get_element_id(activity)
+                'id'    : Y.Moodle.core_course.util.cm.getId(activity)
             };
 
             spinner = M.util.add_spinner(Y, activity.one(SELECTOR.COMMANDSPAN));
@@ -575,7 +543,7 @@ YUI.add('moodle-course-toolboxes', function(Y) {
          */
         edit_title : function(ev, button, activity) {
             // Get the element we're working on
-            var activityid = this.get_element_id(activity),
+            var activityid = Y.Moodle.core_course.util.cm.getId(activity),
                 instancename  = activity.one(SELECTOR.INSTANCENAME),
                 currenttitle = instancename.get('firstChild'),
                 oldtitle = currenttitle.get('data'),
@@ -652,7 +620,7 @@ YUI.add('moodle-course-toolboxes', function(Y) {
                     'class'   : 'resource',
                     'field'   : 'updatetitle',
                     'title'   : newtitle,
-                    'id'      : this.get_element_id(activity)
+                    'id'      : Y.Moodle.core_course.util.cm.getId(activity)
                 };
                 var response = this.send_request(data, spinner);
                 if (response.instancename) {
@@ -715,13 +683,13 @@ YUI.add('moodle-course-toolboxes', function(Y) {
                 shouldbevisible = args.visible,
                 buttonnode = element.one(SELECTOR.SHOW),
                 visible = (buttonnode === null),
-                status = 'hide';
+                action = 'show';
             if (visible) {
                 buttonnode = element.one(SELECTOR.HIDE);
-                status = 'show'
+                action = 'hide';
             }
             if (visible != shouldbevisible) {
-                this.handle_resource_dim(buttonnode, buttonnode.getData('activity'), status);
+                this.handle_resource_dim(buttonnode, buttonnode.getData('activity'), action);
             }
         }
     }, {
@@ -784,26 +752,26 @@ YUI.add('moodle-course-toolboxes', function(Y) {
 
             // The value to submit
             var value;
-            // The status text for strings and images
-            var status,
-                oldstatus;
+            // The text for strings and images. Also determines the icon to display.
+            var action,
+                nextaction;
 
             if (!section.hasClass(CSS.SECTIONHIDDENCLASS)) {
                 section.addClass(CSS.SECTIONHIDDENCLASS);
                 value = 0;
-                status = 'show';
-                oldstatus = 'hide';
+                action = 'hide';
+                nextaction = 'show';
             } else {
                 section.removeClass(CSS.SECTIONHIDDENCLASS);
                 value = 1;
-                status = 'hide';
-                oldstatus = 'show';
+                action = 'show';
+                nextaction = 'hide';
             }
 
-            var newstring = M.util.get_string(status + 'fromothers', 'format_' + this.get('format'));
+            var newstring = M.util.get_string(nextaction + 'fromothers', 'format_' + this.get('format'));
             hideicon.setAttrs({
                 'alt' : newstring,
-                'src'   : M.util.image_url('i/' + status)
+                'src'   : M.util.image_url('i/' + nextaction)
             });
             button.set('title', newstring);
 
@@ -811,7 +779,7 @@ YUI.add('moodle-course-toolboxes', function(Y) {
             var data = {
                 'class' : 'section',
                 'field' : 'visible',
-                'id'    : this.get_section_id(section.ancestor(M.course.format.get_section_wrapper(Y), true)),
+                'id'    : Y.Moodle.core_course.util.section.getId(section.ancestor(M.course.format.get_section_wrapper(Y), true)),
                 'value' : value
             };
 
@@ -827,10 +795,12 @@ YUI.add('moodle-course-toolboxes', function(Y) {
                 } else {
                     var button = node.one(SELECTOR.HIDE);
                 }
-                var activityid = this.get_element_id(node);
+                var activityid = Y.Moodle.core_course.util.cm.getId(node);
 
-                if (Y.Array.indexOf(response.resourcestotoggle, activityid) != -1) {
-                    node.getData('toolbox').handle_resource_dim(button, node, oldstatus);
+                // NOTE: resourcestotoggle is returned as a string instead
+                // of a Number so we must cast our activityid to a String.
+                if (Y.Array.indexOf(response.resourcestotoggle, "" + activityid) != -1) {
+                    node.getData('toolbox').handle_resource_dim(button, node, action);
                 }
             }, this);
         },
@@ -864,7 +834,7 @@ YUI.add('moodle-course-toolboxes', function(Y) {
             // Then add it if required to the selected section
             if (!togglestatus) {
                 section.addClass('current');
-                value = this.get_section_id(section.ancestor(M.course.format.get_section_wrapper(Y), true));
+                value = Y.Moodle.core_course.util.section.getId(section.ancestor(M.course.format.get_section_wrapper(Y), true));
                 var new_string = M.util.get_string('markedthistopic', 'moodle');
                 button
                     .set('title', new_string);

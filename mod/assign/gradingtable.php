@@ -71,6 +71,7 @@ class assign_grading_table extends table_sql implements renderable {
      * @param string $filter The current filter
      * @param int $rowoffset For showing a subsequent page of results
      * @param bool $quickgrading Is this table wrapped in a quickgrading form?
+     * @param string $downloadfilename
      */
     public function __construct(assign $assignment,
                                 $perpage,
@@ -435,6 +436,7 @@ class assign_grading_table extends table_sql implements renderable {
     /**
      * Add a column with an ID that uniquely identifies this user in this assignment.
      *
+     * @param stdClass $row
      * @return string
      */
     public function col_recordid(stdClass $row) {
@@ -621,8 +623,8 @@ class assign_grading_table extends table_sql implements renderable {
      * Use a static cache to try and reduce DB calls.
      *
      * @param int $userid The user id for this submission
-     * @param int $groupid The groupid (returned)
-     * @param mixed $submission The stdClass submission or false (returned)
+     * @param int $group The groupid (returned)
+     * @param stdClass|false $submission The stdClass submission or false (returned)
      * @param int $attemptnumber Return a specific attempt number (-1 for latest)
      */
     protected function get_group_and_submission($userid, &$group, &$submission, $attemptnumber) {
@@ -1158,6 +1160,7 @@ class assign_grading_table extends table_sql implements renderable {
                         $submission->timemodified = $row->timesubmitted;
                         $submission->assignment = $this->assignment->get_instance()->id;
                         $submission->userid = $row->userid;
+                        $submission->attemptnumber = $row->attemptnumber;
                     }
                     // Field is used for only for import/export and refers the the fieldname for the text editor.
                     if (isset($field)) {
@@ -1183,6 +1186,7 @@ class assign_grading_table extends table_sql implements renderable {
                     $grade->userid = $row->userid;
                     $grade->grade = $row->grade;
                     $grade->mailed = $row->mailed;
+                    $grade->attemptnumber = $row->attemptnumber;
                 }
                 if ($this->quickgrading && $plugin->supports_quickgrading()) {
                     return $plugin->get_quickgrading_html($row->userid, $grade);

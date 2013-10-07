@@ -191,7 +191,7 @@ class phpunit_util extends testing_util {
         $user = new stdClass();
         $user->id = 0;
         $user->mnethostid = $CFG->mnet_localhost_id;
-        session_set_user($user);
+        \core\session\manager::set_user($user);
 
         // reset all static caches
         \core\event\manager::phpunit_reset();
@@ -200,6 +200,7 @@ class phpunit_util extends testing_util {
         reset_text_filters_cache(true);
         events_get_handlers('reset');
         core_text::reset_caches();
+        get_message_processors(false, true);
         if (class_exists('repository')) {
             repository::reset_caches();
         }

@@ -86,11 +86,16 @@ define('QUIZ_SHOWIMAGE_LARGE', 2);
  *         if $attemptnumber > 1 and $quiz->attemptonlast is true.
  * @param int $timenow the time the attempt was started at.
  * @param bool $ispreview whether this new attempt is a preview.
+ * @param int $userid  the id of the user attempting this quiz.
  *
  * @return object the newly created attempt object.
  */
-function quiz_create_attempt(quiz $quizobj, $attemptnumber, $lastattempt, $timenow, $ispreview = false) {
+function quiz_create_attempt(quiz $quizobj, $attemptnumber, $lastattempt, $timenow, $ispreview = false, $userid = null) {
     global $USER;
+
+    if ($userid === null) {
+        $userid = $USER->id;
+    }
 
     $quiz = $quizobj->get_quiz();
     if ($quiz->sumgrades < 0.000005 && $quiz->grade > 0.000005) {
@@ -103,7 +108,7 @@ function quiz_create_attempt(quiz $quizobj, $attemptnumber, $lastattempt, $timen
         // We are not building on last attempt so create a new attempt.
         $attempt = new stdClass();
         $attempt->quiz = $quiz->id;
-        $attempt->userid = $USER->id;
+        $attempt->userid = $userid;
         $attempt->preview = 0;
         $attempt->layout = quiz_clean_layout($quiz->questions, true);
         if ($quiz->shufflequestions) {
@@ -285,16 +290,15 @@ function quiz_attempt_save_started($quizobj, $quba, $attempt) {
  */
 function quiz_fire_attempt_started_event($attempt, $quizobj) {
     // Trigger event.
-    $eventdata = new stdClass();
-    $eventdata->component = 'mod_quiz';
-    $eventdata->attemptid = $attempt->id;
-    $eventdata->timestart = $attempt->timestart;
-    $eventdata->timestamp = $attempt->timestart;
-    $eventdata->userid = $attempt->userid;
-    $eventdata->quizid = $quizobj->get_quizid();
-    $eventdata->cmid = $quizobj->get_cmid();
-    $eventdata->courseid = $quizobj->get_courseid();
-    events_trigger('quiz_attempt_started', $eventdata);
+    $eventdata = array();
+    $eventdata['context'] = $quizobj->get_context();
+    $eventdata['courseid'] = $quizobj->get_courseid();
+    $eventdata['relateduserid'] = $attempt->userid;
+    $eventdata['objectid'] = $attempt->id;
+    $event = \mod_quiz\event\attempt_started::create($eventdata);
+    $event->add_record_snapshot('quiz', $quizobj->get_quiz());
+    $event->add_record_snapshot('quiz_attempts', $attempt);
+    $event->trigger();
 }
 
 /**
@@ -1739,9 +1743,9 @@ function quiz_attempt_submitted_handler($event) {
     global $DB;
 
     $course  = $DB->get_record('course', array('id' => $event->courseid));
-    $quiz    = $DB->get_record('quiz', array('id' => $event->quizid));
-    $cm      = get_coursemodule_from_id('quiz', $event->cmid, $event->courseid);
-    $attempt = $DB->get_record('quiz_attempts', array('id' => $event->attemptid));
+    $attempt = $event->get_record_snapshot('quiz_attempts', $event->objectid);
+    $quiz    = $event->get_record_snapshot('quiz', $attempt->quiz);
+    $cm      = get_coursemodule_from_id('quiz', $event->get_context()->instanceid, $event->courseid);
 
     if (!($course && $quiz && $cm && $attempt)) {
         // Something has been deleted since the event was raised. Therefore, the
@@ -1765,9 +1769,9 @@ function quiz_attempt_overdue_handler($event) {
     global $DB;
 
     $course  = $DB->get_record('course', array('id' => $event->courseid));
-    $quiz    = $DB->get_record('quiz', array('id' => $event->quizid));
-    $cm      = get_coursemodule_from_id('quiz', $event->cmid, $event->courseid);
-    $attempt = $DB->get_record('quiz_attempts', array('id' => $event->attemptid));
+    $attempt = $event->get_record_snapshot('quiz_attempts', $event->objectid);
+    $quiz    = $event->get_record_snapshot('quiz', $attempt->quiz);
+    $cm      = get_coursemodule_from_id('quiz', $event->get_context()->instanceid, $event->courseid);
 
     if (!($course && $quiz && $cm && $attempt)) {
         // Something has been deleted since the event was raised. Therefore, the
@@ -1783,8 +1787,11 @@ function quiz_attempt_overdue_handler($event) {
  * Handle groups_member_added event
  *
  * @param object $event the event object.
+ * @deprecated since 2.6, see {@link \mod_quiz\group_observers::group_member_added()}.
  */
 function quiz_groups_member_added_handler($event) {
+    debugging('quiz_groups_member_added_handler() is deprecated, please use ' .
+        '\mod_quiz\group_observers::group_member_added() instead.', DEBUG_DEVELOPER);
     quiz_update_open_attempts(array('userid'=>$event->userid, 'groupid'=>$event->groupid));
 }
 
@@ -1792,8 +1799,11 @@ function quiz_groups_member_added_handler($event) {
  * Handle groups_member_removed event
  *
  * @param object $event the event object.
+ * @deprecated since 2.6, see {@link \mod_quiz\group_observers::group_member_removed()}.
  */
 function quiz_groups_member_removed_handler($event) {
+    debugging('quiz_groups_member_removed_handler() is deprecated, please use ' .
+        '\mod_quiz\group_observers::group_member_removed() instead.', DEBUG_DEVELOPER);
     quiz_update_open_attempts(array('userid'=>$event->userid, 'groupid'=>$event->groupid));
 }
 
@@ -1801,32 +1811,49 @@ function quiz_groups_member_removed_handler($event) {
  * Handle groups_group_deleted event
  *
  * @param object $event the event object.
+ * @deprecated since 2.6, see {@link \mod_quiz\group_observers::group_deleted()}.
  */
 function quiz_groups_group_deleted_handler($event) {
     global $DB;
+    debugging('quiz_groups_group_deleted_handler() is deprecated, please use ' .
+        '\mod_quiz\group_observers::group_deleted() instead.', DEBUG_DEVELOPER);
+    quiz_process_group_deleted_in_course($event->courseid);
+}
+
+/**
+ * Logic to happen when a/some group(s) has/have been deleted in a course.
+ *
+ * @param int $courseid The course ID.
+ * @return void
+ */
+function quiz_process_group_deleted_in_course($courseid) {
+    global $DB;
 
     // It would be nice if we got the groupid that was deleted.
-    // Instead, we just update all quizzes with orphaned group overrides
+    // Instead, we just update all quizzes with orphaned group overrides.
     $sql = "SELECT o.id, o.quiz
               FROM {quiz_overrides} o
               JOIN {quiz} quiz ON quiz.id = o.quiz
          LEFT JOIN {groups} grp ON grp.id = o.groupid
              WHERE quiz.course = :courseid AND grp.id IS NULL";
-    $params = array('courseid'=>$event->courseid);
+    $params = array('courseid' => $courseid);
     $records = $DB->get_records_sql_menu($sql, $params);
     if (!$records) {
         return; // Nothing to do.
     }
     $DB->delete_records_list('quiz_overrides', 'id', array_keys($records));
-    quiz_update_open_attempts(array('quizid'=>array_unique(array_values($records))));
+    quiz_update_open_attempts(array('quizid' => array_unique(array_values($records))));
 }
 
 /**
  * Handle groups_members_removed event
  *
  * @param object $event the event object.
+ * @deprecated since 2.6, see {@link \mod_quiz\group_observers::group_member_removed()}.
  */
 function quiz_groups_members_removed_handler($event) {
+    debugging('quiz_groups_members_removed_handler() is deprecated, please use ' .
+        '\mod_quiz\group_observers::group_member_removed() instead.', DEBUG_DEVELOPER);
     if ($event->userid == 0) {
         quiz_update_open_attempts(array('courseid'=>$event->courseid));
     } else {

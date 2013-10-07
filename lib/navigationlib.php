@@ -3347,9 +3347,9 @@ class settings_navigation extends navigation_node {
         }
 
         // Check if the user is currently logged in as another user
-        if (session_is_loggedinas()) {
+        if (\core\session\manager::is_loggedinas()) {
             // Get the actual user, we need this so we can display an informative return link
-            $realuser = session_get_realuser();
+            $realuser = \core\session\manager::get_realuser();
             // Add the informative return to original user link
             $url = new moodle_url('/course/loginas.php',array('id'=>$this->page->course->id, 'return'=>1,'sesskey'=>sesskey()));
             $this->add(get_string('returntooriginaluser', 'moodle', fullname($realuser, true)), $url, self::TYPE_SETTING, null, null, new pix_icon('t/left', ''));
@@ -3520,55 +3520,6 @@ class settings_navigation extends navigation_node {
             $node->get($key);
         }
         return $node;
-    }
-
-    /**
-     * Generate the list of modules for the given course.
-     *
-     * @param stdClass $course The course to get modules for
-     */
-    protected function get_course_modules($course) {
-        global $CFG;
-        // This function is included when we include course/lib.php at the top
-        // of this file
-        $modnames = get_module_types_names();
-        $resources = array();
-        $activities = array();
-        foreach($modnames as $modname=>$modnamestr) {
-            if (!course_allowed_module($course, $modname)) {
-                continue;
-            }
-
-            $libfile = "$CFG->dirroot/mod/$modname/lib.php";
-            if (!file_exists($libfile)) {
-                continue;
-            }
-            include_once($libfile);
-            $gettypesfunc =  $modname.'_get_types';
-            if (function_exists($gettypesfunc)) {
-                $types = $gettypesfunc();
-                foreach($types as $type) {
-                    if (!isset($type->modclass) || !isset($type->typestr)) {
-                        debugging('Incorrect activity type in '.$modname);
-                        continue;
-                    }
-                    if ($type->modclass == MOD_CLASS_RESOURCE) {
-                        $resources[html_entity_decode($type->type, ENT_QUOTES, 'UTF-8')] = $type->typestr;
-                    } else {
-                        $activities[html_entity_decode($type->type, ENT_QUOTES, 'UTF-8')] = $type->typestr;
-                    }
-                }
-            } else {
-                $archetype = plugin_supports('mod', $modname, FEATURE_MOD_ARCHETYPE, MOD_ARCHETYPE_OTHER);
-                if ($archetype == MOD_ARCHETYPE_RESOURCE) {
-                    $resources[$modname] = $modnamestr;
-                } else {
-                    // all other archetypes are considered activity
-                    $activities[$modname] = $modnamestr;
-                }
-            }
-        }
-        return array($resources, $activities);
     }
 
     /**
@@ -4075,7 +4026,7 @@ class settings_navigation extends navigation_node {
         }
 
         // Change password link
-        if ($userauthplugin && $currentuser && !session_is_loggedinas() && !isguestuser() && has_capability('moodle/user:changeownpassword', $systemcontext) && $userauthplugin->can_change_password()) {
+        if ($userauthplugin && $currentuser && !\core\session\manager::is_loggedinas() && !isguestuser() && has_capability('moodle/user:changeownpassword', $systemcontext) && $userauthplugin->can_change_password()) {
             $passwordchangeurl = $userauthplugin->change_password_url();
             if (empty($passwordchangeurl)) {
                 $passwordchangeurl = new moodle_url('/login/change_password.php', array('id'=>$course->id));
@@ -4193,7 +4144,7 @@ class settings_navigation extends navigation_node {
         $reporttab->trim_if_empty();
 
         // Login as ...
-        if (!$user->deleted and !$currentuser && !session_is_loggedinas() && has_capability('moodle/user:loginas', $coursecontext) && !is_siteadmin($user->id)) {
+        if (!$user->deleted and !$currentuser && !\core\session\manager::is_loggedinas() && has_capability('moodle/user:loginas', $coursecontext) && !is_siteadmin($user->id)) {
             $url = new moodle_url('/course/loginas.php', array('id'=>$course->id, 'user'=>$user->id, 'sesskey'=>sesskey()));
             $usersetting->add(get_string('loginas'), $url, self::TYPE_SETTING);
         }

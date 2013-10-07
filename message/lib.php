@@ -1198,7 +1198,7 @@ function message_print_search_results($frm, $showicontext=false, $currentuser=nu
 
                 // Load user-to record.
                 if ($message->useridto !== $USER->id) {
-                    $userto = $DB->get_record('user', array('id' => $message->useridto));
+                    $userto = core_user::get_user($message->useridto);
                     $tocontact = (array_key_exists($message->useridto, $contacts) and
                                     ($contacts[$message->useridto]->blocked == 0) );
                     $toblocked = (array_key_exists($message->useridto, $contacts) and
@@ -1211,7 +1211,7 @@ function message_print_search_results($frm, $showicontext=false, $currentuser=nu
 
                 // Load user-from record.
                 if ($message->useridfrom !== $USER->id) {
-                    $userfrom = $DB->get_record('user', array('id' => $message->useridfrom));
+                    $userfrom = core_user::get_user($message->useridfrom);
                     $fromcontact = (array_key_exists($message->useridfrom, $contacts) and
                                     ($contacts[$message->useridfrom]->blocked == 0) );
                     $fromblocked = (array_key_exists($message->useridfrom, $contacts) and
@@ -1294,10 +1294,16 @@ function message_print_search_results($frm, $showicontext=false, $currentuser=nu
 function message_print_user ($user=false, $iscontact=false, $isblocked=false, $includeicontext=false) {
     global $USER, $OUTPUT;
 
+    $userpictureparams = array('size' => 20, 'courseid' => SITEID);
+
     if ($user === false) {
-        echo $OUTPUT->user_picture($USER, array('size' => 20, 'courseid' => SITEID));
+        echo $OUTPUT->user_picture($USER, $userpictureparams);
+    } else if (core_user::is_real_user($user->id)) { // If not real user, then don't show any links.
+        $userpictureparams['link'] = false;
+        echo $OUTPUT->user_picture($USER, $userpictureparams);
+        echo fullname($user);
     } else {
-        echo $OUTPUT->user_picture($user, array('size' => 20, 'courseid' => SITEID));
+        echo $OUTPUT->user_picture($user, $userpictureparams);
 
         $link = new moodle_url("/message/index.php?id=$user->id");
         echo $OUTPUT->action_link($link, fullname($user), null, array('title' =>
@@ -2283,12 +2289,16 @@ function message_print_heading($title, $colspan=3) {
  * system configuration
  *
  * @param bool $ready only return ready-to-use processors
+ * @param bool $reset Reset list of message processors (used in unit tests)
  * @return mixed $processors array of objects containing information on message processors
  */
-function get_message_processors($ready = false) {
+function get_message_processors($ready = false, $reset = false) {
     global $DB, $CFG;
 
     static $processors;
+    if ($reset) {
+        $processors = array();
+    }
 
     if (empty($processors)) {
         // Get all processors, ensure the name column is the first so it will be the array key

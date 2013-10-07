@@ -874,7 +874,6 @@ a.ygtvspacer:hover {
     width: 100%;
     top: 0;
     left: 0;
-    z-index: 1000;
 }
 .fp-iconview .fp-reficons2 {
     position: absolute;
@@ -882,7 +881,6 @@ a.ygtvspacer:hover {
     width: 100%;
     top: 0;
     left: 0;
-    z-index: 1001;
 }
 .fp-iconview .fp-file.fp-hasreferences .fp-reficons1 {
     background: url('[[pix:theme|fp/link]]') no-repeat;
@@ -1077,10 +1075,12 @@ a.ygtvspacer:hover {
 .filemanager.fp-select.fp-zip .fp-file-zip {
     display: none;
 }
-.filemanager.fp-select .fp-file-setmain {
+.filemanager.fp-select .fp-file-setmain,
+.filemanager.fp-select .fp-file-setmain-help {
     display: none;
 }
-.filemanager.fp-select.fp-cansetmain .fp-file-setmain {
+.filemanager.fp-select.fp-cansetmain .fp-file-setmain,
+.filemanager.fp-select.fp-cansetmain .fp-file-setmain-help {
     display: inline-block;
     .ie7-inline-block();
 }
