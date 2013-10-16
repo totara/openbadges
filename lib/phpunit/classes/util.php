@@ -201,9 +201,6 @@ class phpunit_util extends testing_util {
         events_get_handlers('reset');
         core_text::reset_caches();
         get_message_processors(false, true);
-        if (class_exists('repository')) {
-            repository::reset_caches();
-        }
         filter_manager::reset_caches();
         //TODO MDL-25290: add more resets here and probably refactor them to new core function
 
@@ -215,14 +212,14 @@ class phpunit_util extends testing_util {
         get_fast_modinfo(0, 0, true);
 
         // Reset other singletons.
-        if (class_exists('plugin_manager')) {
-            plugin_manager::reset_caches(true);
+        if (class_exists('core_plugin_manager')) {
+            core_plugin_manager::reset_caches(true);
         }
-        if (class_exists('available_update_checker')) {
-            available_update_checker::reset_caches(true);
+        if (class_exists('\core\update\checker')) {
+            \core\update\checker::reset_caches(true);
         }
-        if (class_exists('available_update_deployer')) {
-            available_update_deployer::reset_caches(true);
+        if (class_exists('\core\update\deployer')) {
+            \core\update\deployer::reset_caches(true);
         }
 
         // purge dataroot directory

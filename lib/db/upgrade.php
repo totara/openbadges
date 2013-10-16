@@ -2576,5 +2576,118 @@ function xmldb_main_upgrade($oldversion) {
         upgrade_main_savepoint(true, 2013092700.01);
     }
 
+    if ($oldversion < 2013100400.01) {
+        // Add user_devices core table.
+
+        // Define field id to be added to user_devices.
+        $table = new xmldb_table('user_devices');
+
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'id');
+        $table->add_field('appid', XMLDB_TYPE_CHAR, '128', null, XMLDB_NOTNULL, null, null, 'userid');
+        $table->add_field('name', XMLDB_TYPE_CHAR, '32', null, XMLDB_NOTNULL, null, null, 'appid');
+        $table->add_field('model', XMLDB_TYPE_CHAR, '32', null, XMLDB_NOTNULL, null, null, 'name');
+        $table->add_field('platform', XMLDB_TYPE_CHAR, '32', null, XMLDB_NOTNULL, null, null, 'model');
+        $table->add_field('version', XMLDB_TYPE_CHAR, '32', null, XMLDB_NOTNULL, null, null, 'platform');
+        $table->add_field('pushid', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, 'version');
+        $table->add_field('uuid', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, 'pushid');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, 'uuid');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, 'timecreated');
+
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_key('pushid-userid', XMLDB_KEY_UNIQUE, array('pushid', 'userid'));
+        $table->add_key('pushid-platform', XMLDB_KEY_UNIQUE, array('pushid', 'platform'));
+        $table->add_key('userid', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2013100400.01);
+    }
+
+    if ($oldversion < 2013100800.00) {
+
+        // Define field maxfraction to be added to question_attempts.
+        $table = new xmldb_table('question_attempts');
+        $field = new xmldb_field('maxfraction', XMLDB_TYPE_NUMBER, '12, 7', null, XMLDB_NOTNULL, null, '1', 'minfraction');
+
+        // Conditionally launch add field maxfraction.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2013100800.00);
+    }
+
+    if ($oldversion < 2013100800.01) {
+        // Create a new 'user_password_resets' table.
+        $table = new xmldb_table('user_password_resets');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, null);
+        $table->add_field('timerequested', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, null);
+        $table->add_field('timererequested', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, 0, null);
+        $table->add_field('token', XMLDB_TYPE_CHAR, '32', null, XMLDB_NOTNULL, null, null, null);
+
+        // Adding keys to table.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_key('fk_userid', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
+
+        // Conditionally launch create table.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+        upgrade_main_savepoint(true, 2013100800.01);
+    }
+
+    if ($oldversion < 2013100800.02) {
+        $sql = "INSERT INTO {user_preferences}(userid, name, value)
+                SELECT id, 'htmleditor', 'textarea' FROM {user} u where u.htmleditor = 0";
+        $DB->execute($sql);
+
+        // Define field htmleditor to be dropped from user
+        $table = new xmldb_table('user');
+        $field = new xmldb_field('htmleditor');
+
+        // Conditionally launch drop field requested
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2013100800.02);
+    }
+
+    if ($oldversion < 2013100900.00) {
+
+        // Define field lifetime to be dropped from files_reference.
+        $table = new xmldb_table('files_reference');
+        $field = new xmldb_field('lifetime');
+
+        // Conditionally launch drop field lifetime.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2013100900.00);
+    }
+
+    if ($oldversion < 2013100901.00) {
+        // Fixing possible wrong MIME type for Java Network Launch Protocol (JNLP) files.
+        $select = $DB->sql_like('filename', '?', false);
+        $DB->set_field_select(
+            'files',
+            'mimetype',
+            'application/x-java-jnlp-file',
+            $select,
+            array('%.jnlp')
+        );
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2013100901.00);
+    }
+
     return true;
 }

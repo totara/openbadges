@@ -928,8 +928,6 @@ function file_save_draft_area_files($draftitemid, $contextid, $component, $filea
                     $oldfile->get_referencefileid() != $newfile->get_referencefileid() ||
                     $oldfile->get_userid() != $newfile->get_userid())) {
                 $oldfile->replace_file_with($newfile);
-                // push changes to all local files that are referencing this file
-                $fs->update_references_to_storedfile($oldfile);
             }
 
             // unchanged file or directory - we keep it as is
@@ -1453,6 +1451,7 @@ function &get_mimetypes_array() {
         'jcw'  => array ('type'=>'text/xml', 'icon'=>'markup'),
         'jmt'  => array ('type'=>'text/xml', 'icon'=>'markup'),
         'jmx'  => array ('type'=>'text/xml', 'icon'=>'markup'),
+        'jnlp' => array ('type'=>'application/x-java-jnlp-file', 'icon'=>'markup'),
         'jpe'  => array ('type'=>'image/jpeg', 'icon'=>'jpeg', 'groups'=>array('image', 'web_image'), 'string'=>'image'),
         'jpeg' => array ('type'=>'image/jpeg', 'icon'=>'jpeg', 'groups'=>array('image', 'web_image'), 'string'=>'image'),
         'jpg'  => array ('type'=>'image/jpeg', 'icon'=>'jpeg', 'groups'=>array('image', 'web_image'), 'string'=>'image'),
@@ -2179,7 +2178,7 @@ function send_temp_file($path, $filename, $pathisstring=false) {
             print_error('filenotfound', 'error', $CFG->wwwroot.'/');
         }
         // executed after normal finish or abort
-        @register_shutdown_function('send_temp_file_finished', $path);
+        core_shutdown_manager::register_function('send_temp_file_finished', array($path));
     }
 
     // if user is using IE, urlencode the filename so that multibyte file name will show up correctly on popup

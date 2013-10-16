@@ -36,11 +36,17 @@ information provided here is intended especially for developers.
   Use core_user::get_noreply_user() and core_user::get_support_user() to get noreply and support user's respectively.
   Real users can be used as noreply/support users by setting $CFG->noreplyuserid and $CFG->supportuserid
 * New function readfile_allow_large() in filelib.php for use when very large files may need sending to user.
-* Use plugin_manager::reset_caches() when changing visibility of plugins.
+* Use core_plugin_manager::reset_caches() when changing visibility of plugins.
 * Implement new method get_enabled_plugins() method in subplugin info classes.
 * Each plugin should include version information in version.php.
 * Module and block tables do not contain version column any more, use get_config('xx_yy', 'version') instead.
 * $USER->password field is intentionally unset so that session data does not contain password hashes.
+* Use core_shutdown_manager::register_function() instead of register_shutdown_function().
+* New file packer for .tar.gz files; obtain by calling get_file_packer('application/x-gzip'). Intended initially
+  for use in backup/restore only, as there are limitations on supported filenames. Also new packer for
+  backups which supports both compression formats; get_file_packer('application/vnd.moodle.backup').
+* New optional parameter to stored_file::get_content_file_handle to open file handle with 'gzopen' instead
+  of 'fopen' to read gzip-compressed files if required.
 
 DEPRECATIONS:
 Various previously deprecated functions have now been altered to throw DEBUG_DEVELOPER debugging notices
@@ -99,6 +105,17 @@ Navigation:
     * navmenu()                             -> (no replacement)
     * settings_navigation::
           get_course_modules()              -> (no replacement)
+
+Files and repositories:
+    * stored_file::replace_content_with()   -> stored_file::replace_file_with()
+    * stored_file::set_filesize()           -> stored_file::replace_file_with()
+    * stored_file::get_referencelifetime()  -> (no replacement)
+    * repository::sync_external_file()      -> see repository::sync_reference()
+    * repository::get_file_by_reference()   -> repository::sync_reference()
+    * repository::
+          get_reference_file_lifetime()     -> (no replacement)
+    * repository::sync_individual_file()    -> (no replacement)
+    * repository::reset_caches()            -> (no replacement)
 
 Calendar:
     * add_event()                           -> calendar_event::create()
@@ -221,9 +238,9 @@ Event triggering and event handlers:
 * Additional (optional) param $onlyactive has been added to get_enrolled_users, count_enrolled_users
   functions to get information for only active (excluding suspended enrolments) users. Included two
   helper functions extract_suspended_users, get_suspended_userids to extract suspended user information.
-* The plugin_manager class now provides two new helper methods for getting information
+* The core_plugin_manager class now provides two new helper methods for getting information
   about known plugins: get_plugins_of_type() and get_subplugins_of_plugin().
-* The get_uninstall_url() method of all subclasses of plugininfo_base class is now expected
+* The get_uninstall_url() method of all subclasses of \core\plugininfo\base class is now expected
   to always return moodle_url. Subclasses can use the new method is_uninstall_allowed()
   to control the availability of the 'Uninstall' link at the Plugins overview page (previously
   they would do it by get_uninstall_url() returning null). By default, URL to a new general plugin

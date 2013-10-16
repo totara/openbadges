@@ -34,10 +34,13 @@ defined('MOODLE_INTERNAL') || die();
 class create_and_clean_temp_stuff extends backup_execution_step {
 
     protected function define_execution() {
+        $progress = $this->task->get_progress();
+        $progress->start_progress('Deleting backup directories');
         backup_helper::check_and_create_backup_dir($this->get_backupid());// Create backup temp dir
-        backup_helper::clear_backup_dir($this->get_backupid());           // Empty temp dir, just in case
-        backup_helper::delete_old_backup_dirs(time() - (4 * 60 * 60));    // Delete > 4 hours temp dirs
+        backup_helper::clear_backup_dir($this->get_backupid(), $progress);           // Empty temp dir, just in case
+        backup_helper::delete_old_backup_dirs(time() - (4 * 60 * 60), $progress);    // Delete > 4 hours temp dirs
         backup_controller_dbops::create_backup_ids_temp_table($this->get_backupid()); // Create ids temp table
+        $progress->end_progress();
     }
 }
 
@@ -61,7 +64,10 @@ class drop_and_clean_temp_stuff extends backup_execution_step {
         // 1) If $CFG->keeptempdirectoriesonbackup is not enabled
         // 2) If backup temp dir deletion has been marked to be avoided
         if (empty($CFG->keeptempdirectoriesonbackup) && !$this->skipcleaningtempdir) {
-            backup_helper::delete_backup_dir($this->get_backupid()); // Empty backup dir
+            $progress = $this->task->get_progress();
+            $progress->start_progress('Deleting backup dir');
+            backup_helper::delete_backup_dir($this->get_backupid(), $progress); // Empty backup dir
+            $progress->end_progress();
         }
     }
 
@@ -209,7 +215,7 @@ abstract class backup_questions_activity_structure_step extends backup_activity_
 
         $qas = new backup_nested_element($nameprefix . 'question_attempts');
         $qa = new backup_nested_element($nameprefix . 'question_attempt', array('id'), array(
-                'slot', 'behaviour', 'questionid', 'maxmark', 'minfraction',
+                'slot', 'behaviour', 'questionid', 'maxmark', 'minfraction', 'maxfraction',
                 'flagged', 'questionsummary', 'rightanswer', 'responsesummary',
                 'timemodified'));
 
@@ -1191,7 +1197,7 @@ class backup_users_structure_step extends backup_structure_step {
             'confirmed', 'policyagreed', 'deleted',
             'lang', 'theme', 'timezone', 'firstaccess',
             'lastaccess', 'lastlogin', 'currentlogin',
-            'mailformat', 'maildigest', 'maildisplay', 'htmleditor',
+            'mailformat', 'maildigest', 'maildisplay',
             'autosubscribe', 'trackforums', 'timecreated',
             'timemodified', 'trustbitmask');
 
@@ -1589,7 +1595,8 @@ class backup_main_structure_step extends backup_structure_step {
         $info['original_system_contextid'] = context_system::instance()->id;
 
         // Get more information from controller
-        list($dinfo, $cinfo, $sinfo) = backup_controller_dbops::get_moodle_backup_information($this->get_backupid());
+        list($dinfo, $cinfo, $sinfo) = backup_controller_dbops::get_moodle_backup_information(
+                $this->get_backupid(), $this->get_task()->get_progress());
 
         // Define elements
 
@@ -1704,7 +1711,7 @@ class backup_zip_contents extends backup_execution_step implements file_progress
         $zipfile = $basepath . '/backup.mbz';
 
         // Get the zip packer
-        $zippacker = get_file_packer('application/zip');
+        $zippacker = get_file_packer('application/vnd.moodle.backup');
 
         // Zip files
         $zippacker->archive_to_pathname($files, $zipfile, true, $this);
@@ -1753,7 +1760,8 @@ class backup_store_backup_file extends backup_execution_step {
         $has_file_references = backup_controller_dbops::backup_includes_file_references($this->get_backupid());
         // Perform storage and return it (TODO: shouldn't be array but proper result object)
         return array(
-            'backup_destination' => backup_helper::store_backup_file($this->get_backupid(), $zipfile),
+            'backup_destination' => backup_helper::store_backup_file($this->get_backupid(), $zipfile,
+                    $this->task->get_progress()),
             'include_file_references_to_external_content' => $has_file_references
         );
     }

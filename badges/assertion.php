@@ -24,6 +24,9 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
+define('AJAX_SCRIPT', true);
+define('NO_MOODLE_COOKIES', true); // No need for a session here.
+
 require_once(dirname(dirname(__FILE__)) . '/config.php');
 
 if (empty($CFG->enablebadges)) {
@@ -43,6 +46,6 @@ if (!is_null($action)) {
     $json = $assertion->get_badge_assertion();
 }
 
-header('Content-type: application/json; charset=utf-8');
 
+echo $OUTPUT->header();
 echo json_encode($json);

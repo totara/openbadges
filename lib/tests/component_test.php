@@ -198,10 +198,14 @@ class core_component_testcase extends advanced_testcase {
 
     public function test_is_valid_plugin_name() {
         $this->assertTrue(core_component::is_valid_plugin_name('mod', 'example1'));
+        $this->assertTrue(core_component::is_valid_plugin_name('mod', 'feedback360'));
+        $this->assertFalse(core_component::is_valid_plugin_name('mod', 'feedback_360'));
+        $this->assertFalse(core_component::is_valid_plugin_name('mod', '2feedback'));
         $this->assertFalse(core_component::is_valid_plugin_name('mod', '1example'));
         $this->assertFalse(core_component::is_valid_plugin_name('mod', 'example.xx'));
         $this->assertFalse(core_component::is_valid_plugin_name('mod', '.example'));
         $this->assertFalse(core_component::is_valid_plugin_name('mod', '_example'));
+        $this->assertFalse(core_component::is_valid_plugin_name('mod', 'example_'));
         $this->assertFalse(core_component::is_valid_plugin_name('mod', 'example_x1'));
         $this->assertFalse(core_component::is_valid_plugin_name('mod', 'example-x1'));
         $this->assertFalse(core_component::is_valid_plugin_name('mod', 'role'));
@@ -209,12 +213,16 @@ class core_component_testcase extends advanced_testcase {
         $this->assertTrue(core_component::is_valid_plugin_name('tool', 'example1'));
         $this->assertTrue(core_component::is_valid_plugin_name('tool', 'example_x1'));
         $this->assertTrue(core_component::is_valid_plugin_name('tool', 'example_x1_xxx'));
+        $this->assertTrue(core_component::is_valid_plugin_name('tool', 'feedback360'));
+        $this->assertTrue(core_component::is_valid_plugin_name('tool', 'feed_back360'));
         $this->assertTrue(core_component::is_valid_plugin_name('tool', 'role'));
         $this->assertFalse(core_component::is_valid_plugin_name('tool', '1example'));
         $this->assertFalse(core_component::is_valid_plugin_name('tool', 'example.xx'));
         $this->assertFalse(core_component::is_valid_plugin_name('tool', 'example-xx'));
         $this->assertFalse(core_component::is_valid_plugin_name('tool', '.example'));
         $this->assertFalse(core_component::is_valid_plugin_name('tool', '_example'));
+        $this->assertFalse(core_component::is_valid_plugin_name('tool', 'example_'));
+        $this->assertFalse(core_component::is_valid_plugin_name('tool', 'example__x1'));
     }
 
     public function test_normalize_component() {
@@ -323,6 +331,42 @@ class core_component_testcase extends advanced_testcase {
         }
     }
 
+    public function test_get_subtype_parent() {
+        global $CFG;
+
+        $this->assertNull(core_component::get_subtype_parent('mod'));
+
+        // Any plugin with more subtypes is ok here.
+        $this->assertFileExists("$CFG->dirroot/mod/assign/db/subplugins.php");
+        $this->assertSame('mod_assign', core_component::get_subtype_parent('assignsubmission'));
+        $this->assertSame('mod_assign', core_component::get_subtype_parent('assignfeedback'));
+        $this->assertNull(core_component::get_subtype_parent('assignxxxxx'));
+    }
+
+    public function test_get_subplugins() {
+        global $CFG;
+
+        // Any plugin with more subtypes is ok here.
+        $this->assertFileExists("$CFG->dirroot/mod/assign/db/subplugins.php");
+
+        $subplugins = core_component::get_subplugins('mod_assign');
+        $this->assertSame(array('assignsubmission', 'assignfeedback'), array_keys($subplugins));
+
+        $subs = core_component::get_plugin_list('assignsubmission');
+        $feeds = core_component::get_plugin_list('assignfeedback');
+
+        $this->assertSame(array_keys($subs), $subplugins['assignsubmission']);
+        $this->assertSame(array_keys($feeds), $subplugins['assignfeedback']);
+
+        // Any plugin without subtypes is ok here.
+        $this->assertFileExists("$CFG->dirroot/mod/choice");
+        $this->assertFileNotExists("$CFG->dirroot/mod/choice/db/subplugins.php");
+
+        $this->assertNull(core_component::get_subplugins('mod_choice'));
+
+        $this->assertNull(core_component::get_subplugins('xxxx_yyyy'));
+    }
+
     public function test_get_plugin_types_with_subplugins() {
         global $CFG;
 
@@ -341,11 +385,17 @@ class core_component_testcase extends advanced_testcase {
     }
 
     public function test_get_plugin_list_with_file() {
-        // Force the cache reset.
-        phpunit_util::reset_all_data();
         $this->resetAfterTest(true);
 
-        $expected = array('completion', 'log', 'loglive', 'outline', 'participation', 'progress', 'stats');
+        // No extra reset here because core_component reset automatically.
+
+        $expected = array();
+        $reports = core_component::get_plugin_list('report');
+        foreach ($reports as $name => $fulldir) {
+            if (file_exists("$fulldir/lib.php")) {
+                $expected[] = $name;
+            }
+        }
 
         // Test cold.
         $list = core_component::get_plugin_list_with_file('report', 'lib.php', false);

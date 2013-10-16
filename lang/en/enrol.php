@@ -38,7 +38,9 @@ $string['defaultenrol_desc'] = 'It is possible to add this plugin to all new cou
 $string['deleteinstanceconfirm'] = 'You are about to delete the enrolment method "{$a->name}". All {$a->users} users currently enrolled using this method will be unenrolled and any course-related data such as users\' grades, group membership or forum subscriptions will be deleted.
 
 Are you sure you want to continue?';
+$string['deleteinstanceconfirmself'] = 'Are you really sure you want to delete instance "{$a->name}" that gives you access to this course? It is possible that you will not be able to access this course if you continue.';
 $string['deleteinstancenousersconfirm'] = 'You are about to delete the enrolment method "{$a->name}". Are you sure you want to continue?';
+$string['disableinstanceconfirmself'] = 'Are you really sure you want to disable instance "{$a->name}" that gives you access to this course? It is possible that you will not be able to access this course if you continue.';
 $string['durationdays'] = '{$a} days';
 $string['editenrolment'] = 'Edit enrolment';
 $string['enrol'] = 'Enrol';
@@ -80,6 +82,8 @@ $string['expirynotifyhour'] = 'Hour to send enrolment expiry notifications';
 $string['expirythreshold'] = 'Notification threshold';
 $string['expirythreshold_help'] = 'How long before expiration should be users notified?';
 $string['finishenrollingusers'] = 'Finish enrolling users';
+$string['instanceeditselfwarning'] = 'Warning:';
+$string['instanceeditselfwarningtext'] = 'You are enrolled into this course through this enrolment method, changes may affect your access to this course.';
 $string['invalidenrolinstance'] = 'Invalid enrolment instance';
 $string['invalidrole'] = 'Invalid role';
 $string['manageenrols'] = 'Manage enrol plugins';
@@ -106,6 +110,8 @@ $string['rolefromcategory'] = '{$a->role} (Inherited from course category)';
 $string['rolefromsystem'] = '{$a->role} (Assigned at site level)';
 $string['startdatetoday'] = 'Today';
 $string['synced'] = 'Synced';
+$string['testsettings'] = 'Test settings';
+$string['testsettingsheading'] = 'Test enrol settings - {$a}';
 $string['totalenrolledusers'] = '{$a} enrolled users';
 $string['totalotherusers'] = '{$a} other users';
 $string['unassignnotpermitted'] = 'You do not have permission to unassign roles in this course';

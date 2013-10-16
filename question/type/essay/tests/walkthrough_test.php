@@ -74,6 +74,9 @@ class qtype_essay_walkthrough_testcase extends qbehaviour_walkthrough_test_base 
 
     public function test_deferred_feedback_html_editor() {
 
+        // The current text editor depends on the users profile setting - so it needs a valid user.
+        $this->setAdminUser();
+
         // Create an essay question.
         $q = test_question_maker::make_question('essay', 'editor');
         $this->start_attempt_at_question($q, 'deferredfeedback', 1);
@@ -177,6 +180,9 @@ class qtype_essay_walkthrough_testcase extends qbehaviour_walkthrough_test_base 
     }
 
     public function test_responsetemplate() {
+
+        // The current text editor depends on the users profile setting - so it needs a valid user.
+        $this->setAdminUser();
 
         // Create an essay question.
         $q = test_question_maker::make_question('essay', 'responsetemplate');
