@@ -294,7 +294,11 @@ function get_component_version($component, $source='installed') {
     // block
     if ($type === 'block') {
         if ($source === 'installed') {
-            return $DB->get_field('block', 'version', array('name'=>$name));
+            if ($CFG->version < 2013092001.02) {
+                return $DB->get_field('block', 'version', array('name'=>$name));
+            } else {
+                return get_config('block_'.$name, 'version');
+            }
         } else {
             $blocks = core_component::get_plugin_list('block');
             if (empty($blocks[$name]) or !is_readable($blocks[$name].'/version.php')) {
@@ -5162,8 +5166,8 @@ class admin_setting_manageenrols extends admin_setting {
 
             $test = '';
             if (!empty($enrols_available[$enrol]) and method_exists($enrols_available[$enrol], 'test_settings')) {
-                $url = new moodle_url('/enrol/test_settings.php', array('enrol'=>$enrol, 'sesskey'=>sesskey()));
-                $test = html_writer::link($url, $strtest);
+                $testsettingsurl = new moodle_url('/enrol/test_settings.php', array('enrol'=>$enrol, 'sesskey'=>sesskey()));
+                $test = html_writer::link($testsettingsurl, $strtest);
             }
 
             // Add a row to the table.
@@ -5716,8 +5720,8 @@ class admin_setting_manageauths extends admin_setting {
 
             $test = '';
             if (!empty($authplugins[$auth]) and method_exists($authplugins[$auth], 'test_settings')) {
-                $url = new moodle_url('/auth/test_settings.php', array('auth'=>$auth, 'sesskey'=>sesskey()));
-                $test = html_writer::link($url, $txt->testsettings);
+                $testurl = new moodle_url('/auth/test_settings.php', array('auth'=>$auth, 'sesskey'=>sesskey()));
+                $test = html_writer::link($testurl, $txt->testsettings);
             }
 
             // Add a row to the table.

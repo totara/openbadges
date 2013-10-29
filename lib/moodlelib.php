@@ -4644,6 +4644,14 @@ function update_internal_user_password($user, $password) {
     if ($passwordchanged || $algorithmchanged) {
         $DB->set_field('user', 'password',  $hashedpassword, array('id' => $user->id));
         $user->password = $hashedpassword;
+
+        // Trigger event.
+        $event = \core\event\user_updated::create(array(
+             'objectid' => $user->id,
+             'context' => context_user::instance($user->id)
+        ));
+        $event->add_record_snapshot('user', $user);
+        $event->trigger();
     }
 
     return true;
@@ -5140,18 +5148,24 @@ function remove_course_contents($courseid, $showfeedback = true, array $options 
  * @param array $fields array of date fields from mod table
  * @param int $timeshift time difference
  * @param int $courseid
+ * @param int $modid (Optional) passed if specific mod instance in course needs to be updated.
  * @return bool success
  */
-function shift_course_mod_dates($modname, $fields, $timeshift, $courseid) {
+function shift_course_mod_dates($modname, $fields, $timeshift, $courseid, $modid = 0) {
     global $CFG, $DB;
     include_once($CFG->dirroot.'/mod/'.$modname.'/lib.php');
 
     $return = true;
+    $params = array($timeshift, $courseid);
     foreach ($fields as $field) {
         $updatesql = "UPDATE {".$modname."}
                           SET $field = $field + ?
                         WHERE course=? AND $field<>0";
-        $return = $DB->execute($updatesql, array($timeshift, $courseid)) && $return;
+        if ($modid) {
+            $updatesql .= ' AND id=?';
+            $params[] = $modid;
+        }
+        $return = $DB->execute($updatesql, $params) && $return;
     }
 
     $refreshfunction = $modname.'_refresh_events';
@@ -5605,32 +5619,24 @@ function email_to_user($user, $from, $subject, $messagetext, $messagehtml = '', 
 
     global $CFG;
 
-    if (empty($user) || empty($user->email)) {
-        $nulluser = 'User is null or has no email';
-        error_log($nulluser);
-        if (CLI_SCRIPT) {
-            mtrace('Error: lib/moodlelib.php email_to_user(): '.$nulluser);
-        }
+    if (empty($user) or empty($user->id)) {
+        debugging('Can not send email to null user', DEBUG_DEVELOPER);
+        return false;
+    }
+
+    if (empty($user->email)) {
+        debugging('Can not send email to user without email: '.$user->id, DEBUG_DEVELOPER);
         return false;
     }
 
     if (!empty($user->deleted)) {
-        // Do not mail deleted users.
-        $userdeleted = 'User is deleted';
-        error_log($userdeleted);
-        if (CLI_SCRIPT) {
-            mtrace('Error: lib/moodlelib.php email_to_user(): '.$userdeleted);
-        }
+        debugging('Can not send email to deleted user: '.$user->id, DEBUG_DEVELOPER);
         return false;
     }
 
     if (!empty($CFG->noemailever)) {
         // Hidden setting for development sites, set in config.php if needed.
-        $noemail = 'Not sending email due to noemailever config setting';
-        error_log($noemail);
-        if (CLI_SCRIPT) {
-            mtrace('Error: lib/moodlelib.php email_to_user(): '.$noemail);
-        }
+        debugging('Not sending email due to $CFG->noemailever config setting', DEBUG_NORMAL);
         return true;
     }
 
@@ -5861,6 +5867,15 @@ function setnew_password_and_mail($user, $fasthash = false) {
 
     $hashedpassword = hash_internal_user_password($newpassword, $fasthash);
     $DB->set_field('user', 'password', $hashedpassword, array('id' => $user->id));
+    $user->password = $hashedpassword;
+
+    // Trigger event.
+    $event = \core\event\user_updated::create(array(
+        'objectid' => $user->id,
+        'context' => context_user::instance($user->id)
+    ));
+    $event->add_record_snapshot('user', $user);
+    $event->trigger();
 
     $a = new stdClass();
     $a->firstname   = fullname($user, true);

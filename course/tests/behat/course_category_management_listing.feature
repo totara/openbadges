@@ -515,6 +515,41 @@ Feature: Course category management interface performs as expected
     And I should see "Next" in the "#course-listing .listing-pagination" "css_element"
     And I should see "Last" in the "#course-listing .listing-pagination" "css_element"
 
+  Scenario: Test pagination is only shown when required
+    Given the following "categories" exists:
+      | name | category | idnumber |
+      | Cat 1 | 0 | CAT1 |
+    And the following "courses" exists:
+      | category | fullname | shortname | idnumber |
+      | CAT1 | Course 1 | Course 1 | C1 |
+      | CAT1 | Course 2 | Course 2 | C2 |
+      | CAT1 | Course 3 | Course 3 | C3 |
+      | CAT1 | Course 4 | Course 4 | C4 |
+      | CAT1 | Course 5 | Course 5 | C5 |
+    And I log in as "admin"
+    And I go to the courses management page
+    And I should see the "Course categories" management page
+    And I click on "Cat 1" "link"
+    # Redirect.
+    And I should see the "Course categories and courses" management page
+    And I click on "Re-sort courses" "link"
+    And I click on "By idnumber" "link" in the ".course-listing-actions" "css_element"
+    # Redirect.
+    And I should see "Per page: 20" in the ".course-listing-actions" "css_element"
+    And I should see course listing "Course 1" before "Course 2"
+    And I should see course listing "Course 2" before "Course 3"
+    And I should see course listing "Course 3" before "Course 4"
+    And I should see course listing "Course 4" before "Course 5"
+    And "#course-listing .listing-pagination" "css_element" should not exists
+    And I click on "5" "link" in the ".course-listing-actions" "css_element"
+    # Redirect
+    And I should see "Per page: 5" in the ".course-listing-actions" "css_element"
+    And I should see course listing "Course 1" before "Course 2"
+    And I should see course listing "Course 2" before "Course 3"
+    And I should see course listing "Course 3" before "Course 4"
+    And I should see course listing "Course 4" before "Course 5"
+    And "#course-listing .listing-pagination" "css_element" should not exists
+
   # We need at least 30 courses for this next test.
   @javascript
   Scenario: Test many course pagination
@@ -658,3 +693,109 @@ Feature: Course category management interface performs as expected
     # Redirect
     And I should see "Edit course settings"
     And I should see "Course 1"
+
+  @javascript
+  Scenario: Test AJAX expanded categories stay open.
+    Given the following "categories" exists:
+      | name | category | idnumber |
+      | Cat 1 | 0 | CAT1 |
+      | Cat 2 | 0 | CAT2 |
+      | Cat 1-1 | CAT1 | CAT3 |
+      | Cat 1-2 | CAT1 | CAT4 |
+      | Cat 1-1-1 | CAT3 | CAT5 |
+      | Cat 1-1-2 | CAT3 | CAT6 |
+      | Cat 2-1 | CAT2 | CAT7 |
+      | Cat 2-1-1 | CAT7 | CAT8 |
+      | Cat 2-1-1-1 | CAT8 | CAT10 |
+      | Cat 2-1-2 | CAT7 | CAT9 |
+      | Cat 2-1-2-1 | CAT9 | CAT11 |
+
+    And I log in as "admin"
+    And I go to the courses management page
+    And I should see the "Course categories" management page
+    And I should see "Cat 1" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2" in the "#course-category-listings ul.ml" "css_element"
+    And I should not see "Cat 1-1" in the "#course-category-listings ul.ml" "css_element"
+    And I should not see "Cat 1-2" in the "#course-category-listings ul.ml" "css_element"
+    And I should not see "Cat 2-1" in the "#course-category-listings ul.ml" "css_element"
+    And I click to expand category "CAT2" in the management interface
+    # AJAX action - no redirect.
+    And I click to expand category "CAT7" in the management interface
+    # AJAX action - no redirect.
+    And I click to expand category "CAT9" in the management interface
+    # AJAX action - no redirect.
+    And I should see "Cat 1" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2" in the "#course-category-listings ul.ml" "css_element"
+    And I should not see "Cat 1-1" in the "#course-category-listings ul.ml" "css_element"
+    And I should not see "Cat 1-2" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2-1" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2-1-1" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2-1-2" in the "#course-category-listings ul.ml" "css_element"
+    And I should not see "Cat 2-1-1-1" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2-1-2-1" in the "#course-category-listings ul.ml" "css_element"
+    And I click on "Cat 1" "link"
+    # Redirect.
+    And I should see the "Course categories and courses" management page
+    And I should see "Cat 1" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 1-1" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 1-2" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2-1" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2-1-1" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2-1-2" in the "#course-category-listings ul.ml" "css_element"
+    And I should not see "Cat 2-1-1-1" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2-1-2-1" in the "#course-category-listings ul.ml" "css_element"
+    And I click on "Re-sort subcategories" "link" in the ".category-listing-actions" "css_element"
+    And I click on "By idnumber" "link" in the ".category-listing-actions" "css_element"
+    # Redirect.
+    And I should see the "Course categories and courses" management page
+    And I should see "Cat 1" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 1-1" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 1-2" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2-1" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2-1-1" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2-1-2" in the "#course-category-listings ul.ml" "css_element"
+    And I should not see "Cat 2-1-1-1" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat 2-1-2-1" in the "#course-category-listings ul.ml" "css_element"
+
+  @javascript
+  Scenario: Test category expansion after deletion
+    Given the following "categories" exists:
+      | name | category | idnumber |
+      | Cat A (1) | 0 | CAT1 |
+      | Cat B (2) | 0 | CAT2 |
+      | Cat C (1-1) | CAT1 | CAT3 |
+      | Cat D (2-1) | CAT2 | CAT4 |
+      | Cat E (2-1-1) | CAT4 | CAT5 |
+
+    And I log in as "admin"
+    And I go to the courses management page
+    And I should see the "Course categories" management page
+    And I should see "Cat A (1)" in the "#course-category-listings ul.ml" "css_element"
+    And I should see "Cat B (2)" in the "#course-category-listings ul.ml" "css_element"
+    And I should not see "Cat C (1-1)" in the "#course-category-listings ul.ml" "css_element"
+    And I should not see "Cat D (2-1)" in the "#course-category-listings ul.ml" "css_element"
+    And I should not see "Cat E (2-1-1)" in the "#course-category-listings ul.ml" "css_element"
+    And I click to expand category "CAT1" in the management interface
+    And I should see "Cat C (1-1)" in the "#course-category-listings ul.ml" "css_element"
+    # AJAX action - no redirect.
+    And I click to expand category "CAT2" in the management interface
+    And I should see "Cat D (2-1)" in the "#course-category-listings ul.ml" "css_element"
+    # AJAX action - no redirect.
+    And I click to expand category "CAT4" in the management interface
+    And I should see "Cat E (2-1-1)" in the "#course-category-listings ul.ml" "css_element"
+    # AJAX action - no redirect.
+    And I click on "delete" action for "Cat B (2)" in management category listing
+    # Redirect.
+    And I should see "Delete category: Cat B (2)"
+    And I should see "Contents of Cat B (2)"
+    And I press "Delete"
+    # Redirect
+    And I should see "Delete category: Cat B (2)"
+    And I should see "Deleted course category Cat B (2)"
+    And I press "Continue"
+    # Redirect.
+    And I should see the "Course categories and courses" management page
+    And I should see "Cat A (1)" in the "#course-category-listings ul.ml" "css_element"
+    And I should not see "Cat B (2)" in the "#course-category-listings ul.ml" "css_element"

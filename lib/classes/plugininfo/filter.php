@@ -71,13 +71,20 @@ class filter extends base {
             return;
         }
 
-        if (!$hassiteconfig or !file_exists($this->full_path('settings.php'))) {
+        if (!$hassiteconfig) {
+            return;
+        }
+        if (file_exists($this->full_path('settings.php'))) {
+            $fullpath = $this->full_path('settings.php');
+        } else if (file_exists($this->full_path('filtersettings.php'))) {
+            $fullpath = $this->full_path('filtersettings.php');
+        } else {
             return;
         }
 
         $section = $this->get_settings_section_name();
         $settings = new admin_settingpage($section, $this->displayname, 'moodle/site:config', $this->is_enabled() === false);
-        include($this->full_path('filtersettings.php')); // This may also set $settings to null.
+        include($fullpath); // This may also set $settings to null.
 
         if ($settings) {
             $ADMIN->add($parentnodename, $settings);
@@ -105,10 +112,24 @@ class filter extends base {
      * @private
      */
     public function uninstall_cleanup() {
-        global $DB;
+        global $DB, $CFG;
 
         $DB->delete_records('filter_active', array('filter' => $this->name));
         $DB->delete_records('filter_config', array('filter' => $this->name));
+
+        if (empty($CFG->filterall)) {
+            $stringfilters = array();
+        } else if (!empty($CFG->stringfilters)) {
+            $stringfilters = explode(',', $CFG->stringfilters);
+            $stringfilters = array_combine($stringfilters, $stringfilters);
+        } else {
+            $stringfilters = array();
+        }
+
+        unset($stringfilters[$this->name]);
+
+        set_config('stringfilters', implode(',', $stringfilters));
+        set_config('filterall', !empty($stringfilters));
 
         parent::uninstall_cleanup();
     }

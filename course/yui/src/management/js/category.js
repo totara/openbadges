@@ -102,7 +102,11 @@ Category.prototype = {
      * @returns {Boolean}
      */
     handle : function(action, e) {
-        var catarg = {categoryid : this.get('categoryid')};
+        var catarg = {categoryid : this.get('categoryid')},
+            selected = this.get('console').get('activecategoryid');
+        if (selected && selected !== catarg.categoryid) {
+            catarg.selectedcategory = selected;
+        }
         switch (action) {
             case 'moveup':
                 e.preventDefault();
@@ -151,6 +155,7 @@ Category.prototype = {
             title : M.util.get_string('collapse', 'moodle'),
             alt : M.util.get_string('collapse', 'moodle')
         });
+        this.get('console').performAjaxAction('expandcategory', {categoryid : this.get('categoryid')}, null, this);
     },
 
     /**
@@ -166,6 +171,7 @@ Category.prototype = {
             title : M.util.get_string('expand', 'moodle'),
             alt : M.util.get_string('expand', 'moodle')
         });
+        this.get('console').performAjaxAction('collapsecategory', {categoryid : this.get('categoryid')}, null, this);
     },
 
     /**
@@ -323,7 +329,7 @@ Category.prototype = {
                 if (typeof courses[key] === 'object') {
                     course = console.getCourseById(courses[key].id);
                     if (course) {
-                        if (courses[key].show === "1") {
+                        if (courses[key].visible === "1") {
                             course.markVisible();
                         } else {
                             course.markHidden();
@@ -353,7 +359,7 @@ Category.prototype = {
                 if (typeof categories[key] === 'object') {
                     category = console.getCategoryById(categories[key].id);
                     if (category) {
-                        if (categories[key].show === "1") {
+                        if (categories[key].visible === "1") {
                             category.markVisible();
                         } else {
                             category.markHidden();

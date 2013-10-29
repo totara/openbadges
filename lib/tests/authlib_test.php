@@ -39,6 +39,8 @@ class core_authlib_testcase extends advanced_testcase {
         $oldlog = ini_get('error_log');
         ini_set('error_log', "$CFG->dataroot/testlog.log"); // Prevent standard logging.
 
+        unset_config('noemailever');
+
         set_config('lockoutthreshold', 0);
         set_config('lockoutwindow', 60*20);
         set_config('lockoutduration', 60*30);
@@ -60,10 +62,10 @@ class core_authlib_testcase extends advanced_testcase {
         login_attempt_failed($user);
         login_attempt_failed($user);
         $this->assertFalse(login_is_lockedout($user));
-        ob_start();
+        $sink = $this->redirectEmails();
         login_attempt_failed($user);
-        $output = ob_get_clean();
-        $this->assertContains('noemailever', $output);
+        $this->assertCount(1, $sink->get_messages());
+        $sink->close();
         $this->assertTrue(login_is_lockedout($user));
 
         // Test unlock works.
@@ -90,10 +92,10 @@ class core_authlib_testcase extends advanced_testcase {
 
         // Test lock duration works.
 
-        ob_start(); // Prevent nomailever notice.
+        $sink = $this->redirectEmails();
         login_attempt_failed($user);
-        $output = ob_get_clean();
-        $this->assertContains('noemailever', $output);
+        $this->assertCount(1, $sink->get_messages());
+        $sink->close();
         $this->assertTrue(login_is_lockedout($user));
         set_user_preference('login_lockout', time()-60*30+10, $user);
         $this->assertTrue(login_is_lockedout($user));
@@ -119,6 +121,8 @@ class core_authlib_testcase extends advanced_testcase {
 
         $oldlog = ini_get('error_log');
         ini_set('error_log', "$CFG->dataroot/testlog.log"); // Prevent standard logging.
+
+        unset_config('noemailever');
 
         set_config('lockoutthreshold', 0);
         set_config('lockoutwindow', 60*20);
@@ -168,9 +172,10 @@ class core_authlib_testcase extends advanced_testcase {
         $result = authenticate_user_login('username1', 'nopass', false, $reason);
         $this->assertFalse($result);
         $this->assertEquals(AUTH_LOGIN_FAILED, $reason);
-        ob_start(); // Prevent nomailever notice.
+        $sink = $this->redirectEmails();
         $result = authenticate_user_login('username1', 'nopass', false, $reason);
-        ob_end_clean();
+        $this->assertCount(1, $sink->get_messages());
+        $sink->close();
         $this->assertFalse($result);
         $this->assertEquals(AUTH_LOGIN_FAILED, $reason);
 

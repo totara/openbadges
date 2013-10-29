@@ -499,11 +499,35 @@ class behat_course extends behat_base {
         // Adding chr(10) to save changes.
         $activity = $this->escape($activityname);
         return array(
-            new Given('I click on "' . get_string('actions', 'moodle') . '" "link" in the "' . $activity . '" activity'),
+            new Given('I open "' . $activity . '" actions menu'),
             new Given('I click on "' . get_string('edittitle') . '" "link" in the "' . $activity .'" activity'),
             new Given('I fill in "title" with "' . $this->escape($newactivityname) . chr(10) . '"'),
             new Given('I wait "2" seconds')
         );
+    }
+
+    /**
+     * Opens an activity actions menu if it is not already opened.
+     *
+     * @Given /^I open "(?P<activity_name_string>(?:[^"]|\\")*)" actions menu$/
+     * @throws DriverException The step is not available when Javascript is disabled
+     * @param string $activityname
+     * @return Given
+     */
+    public function i_open_actions_menu($activityname) {
+
+        if (!$this->running_javascript()) {
+            throw new DriverException('Activities actions menu not available when Javascript is disabled');
+        }
+
+        // If it is already opened we do nothing.
+        $activitynode = $this->get_activity_node($activityname);
+        $classes = array_flip(explode(' ', $activitynode->getAttribute('class')));
+        if (!empty($classes['action-menu-shown'])) {
+            return;
+        }
+
+        return new Given('I click on "' . get_string('actions', 'moodle') . '" "link" in the "' . $this->escape($activityname) . '" activity');
     }
 
     /**
@@ -518,7 +542,7 @@ class behat_course extends behat_base {
         $steps = array();
         $activity = $this->escape($activityname);
         if ($this->running_javascript()) {
-            $steps[] = new Given('I click on "' . get_string('actions', 'moodle') . '" "link" in the "' . $activity . '" activity');
+            $steps[] = new Given('I open "' . $activity . '" actions menu');
         }
         $steps[] = new Given('I click on "' . get_string('moveright') . '" "link" in the "' . $activity . '" activity');
 
@@ -541,7 +565,7 @@ class behat_course extends behat_base {
         $steps = array();
         $activity = $this->escape($activityname);
         if ($this->running_javascript()) {
-            $steps[] = new Given('I click on "' . get_string('actions', 'moodle') . '" "link" in the "' . $activity . '" activity');
+            $steps[] = new Given('I open "' . $activity . '" actions menu');
         }
         $steps[] = new Given('I click on "' . get_string('moveleft') . '" "link" in the "' . $activity . '" activity');
 
@@ -599,7 +623,7 @@ class behat_course extends behat_base {
         $steps = array();
         $activity = $this->escape($activityname);
         if ($this->running_javascript()) {
-            $steps[] = new Given('I click on "' . get_string('actions', 'moodle') . '" "link" in the "' . $activity . '" activity');
+            $steps[] = new Given('I open "' . $activity . '" actions menu');
         }
         $steps[] = new Given('I click on "' . get_string('duplicate') . '" "link" in the "' . $activity . '" activity');
         $steps[] = new Given('I press "' . get_string('continue') .'"');
@@ -619,7 +643,7 @@ class behat_course extends behat_base {
         $steps = array();
         $activity = $this->escape($activityname);
         if ($this->running_javascript()) {
-            $steps[] = new Given('I click on "' . get_string('actions', 'moodle') . '" "link" in the "' . $activity . '" activity');
+            $steps[] = new Given('I open "' . $activity . '" actions menu');
         }
         $steps[] = new Given('I click on "' . get_string('duplicate') . '" "link" in the "' . $activity . '" activity');
         $steps[] = new Given('I press "' . get_string('continue') .'"');
@@ -862,10 +886,14 @@ class behat_course extends behat_base {
      * Returns a category node from within the management interface.
      *
      * @param string $name The name of the category.
+     * @param bool $link If set to true we'll resolve to the link rather than just the node.
      * @return \Behat\Mink\Element\NodeElement
      */
-    protected function get_management_category_listing_node_by_name($name) {
-        $selector = "//div[@id='category-listing']//li[contains(concat(' ', normalize-space(@class), ' '), ' listitem-category ')]//a[text()='{$name}']/ancestor::li[@data-id]";
+    protected function get_management_category_listing_node_by_name($name, $link = false) {
+        $selector = "//div[@id='category-listing']//li[contains(concat(' ', normalize-space(@class), ' '), ' listitem-category ')]//a[text()='{$name}']";
+        if ($link === false) {
+            $selector .= "/ancestor::li[@data-id]";
+        }
         return $this->find('xpath', $selector);
     }
 
@@ -873,10 +901,14 @@ class behat_course extends behat_base {
      * Returns a course node from within the management interface.
      *
      * @param string $name The name of the course.
+     * @param bool $link If set to true we'll resolve to the link rather than just the node.
      * @return \Behat\Mink\Element\NodeElement
      */
-    protected function get_management_course_listing_node_by_name($name) {
-        $selector = "//div[@id='course-listing']//li[contains(concat(' ', @class, ' '), ' listitem-course ')]//a[text()='{$name}']/ancestor::li[@data-id]";
+    protected function get_management_course_listing_node_by_name($name, $link = false) {
+        $selector = "//div[@id='course-listing']//li[contains(concat(' ', @class, ' '), ' listitem-course ')]//a[text()='{$name}']";
+        if ($link === false) {
+            $selector .= "/ancestor::li[@data-id]";
+        }
         return $this->find('xpath', $selector);
     }
 
@@ -899,8 +931,8 @@ class behat_course extends behat_base {
      * @param string $name
      */
     public function i_click_on_category_in_the_management_interface($name) {
-        $node = $this->get_management_category_listing_node_by_name($name);
-        $node->find('css', 'a.categoryname')->click();
+        $node = $this->get_management_category_listing_node_by_name($name, true);
+        $node->click();
     }
 
     /**
@@ -910,8 +942,8 @@ class behat_course extends behat_base {
      * @param string $name
      */
     public function i_click_on_course_in_the_management_interface($name) {
-        $node = $this->get_management_course_listing_node_by_name($name);
-        $node->find('css', 'a.coursename')->click();
+        $node = $this->get_management_course_listing_node_by_name($name, true);
+        $node->click();
     }
 
     /**
@@ -1201,7 +1233,7 @@ class behat_course extends behat_base {
             throw new ExpectationException("Could not find the actions for $listingtype", $this->getSession());
         }
         $actionnode = $actionsnode->find('css', '.action-'.$action);
-        if ($actionnode === null && $this->running_javascript()) {
+        if ($this->running_javascript() && !$actionnode->isVisible()) {
             $actionsnode->find('css', 'a.toggle-display')->click();
             if ($actionnode) {
                 $actionnode = $listingnode->find('css', '.action-'.$action);

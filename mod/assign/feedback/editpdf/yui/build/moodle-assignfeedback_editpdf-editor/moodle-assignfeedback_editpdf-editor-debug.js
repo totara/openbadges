@@ -3310,7 +3310,7 @@ EDITOR.prototype = {
                     }
                     filename = stamp.substr(stamp.lastIndexOf('/'));
                     this.currentedit.stamp = filename;
-                    this.refresh_button_state();
+                    this.handle_tool_button(e, "stamp");
                 },
                 context: this
             });
@@ -3333,7 +3333,7 @@ EDITOR.prototype = {
         currenttoolnode.removeClass('assignfeedback_editpdf_selectedbutton');
         currenttoolnode.setAttribute('aria-pressed', 'false');
         this.currentedit.tool = tool;
-        if (tool !== "comment" && tool !== "select") {
+        if (tool !== "comment" && tool !== "select" && tool !== "stamp") {
             this.lastannotationtool = tool;
         }
         this.refresh_button_state();
@@ -3690,6 +3690,9 @@ EDITOR.prototype = {
         this.loadingicon.hide();
         drawingcanvas.setStyle('backgroundImage', 'url("' + page.url + '")');
 
+        // Update page select.
+        Y.one(SELECTOR.PAGESELECT).set('value', this.currentpage);
+
         this.redraw();
     },
 
@@ -3713,7 +3716,7 @@ EDITOR.prototype = {
             for (i = 0; i < this.pages.length; i++) {
                 option = Y.Node.create('<option/>');
                 option.setAttribute('value', i);
-                option.setHTML((i+1));
+                option.setHTML(M.util.get_string('pagenumber', 'assignfeedback_editpdf', i+1));
                 pageselect.append(option);
             }
         }

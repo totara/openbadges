@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This file is responsible for serving of yui images
+ * This file is responsible for serving of yui Javascript and CSS
  *
  * @package   core
  * @copyright 2009 Petr Skoda (skodak)  {@link http://skodak.org}
@@ -68,7 +68,8 @@ $parts = explode('&', $parts);
 $cache = true;
 $lastmodified = 0;
 
-foreach ($parts as $part) {
+while (count($parts)) {
+    $part = array_shift($parts);
     if (empty($part)) {
         continue;
     }
@@ -79,8 +80,156 @@ foreach ($parts as $part) {
         $content .= "\n// Wrong combo resource $part!\n";
         continue;
     }
-    //debug($bits);
+
     $version = array_shift($bits);
+    if ($version === 'rollup') {
+        $revision = array_shift($bits);
+        $rollupname = array_shift($bits);
+
+        if (strpos($rollupname, 'yui-moodlesimple') !== false) {
+            if (substr($rollupname, -3) === '.js') {
+                // Determine whether we should minify this rollup.
+                preg_match('/(-min)?\.js/', $rollupname, $matches);
+                $filesuffix = '.js';
+                if (isset($matches[1])) {
+                    $filesuffix = '-min.js';
+                }
+                $type = 'js';
+            } else if (substr($rollupname, -4) === '.css') {
+                $type = 'css';
+            } else {
+                continue;
+            }
+
+            $yuimodules = array(
+                // Include everything from original SimpleYUI,
+                // this list can be built using http://yuilibrary.com/yui/configurator/ by selecting all modules
+                // listed in https://github.com/yui/yui3/blob/v3.12.0/build/simpleyui/simpleyui.js#L21327
+                'yui',
+                'yui-base',
+                'get',
+                'features',
+                'loader-base',
+                'loader-rollup',
+                'loader-yui3',
+                'oop',
+                'event-custom-base',
+                'dom-core',
+                'dom-base',
+                'color-base',
+                'dom-style',
+                'selector-native',
+                'selector',
+                'node-core',
+                'node-base',
+                'event-base',
+                'event-base-ie',
+                'pluginhost-base',
+                'pluginhost-config',
+                'event-delegate',
+                'node-event-delegate',
+                'node-pluginhost',
+                'dom-screen',
+                'node-screen',
+                'node-style',
+                'querystring-stringify-simple',
+                'io-base',
+                'json-parse',
+                'transition',
+                'selector-css2',
+                'selector-css3',
+                'dom-style-ie',
+
+                // Some extras we use everywhere.
+                'escape',
+
+                'attribute-core',
+                'event-custom-complex',
+                'base-core',
+                'attribute-base',
+                'attribute-extras',
+                'attribute-observable',
+                'base-observable',
+                'base-base',
+                'base-pluginhost',
+                'base-build',
+                'event-synthetic',
+
+                'attribute-complex',
+                'event-mouseenter',
+                'event-key',
+                'event-outside',
+                'event-autohide',
+                'event-focus',
+                'classnamemanager',
+                'widget-base',
+                'widget-htmlparser',
+                'widget-skin',
+                'widget-uievents',
+                'widget-stdmod',
+                'widget-position',
+                'widget-position-align',
+                'widget-stack',
+                'widget-position-constrain',
+                'overlay',
+
+                'widget-autohide',
+                'button-core',
+                'button-plugin',
+                'widget-buttons',
+                'widget-modality',
+                'panel',
+                'yui-throttle',
+                'dd-ddm-base',
+                'dd-drag',
+                'dd-plugin',
+            );
+
+            // We need to add these new parts to the beginning of the $parts list, not the end.
+            if ($type === 'js') {
+                $newparts = array();
+                foreach ($yuimodules as $module) {
+                    $newparts[] = $revision . '/' . $module . '/' . $module . $filesuffix;
+                }
+                $newparts[] = 'yuiuseall/yuiuseall';
+                $parts = array_merge($newparts, $parts);
+            } else {
+                $newparts = array();
+                foreach ($yuimodules as $module) {
+                    $candidate =  $revision . '/' . $module . '/assets/skins/sam/' . $module . '.css';
+                    if (!file_exists("$CFG->libdir/yuilib/$candidate")) {
+                        continue;
+                    }
+                    $newparts[] = $candidate;
+                }
+                if ($newparts) {
+                    $parts = array_merge($newparts, $parts);
+                }
+            }
+        }
+
+        // Handle the mcore rollup.
+        if (strpos($rollupname, 'mcore') !== false) {
+            $yuimodules = array(
+                'core/tooltip/tooltip',
+                'core/dock/dock-loader',
+                'core/notification/notification-dialogue',
+            );
+
+            $filesuffix = '.js';
+            if (isset($matches[1])) {
+                $filesuffix = '-min.js';
+            }
+
+            // We need to add these new parts to the beginning of the $parts list, not the end.
+            $newparts = array();
+            foreach ($yuimodules as $module) {
+                $newparts[] = 'm/' . $revision . '/' . $module . $filesuffix;
+            }
+            $parts = array_merge($newparts, $parts);
+        }
+        continue;
+    }
     if ($version === 'm') {
         $version = 'moodle';
     }
@@ -106,7 +255,7 @@ foreach ($parts as $part) {
 
         // Submodules are stored in a directory with the full submodule name.
         // We need to remove the -debug.js, -min.js, and .js from the file name to calculate that directory name.
-        $frankenstyledirectoryname = str_replace(array('-min.js', '-debug.js', '.js'), '', $frankenstylefilename);
+        $frankenstyledirectoryname = str_replace(array('-min.js', '-debug.js', '.js', '.css'), '', $frankenstylefilename);
 
         // By default, try and use the /yui/build directory.
         $contentfile = $dir . '/yui/build/' . $frankenstyledirectoryname;
@@ -133,6 +282,11 @@ foreach ($parts as $part) {
 
     } else if ($version == 'gallery') {
         $contentfile = "$CFG->libdir/yui/$part";
+
+    } else if ($version == 'yuiuseall') {
+        // Create global Y that is available in global scope,
+        // this is the trick behind original SimpleYUI.
+        $filecontent = "var Y = YUI().use('*');";
 
     } else {
         if ($version != $CFG->yui3version) {

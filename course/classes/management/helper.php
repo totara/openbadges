@@ -41,6 +41,13 @@ defined('MOODLE_INTERNAL') || die;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class helper {
+
+    /**
+     * The expanded category structure if its already being loaded from the cache.
+     * @var null|array
+     */
+    protected static $expandedcategories = null;
+
     /**
      * Returns course details in an array ready to be printed.
      *
@@ -271,6 +278,14 @@ class helper {
                 'url' => new \moodle_url('/course/edit.php', array('id' => $course->id)),
                 'icon' => new \pix_icon('t/edit', \get_string('edit')),
                 'attributes' => array('class' => 'action-edit')
+            );
+        }
+        // Delete.
+        if ($course->can_delete()) {
+            $actions[] = array(
+                'url' => new \moodle_url('/course/delete.php', array('id' => $course->id)),
+                'icon' => new \pix_icon('t/delete', \get_string('delete')),
+                'attributes' => array('class' => 'action-delete')
             );
         }
         // Show/Hide.
@@ -779,7 +794,7 @@ class helper {
      */
     public static function get_category_courses_visibility($categoryid) {
         global $DB;
-        $sql = "SELECT c.id, c.visible as show
+        $sql = "SELECT c.id, c.visible
                   FROM {course} c
                  WHERE c.category = :category";
         $params = array('category' => (int)$categoryid);
@@ -797,10 +812,93 @@ class helper {
         $select = $DB->sql_like('path', ':path');
         $path = $category->path . '/%';
 
-        $sql = "SELECT c.id, c.visible as show
+        $sql = "SELECT c.id, c.visible
                   FROM {course_categories} c
                  WHERE ".$select;
         $params = array('path' => $path);
         return $DB->get_records_sql($sql, $params);
+    }
+
+    /**
+     * Records when a category is expanded or collapsed so that when the user
+     *
+     * @param \coursecat $coursecat The category we're working with.
+     * @param bool $expanded True if the category is expanded now.
+     */
+    public static function record_expanded_category(\coursecat $coursecat, $expanded = true) {
+        // If this ever changes we are going to reset it and reload the categories as required.
+        self::$expandedcategories = null;
+        $categoryid = $coursecat->id;
+        $path = $coursecat->get_parents();
+        /* @var \cache_session $cache */
+        $cache = \cache::make('core', 'userselections');
+        $categories = $cache->get('categorymanagementexpanded');
+        if (!is_array($categories)) {
+            if (!$expanded) {
+                // No categories recorded, nothing to remove.
+                return;
+            }
+            $categories = array();
+        }
+        if ($expanded) {
+            $ref =& $categories;
+            foreach ($coursecat->get_parents() as $path) {
+                if (!isset($ref[$path]) || !is_array($ref[$path])) {
+                    $ref[$path] = array();
+                }
+                $ref =& $ref[$path];
+            }
+            if (!isset($ref[$categoryid])) {
+                $ref[$categoryid] = true;
+            }
+        } else {
+            $found = true;
+            $ref =& $categories;
+            foreach ($coursecat->get_parents() as $path) {
+                if (!isset($ref[$path])) {
+                    $found = false;
+                    break;
+                }
+                $ref =& $ref[$path];
+            }
+            if ($found) {
+                $ref[$categoryid] = null;
+                unset($ref[$categoryid]);
+            }
+        }
+        $cache->set('categorymanagementexpanded', $categories);
+    }
+
+    /**
+     * Returns the categories that should be expanded when displaying the interface.
+     *
+     * @param int|null $withpath If specified a path to require as the parent.
+     * @return \coursecat[] An array of Category ID's to expand.
+     */
+    public static function get_expanded_categories($withpath = null) {
+        if (self::$expandedcategories === null) {
+            /* @var \cache_session $cache */
+            $cache = \cache::make('core', 'userselections');
+            self::$expandedcategories = $cache->get('categorymanagementexpanded');
+            if (self::$expandedcategories === false) {
+                self::$expandedcategories = array();
+            }
+        }
+        if (empty($withpath)) {
+            return array_keys(self::$expandedcategories);
+        }
+        $parents = explode('/', trim($withpath, '/'));
+        $ref =& self::$expandedcategories;
+        foreach ($parents as $parent) {
+            if (!isset($ref[$parent])) {
+                return array();
+            }
+            $ref =& $ref[$parent];
+        }
+        if (is_array($ref)) {
+            return array_keys($ref);
+        } else {
+            return array($parent);
+        }
     }
 }

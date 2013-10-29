@@ -33,6 +33,7 @@ require_once($CFG->dirroot.'/course/lib.php');
 $action = required_param('action', PARAM_ALPHA);
 require_sesskey(); // Gotta have the sesskey.
 require_login(); // Gotta be logged in (of course).
+$PAGE->set_context(context_system::instance());
 
 // Prepare an outcome object. We always use this.
 $outcome = new stdClass;
@@ -79,15 +80,41 @@ switch ($action) {
         break;
     case 'hidecategory' :
         $categoryid = required_param('categoryid', PARAM_INT);
+        $selectedcategoryid = optional_param('selectedcategory', null, PARAM_INT);
         $outcome->outcome = \core_course\management\helper::action_category_hide_by_id($categoryid);
         $outcome->categoryvisibility = \core_course\management\helper::get_category_children_visibility($categoryid);
         $outcome->coursevisibility = \core_course\management\helper::get_category_courses_visibility($categoryid);
+        if ($selectedcategoryid !== null) {
+            $outcome->coursevisibility = array_merge(
+                $outcome->coursevisibility,
+                \core_course\management\helper::get_category_courses_visibility($selectedcategoryid)
+            );
+        }
         break;
     case 'showcategory' :
         $categoryid = required_param('categoryid', PARAM_INT);
+        $selectedcategoryid = optional_param('selectedcategory', null, PARAM_INT);
         $outcome->outcome = \core_course\management\helper::action_category_show_by_id($categoryid);
         $outcome->categoryvisibility = \core_course\management\helper::get_category_children_visibility($categoryid);
         $outcome->coursevisibility = \core_course\management\helper::get_category_courses_visibility($categoryid);
+        if ($selectedcategoryid !== null) {
+            $outcome->coursevisibility = array_merge(
+                $outcome->coursevisibility,
+                \core_course\management\helper::get_category_courses_visibility($selectedcategoryid)
+            );
+        }
+        break;
+    case 'expandcategory':
+        $categoryid = required_param('categoryid', PARAM_INT);
+        $coursecat = coursecat::get($categoryid);
+        \core_course\management\helper::record_expanded_category($coursecat);
+        $outcome->outcome = true;
+        break;
+    case 'collapsecategory':
+        $categoryid = required_param('categoryid', PARAM_INT);
+        $coursecat = coursecat::get($categoryid);
+        \core_course\management\helper::record_expanded_category($coursecat, false);
+        $outcome->outcome = true;
         break;
     case 'getsubcategorieshtml' :
         $categoryid = required_param('categoryid', PARAM_INT);
