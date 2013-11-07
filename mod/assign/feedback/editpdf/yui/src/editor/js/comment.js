@@ -185,10 +185,12 @@ COMMENT = function(editor, gradeid, pageno, x, y, width, colour, rawtext) {
         position = this.editor.get_window_coordinates(new M.assignfeedback_editpdf.point(this.x, this.y));
         node.setStyles({
             width: this.width + 'px',
-            backgroundColor: COMMENTCOLOUR[this.colour]
+            backgroundColor: COMMENTCOLOUR[this.colour],
+            color: COMMENTTEXTCOLOUR
         });
 
         drawingregion.append(container);
+        container.setStyle('position', 'absolute');
         container.setX(position.x);
         container.setY(position.y);
         drawable.nodes.push(container);
@@ -243,6 +245,7 @@ COMMENT = function(editor, gradeid, pageno, x, y, width, colour, rawtext) {
                 Y.later(400, this, this.delete_comment_later);
             }
             this.editor.save_current_page();
+            this.editor.editingcomment = false;
         }, this);
 
         // For delegated event handler.
@@ -330,6 +333,8 @@ COMMENT = function(editor, gradeid, pageno, x, y, width, colour, rawtext) {
      * @method remove_from_quicklist
      */
     this.remove_from_quicklist = function(e, quickcomment) {
+        e.preventDefault();
+
         this.menu.hide();
 
         this.editor.quicklist.remove(quickcomment);
@@ -343,6 +348,8 @@ COMMENT = function(editor, gradeid, pageno, x, y, width, colour, rawtext) {
      * @method set_from_quick_comment
      */
     this.set_from_quick_comment = function(e, quickcomment) {
+        e.preventDefault();
+
         this.menu.hide();
 
         this.rawtext = quickcomment.rawtext;
@@ -360,7 +367,8 @@ COMMENT = function(editor, gradeid, pageno, x, y, width, colour, rawtext) {
      * @protected
      * @method add_to_quicklist
      */
-    this.add_to_quicklist = function() {
+    this.add_to_quicklist = function(e) {
+        e.preventDefault();
         this.menu.hide();
         this.editor.quicklist.add(this);
     };

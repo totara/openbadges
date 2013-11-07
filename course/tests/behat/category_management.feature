@@ -5,6 +5,7 @@ Feature: Test category management actions
   Test we can create a sub category
   Test we can edit a category
   Test we can delete a category
+  Test we can move a category
   Test we can assign roles within a category
   Test we can set permissions on a category
   Test we can manage cohorts within a category
@@ -183,8 +184,7 @@ Feature: Test category management actions
     And I log in as "admin"
     And I go to the courses management page
     And I should see the "Course categories" management page
-    And I click on "Create new" "link" in the ".category-listing-actions" "css_element"
-    And I click on "Top level category" "link" in the ".category-listing-actions" "css_element"
+    And I click on "Create new category" "link" in the ".category-listing-actions" "css_element"
     # Redirect.
     And I should see "Add new category"
     And I fill the moodle form with:
@@ -196,8 +196,7 @@ Feature: Test category management actions
     And I should see "Test category 2" in the "#course-listing h3" "css_element"
     And I should see category listing "Cat 1" before "Test category 2"
     And I should see "No courses in this category"
-    And I click on "Create new" "link" in the ".category-listing-actions" "css_element"
-    And I click on "Sub category" "link" in the ".category-listing-actions" "css_element"
+    And I click on "createnewsubcategory" action for "Test category 2" in management category listing
     # Redirect
     And I should see "Add new category"
     And I fill the moodle form with:
@@ -210,3 +209,29 @@ Feature: Test category management actions
     And I should see category listing "Cat 1" before "Test category 2"
     And I should see "No courses in this category"
 
+  @javascript
+  Scenario: Test moving a categories through the management interface.
+    Given the following "categories" exists:
+      | name | category | idnumber |
+      | Cat 1 | 0 | CAT1 |
+      | Cat 2 | 0 | CAT2 |
+      | Cat 3 | 0 | CAT3 |
+
+    And I log in as "admin"
+    And I go to the courses management page
+    And I should see the "Course categories" management page
+    And I should see "Cat 1" in the "#category-listing ul.ml" "css_element"
+    And I should see "Cat 2" in the "#category-listing ul.ml" "css_element"
+    And I should see "Cat 3" in the "#category-listing ul.ml" "css_element"
+    And I select category "Cat 2" in the management interface
+    And I select category "Cat 3" in the management interface
+    And I select "Cat 1" from "menumovecategoriesto"
+    When I press "bulkmovecategories"
+    # Redirect
+    And I click on category "Cat 1" in the management interface
+    # Redirect
+    Then I should see category "CAT3" as subcategory of "CAT1" in the management interface
+    And I move category "CAT3" to top level in the management interface
+    # Redirect
+    And I should not see category "CAT3" as subcategory of "CAT1" in the management interface
+    Then I should see category "CAT2" as subcategory of "CAT1" in the management interface

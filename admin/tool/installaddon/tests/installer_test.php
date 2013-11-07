@@ -33,7 +33,7 @@ defined('MOODLE_INTERNAL') || die();
  * @copyright 2013 David Mudrak <david@moodle.com>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class tool_installaddon_installer_test extends advanced_testcase {
+class tool_installaddon_installer_testcase extends advanced_testcase {
 
     public function test_get_addons_repository_url() {
         $installer = testable_tool_installaddon_installer::instance();
@@ -42,7 +42,7 @@ class tool_installaddon_installer_test extends advanced_testcase {
         $this->assertEquals(1, preg_match('~^site=(.+)$~', $query, $matches));
         $site = rawurldecode($matches[1]);
         $site = json_decode(base64_decode($site), true);
-        $this->assertEquals('array', gettype($site));
+        $this->assertInternalType('array', $site);
         $this->assertEquals(3, count($site));
         $this->assertSame('Nasty site', $site['fullname']);
         $this->assertSame('file:///etc/passwd', $site['url']);
@@ -57,8 +57,8 @@ class tool_installaddon_installer_test extends advanced_testcase {
 
         $installer = tool_installaddon_installer::instance();
         $files = $installer->extract_installfromzip_file($sourcedir.'/testinvalidroot.zip', $contentsdir, 'fixed_root');
-        $this->assertEquals('array', gettype($files));
-        $this->assertEquals(4, count($files));
+        $this->assertInternalType('array', $files);
+        $this->assertCount(4, $files);
         $this->assertSame(true, $files['fixed_root/']);
         $this->assertSame(true, $files['fixed_root/lang/']);
         $this->assertSame(true, $files['fixed_root/lang/en/']);
@@ -137,7 +137,7 @@ class tool_installaddon_installer_test extends advanced_testcase {
         file_put_contents($contentsdir.'/readme.txt', 'Hello world!');
 
         $installer = tool_installaddon_installer::instance();
-        $installer->move_directory($jobroot.'/contents', $jobroot.'/moved');
+        $installer->move_directory($jobroot.'/contents', $jobroot.'/moved', 0777, 0666);
 
         $this->assertFalse(is_dir($jobroot.'/contents'));
         $this->assertTrue(is_file($jobroot.'/moved/sub/folder/readme.txt'));
