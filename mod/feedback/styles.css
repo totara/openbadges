@@ -104,3 +104,13 @@ ul#feedback_draglist {
 div#feedback_dragarea {
     width:95%;
 }
+
+div img.feedback_bar_image {
+    height: 10px;
+}
+
+.path-mod-feedback input,
+.path-mod-feedback textarea,
+.path-mod-feedback .uneditable-input {
+    width: auto;
+}

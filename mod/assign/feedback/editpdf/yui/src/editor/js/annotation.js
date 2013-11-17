@@ -233,8 +233,10 @@ Y.extend(ANNOTATION, Y.Base, {
      * @method remove
      * @param event
      */
-    remove : function() {
+    remove : function(e) {
         var annotations;
+
+        e.preventDefault();
 
         annotations = this.editor.pages[this.editor.currentpage].annotations;
         for (i = 0; i < annotations.length; i++) {
@@ -306,6 +308,7 @@ Y.extend(ANNOTATION, Y.Base, {
      * @public
      * @method init_from_edit
      * @param M.assignfeedback_editpdf.edit edit
+     * @return bool if width/height is more than min. required.
      */
     init_from_edit : function(edit) {
         var bounds = new M.assignfeedback_editpdf.rect();
@@ -319,6 +322,7 @@ Y.extend(ANNOTATION, Y.Base, {
         this.endy = bounds.y + bounds.height;
         this.colour = edit.annotationcolour;
         this.path = '';
+        return (bounds.has_min_width() && bounds.has_min_height());
     }
 
 });

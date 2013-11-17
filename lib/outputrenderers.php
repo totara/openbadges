@@ -893,6 +893,11 @@ class core_renderer extends renderer_base {
                 $performanceinfo = $perf['html'];
             }
         }
+
+        // We always want performance data when running a performance test, even if the user is redirected to another page.
+        if (MDL_PERF_TEST && strpos($footer, $this->unique_performance_info_token) === false) {
+            $footer = $this->unique_performance_info_token . $footer;
+        }
         $footer = str_replace($this->unique_performance_info_token, $performanceinfo, $footer);
 
         $footer = str_replace($this->unique_end_html_token, $this->page->requires->get_end_code(), $footer);
@@ -1057,6 +1062,7 @@ class core_renderer extends renderer_base {
         if ($blockid !== null) {
             $menu->set_owner_selector('#'.$blockid);
         }
+        $menu->set_constraint('.block-region');
         $menu->attributes['class'] .= ' block-control-actions commands';
         if (isset($CFG->blockeditingmenu) && !$CFG->blockeditingmenu) {
             $menu->do_not_enhance();
@@ -1113,16 +1119,18 @@ class core_renderer extends renderer_base {
      * @return string HTML fragment
      */
     protected function render_action_menu_link(action_menu_link $action) {
+        static $actioncount = 0;
+        $actioncount++;
 
         $comparetoalt = '';
         $text = '';
         if (!$action->icon || $action->primary === false) {
-            $text .= html_writer::start_tag('span', array('class'=>'menu-action-text'));
+            $text .= html_writer::start_tag('span', array('class'=>'menu-action-text', 'id' => 'actionmenuaction-'.$actioncount));
             if ($action->text instanceof renderable) {
                 $text .= $this->render($action->text);
             } else {
                 $text .= $action->text;
-                $comparetoalt = $action->text;
+                $comparetoalt = (string)$action->text;
             }
             $text .= html_writer::end_tag('span');
         }
@@ -1133,8 +1141,13 @@ class core_renderer extends renderer_base {
             if ($action->primary || !$action->actionmenu->will_be_enhanced()) {
                 $action->attributes['title'] = $action->text;
             }
-            if ($icon->attributes['alt'] === $comparetoalt && $action->actionmenu->will_be_enhanced()) {
-                $icon->attributes['alt'] = ' ';
+            if (!$action->primary && $action->actionmenu->will_be_enhanced()) {
+                if ((string)$icon->attributes['alt'] === $comparetoalt) {
+                    $icon->attributes['alt'] = '';
+                }
+                if (isset($icon->attributes['title']) && (string)$icon->attributes['title'] === $comparetoalt) {
+                    unset($icon->attributes['title']);
+                }
             }
             $icon = $this->render($icon);
         }
@@ -1148,8 +1161,21 @@ class core_renderer extends renderer_base {
         $attributes = $action->attributes;
         unset($action->attributes['disabled']);
         $attributes['href'] = $action->url;
+        if ($text !== '') {
+            $attributes['aria-labelledby'] = 'actionmenuaction-'.$actioncount;
+        }
 
         return html_writer::tag('a', $icon.$text, $attributes);
+    }
+
+    /**
+     * Renders a primary action_menu_filler item.
+     *
+     * @param action_menu_link_filler $action
+     * @return string HTML fragment
+     */
+    protected function render_action_menu_filler(action_menu_filler $action) {
+        return html_writer::span('&nbsp;', 'filler');
     }
 
     /**
@@ -2055,7 +2081,7 @@ class core_renderer extends renderer_base {
     public function heading_with_help($text, $helpidentifier, $component = 'moodle', $icon = '', $iconalt = '', $level = 2, $classnames = null) {
         $image = '';
         if ($icon) {
-            $image = $this->pix_icon($icon, $iconalt, $component, array('class'=>'icon'));
+            $image = $this->pix_icon($icon, $iconalt, $component, array('class'=>'icon iconlarge'));
         }
 
         $help = '';
@@ -3134,7 +3160,7 @@ EOD;
             // No name for tabtree root.
         } else if ($tabobject->inactive || $tabobject->activated || ($tabobject->selected && !$tabobject->linkedwhenselected)) {
             // Tab name without a link. The <a> tag is used for styling.
-            $str .= html_writer::tag('a', html_writer::span($tabobject->text), array('class' => 'nolink'));
+            $str .= html_writer::tag('a', html_writer::span($tabobject->text), array('class' => 'nolink moodle-has-zindex'));
         } else {
             // Tab name with a link.
             if (!($tabobject->link instanceof moodle_url)) {
@@ -3199,7 +3225,12 @@ EOD;
             'data-blockregion' => $displayregion,
             'data-droptarget' => '1'
         );
-        return html_writer::tag($tag, $this->blocks_for_region($region), $attributes);
+        if ($this->page->blocks->region_has_content($region, $this)) {
+            $content = $this->blocks_for_region($region);
+        } else {
+            $content = '';
+        }
+        return html_writer::tag($tag, $content, $attributes);
     }
 
     /**
@@ -3485,6 +3516,12 @@ class core_renderer_ajax extends core_renderer {
         // unfortunately YUI iframe upload does not support application/json
         if (!empty($_FILES)) {
             @header('Content-type: text/plain; charset=utf-8');
+            if (!core_useragent::supports_json_contenttype()) {
+                @header('X-Content-Type-Options: nosniff');
+            }
+        } else if (!core_useragent::supports_json_contenttype()) {
+            @header('Content-type: text/plain; charset=utf-8');
+            @header('X-Content-Type-Options: nosniff');
         } else {
             @header('Content-type: application/json; charset=utf-8');
         }

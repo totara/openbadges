@@ -225,6 +225,7 @@ h4 img.iconhelp, h4 img.icon,
 h5 img.iconhelp, h5 img.icon,
 h6 img.iconhelp, h6 img.icon {
   vertical-align: middle;
+  padding: 4px;
 }
 .dir-rtl img.iconhelp, .dir-rtl .helplink img {
     padding-right: 3px;
@@ -433,8 +434,11 @@ a.skip:active {
 .groupselector {
     margin-top: 3px;
     margin-bottom: 3px;
+    display: inline-block;
 }
-
+.groupselector label {
+    display: inline-block;
+}
 // Login
 .loginbox {
     margin: 15px;
@@ -1152,113 +1156,60 @@ body.tag .managelink {
     top: 50%;
     left: 50%;
 }
+
+.mod-indent-outer {
+    display: table;
+}
+.mod-indent {
+    display: table-cell;
+}
 .mod-indent-1 {
-    margin-left: 30px;
+    width: 30px;
 }
 .mod-indent-2 {
-    margin-left: 60px;
+    width: 60px;
 }
 .mod-indent-3 {
-    margin-left: 90px;
+    width: 90px;
 }
 .mod-indent-4 {
-    margin-left: 120px;
+    width: 120px;
 }
 .mod-indent-5 {
-    margin-left: 150px;
+    width: 150px;
 }
 .mod-indent-6 {
-    margin-left: 180px;
+    width: 180px;
 }
 .mod-indent-7 {
-    margin-left: 210px;
+    width: 210px;
 }
 .mod-indent-8 {
-    margin-left: 240px;
+    width: 240px;
 }
 .mod-indent-9 {
-    margin-left: 270px;
+    width: 270px;
 }
 .mod-indent-10 {
-    margin-left: 300px;
+    width: 300px;
 }
 .mod-indent-11 {
-    margin-left: 330px;
+    width: 330px;
 }
 .mod-indent-12 {
-    margin-left: 360px;
+    width: 360px;
 }
 .mod-indent-13 {
-    margin-left: 390px;
+    width: 390px;
 }
 .mod-indent-14 {
-    margin-left: 420px;
+    width: 420px;
 }
 .mod-indent-15,
 .mod-indent-huge {
-    margin-left: 420px;
+    width: 420px;
 }
-.dir-rtl .mod-indent-1 {
-    margin-right: 30px;
-    margin-left: 0;
-}
-.dir-rtl .mod-indent-2 {
-    margin-right: 60px;
-    margin-left: 0;
-}
-.dir-rtl .mod-indent-3 {
-    margin-right: 90px;
-    margin-left: 0;
-}
-.dir-rtl .mod-indent-4 {
-    margin-right: 120px;
-    margin-left: 0;
-}
-.dir-rtl .mod-indent-5 {
-    margin-right: 150px;
-    margin-left: 0;
-}
-.dir-rtl .mod-indent-6 {
-    margin-right: 180px;
-    margin-left: 0;
-}
-.dir-rtl .mod-indent-7 {
-    margin-right: 210px;
-    margin-left: 0;
-}
-.dir-rtl .mod-indent-8 {
-    margin-right: 240px;
-    margin-left: 0;
-}
-.dir-rtl .mod-indent-9 {
-    margin-right: 270px;
-    margin-left: 0;
-}
-.dir-rtl .mod-indent-10 {
-    margin-right: 300px;
-    margin-left: 0;
-}
-.dir-rtl .mod-indent-11 {
-    margin-right: 330px;
-    margin-left: 0;
-}
-.dir-rtl .mod-indent-12 {
-    margin-right: 360px;
-    margin-left: 0;
-}
-.dir-rtl .mod-indent-13 {
-    margin-right: 390px;
-    margin-left: 0;
-}
-.dir-rtl .mod-indent-14 {
-    margin-right: 420px;
-    margin-left: 0;
-}
-.dir-rtl .mod-indent-15,
-.dir-rtl .mod-indent-huge {
-    margin-right: 420px;
-    margin-left: 0;
-}
+
 /* Audio player size in 'block' mode (can only change width, height is hardcoded in JS) */
 .resourcecontent .mediaplugin_mp3 object {
     height: 25px;
@@ -1286,8 +1237,11 @@ audio.mediaplugin_html5audio {
 .core_media_preview.pagelayout-embedded #maincontent {
     height: 0;
 }
-.core_media_preview.pagelayout-embedded .mediaplugin {
+body#page-lib-editor-tinymce-plugins-moodlemedia-preview {
+    padding: 0;
     margin: 0;
+    min-width: 0;
+    background: none;
 }
 /** Fix YUI 2 Treeview for Right to left languages **/
 .dir-rtl .ygtvtn,
@@ -1400,8 +1354,11 @@ audio.mediaplugin_html5audio {
     white-space: nowrap;
     text-align: center;
 }
-.initialbar a {
-    padding-right: 2px;
+.initialbar {
+    a, strong {
+        padding-left: 3px;
+        padding-right: 3px;
+    }
 }
 /* Moodle Dialogue Settings (moodle-core-dialogue)  */
 .moodle-dialogue-base .moodle-dialogue-lightbox {
@@ -1445,7 +1402,8 @@ audio.mediaplugin_html5audio {
     .border-radius(10px);
     .box-shadow(5px 5px 20px 0 #666);
 }
-.moodle-dialogue-base .moodle-dialogue-wrap .moodle-dialogue-hd {
+.moodle-dialogue-base .moodle-dialogue-wrap .moodle-dialogue-hd,
+.moodle-dialogue-base .moodle-dialogue-wrap .moodle-dialogue-hd.yui3-widget-hd {
     margin: 0;
     padding: 5px;
     font-size: 12px;
@@ -1458,7 +1416,7 @@ audio.mediaplugin_html5audio {
     border-bottom: 1px solid #bbb;
     background: #ccc;
     #gradient > .vertical(#fff, #ccc);
-    filter: dropshadow(color=#FFFFFF, offx=1, offy=1);
+    filter: 0;
 }
 .moodle-dialogue-base .moodle-dialogue-wrap .moodle-dialogue-hd h1 {
     margin: 0;
@@ -1487,7 +1445,6 @@ audio.mediaplugin_html5audio {
     right: auto;
 }
 .moodle-dialogue-base .moodle-dialogue .moodle-dialogue-bd {
-    overflow: auto;
     padding: 1em;
     line-height: 2em;
     color: #555;
@@ -1614,6 +1571,10 @@ audio.mediaplugin_html5audio {
 
 .moodle-dialogue-base .moodle-dialogue.moodle-dialogue-tooltip {
     z-index: 3001;
+
+    .moodle-dialogue-bd {
+        overflow: auto;
+    }
 }
 
 /* Question Bank - Question Chooser "Close" button */
@@ -2027,6 +1988,28 @@ img#persona_signin {
             display: inline; /** JS is enabled, we'll be using it so return display to normal **/
             .opacity(50);
         }
+        .toggle-display.textmenu {
+            display: block;
+            margin-left: 4px;
+            padding-left: 4px;
+            padding-right: 4px;
+
+            .iconsmall {
+                margin: 4px 4px 4px 0px;
+                padding: 8px 4px 0px 2px;
+                vertical-align: text-bottom;
+            }
+
+            .caret {
+                margin-top: 8px;
+                margin-left: 2px;
+                border-top-color: @navbarLinkColor;
+                &:hover,
+                &:active {
+                    border-top-color: @navbarLinkColorActive;
+                }
+            }
+        }
     }
     .moodle-actionmenu[data-enhanced] {
         .toggle-display {
@@ -2034,6 +2017,20 @@ img#persona_signin {
         }
         .menu-action-text  {
             display:inline;
+        }
+    }
+
+    &.dir-rtl {
+        .moodle-actionmenu[data-enhance] {
+            .toggle-display.textmenu {
+                margin-left: initial;
+                margin-right: 4px;
+
+                .caret {
+                    margin-left: initial;
+                    margin-right: 2px;
+                }
+            }
         }
     }
 }
@@ -2054,10 +2051,9 @@ img#persona_signin {
         .box-shadow(5px 5px 20px 0 #666);
 
         a {
-            white-space:nowrap;
             display: block;
             color: @dropdownLinkColor;
-            padding:2px 1em 2px 0.5em;
+            padding:2px 1em 2px 28px;
             &:hover,
             &:focus {
                 color: @dropdownLinkColorHover;
@@ -2077,7 +2073,7 @@ img#persona_signin {
             vertical-align: middle;
         }
         .iconsmall {
-            margin-right:8px;
+            margin: 4px 4px 4px -24px;
         }
         > li {
             display:block;
@@ -2104,10 +2100,6 @@ img#persona_signin {
         &.align-bl-tr {bottom: 100%;left:100%;}
         &.align-br-tr {bottom: 100%;right: 0;margin-bottom: 4px;}
     }
-}
-
-.action-menu-shown .moodle-actionmenu[data-enhanced] .toggle-display {
-    background-color: #FFF;
 }
 
 .block .moodle-actionmenu {

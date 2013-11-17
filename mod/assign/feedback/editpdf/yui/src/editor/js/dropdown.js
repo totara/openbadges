@@ -16,7 +16,6 @@ DROPDOWN = function(config) {
     config.width = 'auto';
     config.lightbox = false;
     config.visible = false;
-    config.zIndex = 100;
     config.footerContent = '';
     DROPDOWN.superclass.constructor.apply(this, [config]);
 };
@@ -55,7 +54,7 @@ Y.extend(DROPDOWN, M.core.dialogue, {
             }
         }, this);
 
-        button.on('click', this.show, this);
+        button.on('click', function(e) {e.preventDefault(); this.show();}, this);
         button.on('key', this.show, 'enter,space', this);
     },
 

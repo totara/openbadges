@@ -140,15 +140,32 @@ class tool_installaddon_installer {
         $fp = get_file_packer('application/zip');
         $files = $fp->extract_to_pathname($zipfilepath, $targetdir);
 
-        if ($files) {
-            if (!empty($rootdir)) {
-                $files = $this->rename_extracted_rootdir($targetdir, $rootdir, $files);
-            }
-            return $files;
-
-        } else {
+        if (!$files) {
             return array();
         }
+
+        if (!empty($rootdir)) {
+            $files = $this->rename_extracted_rootdir($targetdir, $rootdir, $files);
+        }
+
+        // Sometimes zip may not contain all parent directories, add them to make it consistent.
+        foreach ($files as $path => $status) {
+            if ($status !== true) {
+                continue;
+            }
+            $parts = explode('/', trim($path, '/'));
+            while (array_pop($parts)) {
+                if (empty($parts)) {
+                    break;
+                }
+                $dir = implode('/', $parts).'/';
+                if (!isset($files[$dir])) {
+                    $files[$dir] = true;
+                }
+            }
+        }
+
+        return $files;
     }
 
     /**
@@ -392,8 +409,10 @@ class tool_installaddon_installer {
      *
      * @param string $source full path to the existing directory
      * @param string $target full path to the new location of the directory
+     * @param int $dirpermissions
+     * @param int $filepermissions
      */
-    public function move_directory($source, $target) {
+    public function move_directory($source, $target, $dirpermissions, $filepermissions) {
 
         if (file_exists($target)) {
             throw new tool_installaddon_installer_exception('err_folder_already_exists', array('path' => $target));
@@ -405,7 +424,16 @@ class tool_installaddon_installer {
             throw new tool_installaddon_installer_exception('err_no_such_folder', array('path' => $source));
         }
 
-        make_writable_directory($target);
+        if (!file_exists($target)) {
+            // Do not use make_writable_directory() here - it is intended for dataroot only.
+            mkdir($target, true);
+            @chmod($target, $dirpermissions);
+        }
+
+        if (!is_writable($target)) {
+            closedir($handle);
+            throw new tool_installaddon_installer_exception('err_folder_not_writable', array('path' => $target));
+        }
 
         while ($filename = readdir($handle)) {
             $sourcepath = $source.'/'.$filename;
@@ -416,10 +444,11 @@ class tool_installaddon_installer {
             }
 
             if (is_dir($sourcepath)) {
-                $this->move_directory($sourcepath, $targetpath);
+                $this->move_directory($sourcepath, $targetpath, $dirpermissions, $filepermissions);
 
             } else {
                 rename($sourcepath, $targetpath);
+                @chmod($targetpath, $filepermissions);
             }
         }
 

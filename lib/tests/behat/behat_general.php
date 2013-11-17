@@ -118,6 +118,25 @@ class behat_general extends behat_base {
     }
 
     /**
+     * Switches to the specified iframe.
+     *
+     * @Given /^I switch to "(?P<iframe_name_string>(?:[^"]|\\")*)" iframe$/
+     * @param string $iframename
+     */
+    public function switch_to_iframe($iframename) {
+        $this->getSession()->switchToIFrame($iframename);
+    }
+
+    /**
+     * Switches to the main Moodle frame.
+     *
+     * @Given /^I switch to the main frame$/
+     */
+    public function switch_to_the_main_frame() {
+        $this->getSession()->switchToIFrame();
+    }
+
+    /**
      * Switches to the specified window. Useful when interacting with popup windows.
      *
      * @Given /^I switch to "(?P<window_name_string>(?:[^"]|\\")*)" window$/
@@ -273,6 +292,100 @@ class behat_general extends behat_base {
         $destinationxpath = $this->getSession()->getSelectorsHandler()->selectorToXpath($containerselector, $containerlocator);
 
         $this->getSession()->getDriver()->dragTo($sourcexpath, $destinationxpath);
+    }
+
+    /**
+     * Checks, that the specified element is visible. Only available in tests using Javascript.
+     *
+     * @Then /^"(?P<element_string>(?:[^"]|\\")*)" "(?P<selector_string>(?:[^"]|\\")*)" should be visible$/
+     * @throws ElementNotFoundException
+     * @throws ExpectationException
+     * @throws DriverException
+     * @param string $element
+     * @param string $selectortype
+     * @return void
+     */
+    public function should_be_visible($element, $selectortype) {
+
+        if (!$this->running_javascript()) {
+            throw new DriverException('Visible checks are disabled in scenarios without Javascript support');
+        }
+
+        $node = $this->get_selected_node($selectortype, $element);
+        if (!$node->isVisible()) {
+            throw new ExpectationException('"' . $element . '" "' . $selectortype . '" is not visible', $this->getSession());
+        }
+    }
+
+    /**
+     * Checks, that the specified element is not visible. Only available in tests using Javascript.
+     *
+     * @Then /^"(?P<element_string>(?:[^"]|\\")*)" "(?P<selector_string>(?:[^"]|\\")*)" should not be visible$/
+     * @throws ElementNotFoundException
+     * @throws ExpectationException
+     * @param string $element
+     * @param string $selectortype
+     * @return void
+     */
+    public function should_not_be_visible($element, $selectortype) {
+
+        try {
+            $this->should_be_visible($element, $selectortype);
+            throw new ExpectationException('"' . $element . '" "' . $selectortype . '" is visible', $this->getSession());
+        } catch (ExpectationException $e) {
+            // All as expected.
+        }
+    }
+
+    /**
+     * Checks, that the specified element is visible inside the specified container. Only available in tests using Javascript.
+     *
+     * @Then /^"(?P<element_string>(?:[^"]|\\")*)" "(?P<selector_string>[^"]*)" in the "(?P<element_container_string>(?:[^"]|\\")*)" "(?P<text_selector_string>[^"]*)" should be visible$/
+     * @throws ElementNotFoundException
+     * @throws DriverException
+     * @throws ExpectationException
+     * @param string $element Element we look for
+     * @param string $selectortype The type of what we look for
+     * @param string $nodeelement Element we look in
+     * @param string $nodeselectortype The type of selector where we look in
+     */
+    public function in_the_should_be_visible($element, $selectortype, $nodeelement, $nodeselectortype) {
+
+        if (!$this->running_javascript()) {
+            throw new DriverException('Visible checks are disabled in scenarios without Javascript support');
+        }
+
+        $node = $this->get_node_in_container($selectortype, $element, $nodeselectortype, $nodeelement);
+        if (!$node->isVisible()) {
+            throw new ExpectationException(
+                '"' . $element . '" "' . $selectortype . '" in the "' . $nodeelement . '" "' . $nodeselectortype . '" is not visible',
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Checks, that the specified element is not visible inside the specified container. Only available in tests using Javascript.
+     *
+     * @Then /^"(?P<element_string>(?:[^"]|\\")*)" "(?P<selector_string>[^"]*)" in the "(?P<element_container_string>(?:[^"]|\\")*)" "(?P<text_selector_string>[^"]*)" should not be visible$/
+     * @throws ElementNotFoundException
+     * @throws ExpectationException
+     * @param string $element Element we look for
+     * @param string $selectortype The type of what we look for
+     * @param string $nodeelement Element we look in
+     * @param string $nodeselectortype The type of selector where we look in
+     */
+    public function in_the_should_not_be_visible($element, $selectortype, $nodeelement, $nodeselectortype) {
+
+        try {
+            $this->in_the_should_be_visible($element, $selectortype, $nodeelement, $nodeselectortype);
+            throw new ExpectationException(
+                '"' . $element . '" "' . $selectortype . '" in the "' . $nodeelement . '" "' . $nodeselectortype . '" is visible',
+                $this->getSession()
+            );
+        } catch (ExpectationException $e) {
+            // All as expected.
+        }
     }
 
     /**
@@ -490,6 +603,40 @@ class behat_general extends behat_base {
     }
 
     /**
+     * Checks the provided element and selector type are readonly on the current page.
+     *
+     * @Then /^the "(?P<element_string>(?:[^"]|\\")*)" "(?P<selector_string>[^"]*)" should be readonly$/
+     * @throws ExpectationException Thrown by behat_base::find
+     * @param string $element Element we look in
+     * @param string $selectortype The type of element where we are looking in.
+     */
+    public function the_element_should_be_readonly($element, $selectortype) {
+        // Transforming from steps definitions selector/locator format to Mink format and getting the NodeElement.
+        $node = $this->get_selected_node($selectortype, $element);
+
+        if (!$node->hasAttribute('readonly')) {
+            throw new ExpectationException('The element "' . $element . '" is not readonly', $this->getSession());
+        }
+    }
+
+    /**
+     * Checks the provided element and selector type are not readonly on the current page.
+     *
+     * @Then /^the "(?P<element_string>(?:[^"]|\\")*)" "(?P<selector_string>[^"]*)" should not be readonly$/
+     * @throws ExpectationException Thrown by behat_base::find
+     * @param string $element Element we look in
+     * @param string $selectortype The type of element where we are looking in.
+     */
+    public function the_element_should_not_be_readonly($element, $selectortype) {
+        // Transforming from steps definitions selector/locator format to Mink format and getting the NodeElement.
+        $node = $this->get_selected_node($selectortype, $element);
+
+        if ($node->hasAttribute('readonly')) {
+            throw new ExpectationException('The element "' . $element . '" is readonly', $this->getSession());
+        }
+    }
+
+    /**
      * Checks the provided element and selector type exists in the current page.
      *
      * This step is for advanced users, use it if you don't find anything else suitable for what you need.
@@ -529,4 +676,61 @@ class behat_general extends behat_base {
         }
     }
 
+    /**
+     * This step triggers cron like a user would do going to admin/cron.php.
+     *
+     * @Given /^I trigger cron$/
+     */
+    public function i_trigger_cron() {
+        $this->getSession()->visit($this->locate_path('/admin/cron.php'));
+    }
+
+    /**
+     * Checks that an element and selector type exists in another element and selector type on the current page.
+     *
+     * This step is for advanced users, use it if you don't find anything else suitable for what you need.
+     *
+     * @Then /^"(?P<element_string>(?:[^"]|\\")*)" "(?P<selector_string>[^"]*)" should exist in the "(?P<element2_string>(?:[^"]|\\")*)" "(?P<selector2_string>[^"]*)"$/
+     * @throws ElementNotFoundException Thrown by behat_base::find
+     * @param string $element The locator of the specified selector
+     * @param string $selectortype The selector type
+     * @param string $containerelement The container selector type
+     * @param string $containerselectortype The container locator
+     */
+    public function should_exist_in_the($element, $selectortype, $containerelement, $containerselectortype) {
+        // Get the container node.
+        $containernode = $this->get_selected_node($containerselectortype, $containerelement);
+
+        list($selector, $locator) = $this->transform_selector($selectortype, $element);
+
+        // Specific exception giving info about where can't we find the element.
+        $locatorexceptionmsg = $element . '" in the "' . $containerelement. '" "' . $containerselectortype. '"';
+        $exception = new ElementNotFoundException($this->getSession(), $selectortype, null, $locatorexceptionmsg);
+
+        // Looks for the requested node inside the container node.
+        $this->find($selector, $locator, $exception, $containernode);
+    }
+
+    /**
+     * Checks that an element and selector type does not exist in another element and selector type on the current page.
+     *
+     * This step is for advanced users, use it if you don't find anything else suitable for what you need.
+     *
+     * @Then /^"(?P<element_string>(?:[^"]|\\")*)" "(?P<selector_string>[^"]*)" should not exist in the "(?P<element2_string>(?:[^"]|\\")*)" "(?P<selector2_string>[^"]*)"$/
+     * @throws ExpectationException
+     * @param string $element The locator of the specified selector
+     * @param string $selectortype The selector type
+     * @param string $containerelement The container selector type
+     * @param string $containerselectortype The container locator
+     */
+    public function should_not_exist_in_the($element, $selectortype, $containerelement, $containerselectortype) {
+        try {
+            $this->should_exist_in_the($element, $selectortype, $containerelement, $containerselectortype);
+            throw new ExpectationException('The "' . $element . '" "' . $selectortype . '" exists in the "' .
+                $containerelement . '" "' . $containerselectortype . '"', $this->getSession());
+        } catch (ElementNotFoundException $e) {
+            // It passes.
+            return;
+        }
+    }
 }

@@ -17,7 +17,6 @@ COMMENTSEARCH = function(config) {
     config.lightbox = true;
     config.visible = false;
     config.headerContent = M.util.get_string('searchcomments', 'assignfeedback_editpdf');
-    config.zIndex = 100;
     config.footerContent = '';
     COMMENTSEARCH.superclass.constructor.apply(this, [config]);
 };
@@ -92,6 +91,7 @@ Y.extend(COMMENTSEARCH, M.core.dialogue, {
      * @method focus_on_comment
      */
     focus_on_comment : function(e) {
+        e.preventDefault();
         var target = e.target.ancestor('li'),
             comment = target.getData('comment'),
             editor = this.get('editor');

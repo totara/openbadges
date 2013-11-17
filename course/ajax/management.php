@@ -54,7 +54,27 @@ switch ($action) {
     case 'movecourseintocategory':
         $courseid = required_param('courseid', PARAM_INT);
         $categoryid = required_param('categoryid', PARAM_INT);
-        $outcome->outcome = \core_course\management\helper::move_courses_into_category($categoryid, $courseid);
+        $course = get_course($courseid);
+        $oldcategory = coursecat::get($course->category);
+        $category = coursecat::get($categoryid);
+        $outcome->outcome = \core_course\management\helper::move_courses_into_category($category, $courseid);
+        $perpage = (int)get_user_preferences('coursecat_management_perpage', $CFG->coursesperpage);
+        $totalcourses = $oldcategory->get_courses_count();
+        $totalpages = ceil($totalcourses / $perpage);
+        if ($totalpages == 0) {
+            $str = get_string('nocoursesyet');
+        } else if ($totalpages == 1) {
+            $str = get_string('showingacourses', 'moodle', $totalcourses);
+        } else {
+            $a = new stdClass;
+            $a->start = ($page * $perpage) + 1;
+            $a->end = min((($page + 1) * $perpage), $totalcourses);
+            $a->total = $totalcourses;
+            $str = get_string('showingxofycourses', 'moodle', $a);
+        }
+        $outcome->totalcatcourses = $category->get_courses_count();
+        $outcome->fromcatcoursecount = $totalcourses;
+        $outcome->paginationtotals = $str;
         break;
     case 'movecourseafter' :
         $courseid = required_param('courseid', PARAM_INT);
@@ -120,7 +140,8 @@ switch ($action) {
         $categoryid = required_param('categoryid', PARAM_INT);
         /* @var core_course_management_renderer $renderer */
         $renderer = $PAGE->get_renderer('core_course', 'management');
-        $outcome->html = html_writer::start_tag('ul', array('class' => 'ml'));
+        $outcome->html = html_writer::start_tag('ul',
+            array('class' => 'ml', 'role' => 'group', 'id' => 'subcategoriesof'.$categoryid));
         $coursecat = coursecat::get($categoryid);
         foreach ($coursecat->get_children() as $subcat) {
             $outcome->html .= $renderer->category_listitem($subcat, array(), $subcat->get_children_count());

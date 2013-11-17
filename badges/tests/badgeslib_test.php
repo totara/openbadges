@@ -43,6 +43,8 @@ class core_badges_badgeslib_testcase extends advanced_testcase {
 
         unset_config('noemailever');
 
+        $CFG->enablecompletion = true;
+
         $user = $this->getDataGenerator()->create_user();
 
         $fordb = new stdClass();
@@ -69,7 +71,7 @@ class core_badges_badgeslib_testcase extends advanced_testcase {
         $this->badgeid = $DB->insert_record('badge', $fordb, true);
 
         // Create a course with activity and auto completion tracking.
-        $this->course = $this->getDataGenerator()->create_course();
+        $this->course = $this->getDataGenerator()->create_course(array('enablecompletion' => true));
         $this->user = $this->getDataGenerator()->create_user();
         $studentrole = $DB->get_record('role', array('shortname' => 'student'));
         $this->assertNotEmpty($studentrole);
@@ -164,6 +166,7 @@ class core_badges_badgeslib_testcase extends advanced_testcase {
     }
 
     public function test_badge_awards() {
+        $this->preventResetByRollback(); // Messaging is not compatible with transactions.
         $badge = new badge($this->badgeid);
         $user1 = $this->getDataGenerator()->create_user();
 
@@ -223,6 +226,7 @@ class core_badges_badgeslib_testcase extends advanced_testcase {
      * Test badges observer when course module completion event id fired.
      */
     public function test_badges_observer_course_module_criteria_review() {
+        $this->preventResetByRollback(); // Messaging is not compatible with transactions.
         $badge = new badge($this->coursebadge);
         $this->assertFalse($badge->is_issued($this->user->id));
 
@@ -255,6 +259,7 @@ class core_badges_badgeslib_testcase extends advanced_testcase {
      * Test badges observer when course_completed event is fired.
      */
     public function test_badges_observer_course_criteria_review() {
+        $this->preventResetByRollback(); // Messaging is not compatible with transactions.
         $badge = new badge($this->coursebadge);
         $this->assertFalse($badge->is_issued($this->user->id));
 
@@ -280,6 +285,7 @@ class core_badges_badgeslib_testcase extends advanced_testcase {
      * Test badges observer when user_updated event is fired.
      */
     public function test_badges_observer_profile_criteria_review() {
+        $this->preventResetByRollback(); // Messaging is not compatible with transactions.
         $badge = new badge($this->coursebadge);
         $this->assertFalse($badge->is_issued($this->user->id));
 
@@ -302,6 +308,7 @@ class core_badges_badgeslib_testcase extends advanced_testcase {
      * Test badges assertion generated when a badge is issued.
      */
     public function test_badges_assertion() {
+        $this->preventResetByRollback(); // Messaging is not compatible with transactions.
         $badge = new badge($this->coursebadge);
         $this->assertFalse($badge->is_issued($this->user->id));
 

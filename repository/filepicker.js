@@ -792,12 +792,6 @@ M.core_filepicker.init = function(Y, options) {
                 this.view_as_icons(appenditems);
             }
             this.fpnode.one('.fp-content').setAttribute('tabindex', '0');
-            // Temporary fix for IE8 until MDL-41229 is integrated.
-            // The role dialog is needed for screen reader to read
-            // the filepicker's content (MDL-41232).
-            this.fpnode.one('.fp-content').setAttribute('role', 'dialog');
-            this.fpnode.one('.fp-content').setAttribute('aria-live', 'assertive');
-            // End of temporary fix.
             this.fpnode.one('.fp-content').focus();
             // display/hide the link for requesting next page
             if (!appenditems && this.active_repo.hasmorepages) {
@@ -1855,10 +1849,6 @@ M.core_filepicker.init = function(Y, options) {
 
             // login button
             enable_tb_control(toolbar.one('.fp-tb-logout'), !r.nologin);
-            if (!r.nologin) {
-                var label = r.logouttext ? r.logouttext : M.str.repository.logout;
-                toolbar.one('.fp-tb-logout').one('a,button').setContent(label)
-            }
 
             // manage url
             enable_tb_control(toolbar.one('.fp-tb-manage'), r.manage);

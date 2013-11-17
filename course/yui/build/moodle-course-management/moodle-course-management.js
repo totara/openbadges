@@ -278,9 +278,6 @@ Console.prototype = {
         if (!listing) {
             return false;
         }
-        if (!category) {
-            return false;
-        }
         listing.all('.listitem[data-id]').each(function(node){
             this.registerCourse(new Course({
                 node : node,
@@ -499,8 +496,8 @@ DragDrop.prototype = {
      * @method initializer
      */
     initializer : function() {
-        var console = this.get('console'),
-            container = console.get('element'),
+        var managementconsole = this.get('console'),
+            container = managementconsole.get('element'),
             categorylisting = container.one('#category-listing'),
             courselisting = container.one('#course-listing > .course-listing'),
             categoryul = (categorylisting) ? categorylisting.one('ul.ml') : null,
@@ -675,7 +672,7 @@ DragDrop.prototype = {
             drop = e.drop.get('node'),
             iscategory = (drop.ancestor('.listitem-category') !== null),
             iscourse = !iscategory && (drop.test('.listitem-course')),
-            console = this.get('console'),
+            managementconsole = this.get('console'),
             categoryid,
             category,
             courseid,
@@ -685,21 +682,20 @@ DragDrop.prototype = {
             previousid;
 
         if (!drag.test('.listitem-course')) {
-            alert(drag);
             return false;
         }
         courseid = drag.getData('id');
         if (iscategory) {
             categoryid = drop.ancestor('.listitem-category').getData('id');
-            category = console.getCategoryById(categoryid);
+            category = managementconsole.getCategoryById(categoryid);
             if (category) {
-                course = console.getCourseById(courseid);
+                course = managementconsole.getCourseById(courseid);
                 if (course) {
                     category.moveCourseTo(course);
                 }
             }
         } else if (iscourse || drop.ancestor('#course-listing')) {
-            course = console.getCourseById(courseid);
+            course = managementconsole.getCourseById(courseid);
             previoussibling = drag.get('previousSibling');
             aftercourseid = (previoussibling) ? previoussibling.getData('id') || 0 : 0;
             previousid = (this.previoussibling) ?  this.previoussibling.getData('id') : 0;
@@ -832,6 +828,17 @@ Item.prototype = {
                     nodeup.insert(previousdown, 'after');
                 }
             }
+            nodeup = node.one(' > div a.action-moveup');
+            if (nodeup) {
+                // Try to re-focus on up.
+                nodeup.focus();
+            } else {
+                // If we can't focus up we're at the bottom, try to focus on up.
+                nodedown = node.one(' > div a.action-movedown');
+                if (nodedown) {
+                    nodedown.focus();
+                }
+            }
             this.updated(true);
         } else {
             // Aha it succeeded but this is the top item in the list. Pagination is in play!
@@ -886,6 +893,17 @@ Item.prototype = {
                     nodedown.insert(nextup, 'before');
                 }
             }
+            nodedown = node.one(' > div a.action-movedown');
+            if (nodedown) {
+                // Try to ensure the up is focused again.
+                nodedown.focus();
+            } else {
+                // If we can't focus up we're at the top, try to focus on down.
+                nodeup = node.one(' > div a.action-moveup');
+                if (nodeup) {
+                    nodeup.focus();
+                }
+            }
             this.updated(true);
         } else {
             // Aha it succeeded but this is the bottom item in the list. Pagination is in play!
@@ -904,12 +922,17 @@ Item.prototype = {
      * @returns {Boolean}
      */
     show : function(transactionid, response, args) {
-        var outcome = this.checkAjaxResponse(transactionid, response, args);
+        var outcome = this.checkAjaxResponse(transactionid, response, args),
+            hidebtn;
         if (outcome === false) {
             return false;
         }
 
         this.markVisible();
+        hidebtn = this.get('node').one('a[data-action=hide]');
+        if (hidebtn) {
+            hidebtn.focus();
+        }
         this.updated();
     },
 
@@ -932,11 +955,16 @@ Item.prototype = {
      * @returns {Boolean}
      */
     hide : function(transactionid, response, args) {
-        var outcome = this.checkAjaxResponse(transactionid, response, args);
+        var outcome = this.checkAjaxResponse(transactionid, response, args),
+            showbtn;
         if (outcome === false) {
             return false;
         }
         this.markHidden();
+        showbtn = this.get('node').one('a[data-action=show]');
+        if (showbtn) {
+            showbtn.focus();
+        }
         this.updated();
     },
 
@@ -1127,13 +1155,18 @@ Category.prototype = {
      */
     expand : function() {
         var node = this.get('node'),
-            action = node.one('a[data-action=expand]');
+            action = node.one('a[data-action=expand]'),
+            ul = node.one('ul[role=group]');
         node.removeClass('collapsed').setAttribute('aria-expanded', 'true');
-        action.setAttribute('data-action', 'collapse').one('img').setAttrs({
+        action.setAttribute('data-action', 'collapse').setAttrs({
+            title : M.util.get_string('collapsecategory', 'moodle', this.getName())
+        }).one('img').setAttrs({
             src : M.util.image_url('t/switch_minus', 'moodle'),
-            title : M.util.get_string('collapse', 'moodle'),
             alt : M.util.get_string('collapse', 'moodle')
         });
+        if (ul) {
+            ul.setAttribute('aria-hidden', 'false');
+        }
         this.get('console').performAjaxAction('expandcategory', {categoryid : this.get('categoryid')}, null, this);
     },
 
@@ -1143,13 +1176,18 @@ Category.prototype = {
      */
     collapse : function() {
         var node = this.get('node'),
-            action = node.one('a[data-action=collapse]');
+            action = node.one('a[data-action=collapse]'),
+            ul = node.one('ul[role=group]');
         node.addClass('collapsed').setAttribute('aria-expanded', 'false');
-        action.setAttribute('data-action', 'expand').one('img').setAttrs({
+        action.setAttribute('data-action', 'expand').setAttrs({
+            title : M.util.get_string('expandcategory', 'moodle', this.getName())
+        }).one('img').setAttrs({
             src : M.util.image_url('t/switch_plus', 'moodle'),
-            title : M.util.get_string('expand', 'moodle'),
             alt : M.util.get_string('expand', 'moodle')
         });
+        if (ul) {
+            ul.setAttribute('aria-hidden', 'true');
+        }
         this.get('console').performAjaxAction('collapsecategory', {categoryid : this.get('categoryid')}, null, this);
     },
 
@@ -1166,14 +1204,21 @@ Category.prototype = {
     loadSubcategories : function(transactionid, response, args) {
         var outcome = this.checkAjaxResponse(transactionid, response, args),
             node = this.get('node'),
-            console = this.get('console');
+            managementconsole = this.get('console'),
+            ul,
+            actionnode;
         if (outcome === false) {
             return false;
         }
         node.append(outcome.html);
-        console.initialiseCategories(node);
+        managementconsole.initialiseCategories(node);
         if (M.core && M.core.actionmenu && M.core.actionmenu.newDOMNode) {
             M.core.actionmenu.newDOMNode(node);
+        }
+        ul = node.one('ul[role=group]');
+        actionnode = node.one('a[data-action=collapse]');
+        if (ul && actionnode) {
+            actionnode.setAttribute('aria-controls', ul.generateID());
         }
         return true;
     },
@@ -1193,8 +1238,8 @@ Category.prototype = {
                     course : course.getName(),
                     category : self.getName()
                 }),
-                yesLabel : M.util.get_string('yes', 'moodle'),
-                noLabel : M.util.get_string('no', 'moodle')
+                yesLabel : M.util.get_string('move', 'moodle'),
+                noLabel : M.util.get_string('cancel', 'moodle')
             });
             confirm.on('complete-yes', function() {
                 confirm.hide();
@@ -1219,16 +1264,41 @@ Category.prototype = {
      */
     completeMoveCourse : function(transactionid, response, args) {
         var outcome = this.checkAjaxResponse(transactionid, response, args),
-            course;
+            managementconsole = this.get('console'),
+            category,
+            course,
+            totals;
         if (outcome === false) {
             return false;
         }
-        course = this.get('console').getCourseById(args.courseid);
+        course = managementconsole.getCourseById(args.courseid);
         if (!course) {
             return false;
         }
         this.highlight();
         if (course) {
+            if (outcome.paginationtotals) {
+                totals = managementconsole.get('courselisting').one('.listing-pagination-totals');
+                if (totals) {
+                    totals.set('innerHTML', outcome.paginationtotals);
+                }
+            }
+            if (outcome.totalcatcourses !== 'undefined') {
+                totals = this.get('node').one('.course-count span');
+                if (totals) {
+                    totals.set('innerHTML', totals.get('innerHTML').replace(/^\d+/, outcome.totalcatcourses));
+                }
+            }
+            if (typeof outcome.fromcatcoursecount !== 'undefined') {
+                category = managementconsole.get('activecategoryid');
+                category = managementconsole.getCategoryById(category);
+                if (category) {
+                    totals = category.get('node').one('.course-count span');
+                    if (totals) {
+                        totals.set('innerHTML', totals.get('innerHTML').replace(/^\d+/, outcome.fromcatcoursecount));
+                    }
+                }
+            }
             course.remove();
         }
         return true;
@@ -1244,12 +1314,17 @@ Category.prototype = {
      * @returns {Boolean}
      */
     show : function(transactionid, response, args) {
-        var outcome = this.checkAjaxResponse(transactionid, response, args);
+        var outcome = this.checkAjaxResponse(transactionid, response, args),
+            hidebtn;
         if (outcome === false) {
             return false;
         }
 
         this.markVisible();
+        hidebtn = this.get('node').one('a[data-action=hide]');
+        if (hidebtn) {
+            hidebtn.focus();
+        }
         if (outcome.categoryvisibility) {
             this.updateChildVisibility(outcome.categoryvisibility);
         }
@@ -1269,11 +1344,16 @@ Category.prototype = {
      * @returns {Boolean}
      */
     hide : function(transactionid, response, args) {
-        var outcome = this.checkAjaxResponse(transactionid, response, args);
+        var outcome = this.checkAjaxResponse(transactionid, response, args),
+            showbtn;
         if (outcome === false) {
             return false;
         }
         this.markHidden();
+        showbtn = this.get('node').one('a[data-action=show]');
+        if (showbtn) {
+            showbtn.focus();
+        }
         if (outcome.categoryvisibility) {
             this.updateChildVisibility(outcome.categoryvisibility);
         }
@@ -1290,13 +1370,13 @@ Category.prototype = {
      * @param courses
      */
     updateCourseVisiblity : function(courses) {
-        var console = this.get('console'),
+        var managementconsole = this.get('console'),
             key,
             course;
         try {
             for (key in courses) {
                 if (typeof courses[key] === 'object') {
-                    course = console.getCourseById(courses[key].id);
+                    course = managementconsole.getCourseById(courses[key].id);
                     if (course) {
                         if (courses[key].visible === "1") {
                             course.markVisible();
@@ -1318,13 +1398,13 @@ Category.prototype = {
      * @param categories
      */
     updateChildVisibility : function(categories) {
-        var console = this.get('console'),
+        var managementconsole = this.get('console'),
             key,
             category;
         try {
             for (key in categories) {
                 if (typeof categories[key] === 'object') {
-                    category = console.getCategoryById(categories[key].id);
+                    category = managementconsole.getCategoryById(categories[key].id);
                     if (category) {
                         if (categories[key].visible === "1") {
                             category.markVisible();
@@ -1432,24 +1512,24 @@ Course.prototype = {
      * @returns {Boolean}
      */
     handle : function(action, e) {
-        var console = this.get('console'),
+        var managementconsole = this.get('console'),
             args = {courseid : this.get('courseid')};
         switch (action) {
             case 'moveup':
                 e.halt();
-                console.performAjaxAction('movecourseup', args, this.moveup, this);
+                managementconsole.performAjaxAction('movecourseup', args, this.moveup, this);
                 break;
             case 'movedown':
                 e.halt();
-                console.performAjaxAction('movecoursedown', args, this.movedown, this);
+                managementconsole.performAjaxAction('movecoursedown', args, this.movedown, this);
                 break;
             case 'show':
                 e.halt();
-                console.performAjaxAction('showcourse', args, this.show, this);
+                managementconsole.performAjaxAction('showcourse', args, this.show, this);
                 break;
             case 'hide':
                 e.halt();
-                console.performAjaxAction('hidecourse', args, this.hide, this);
+                managementconsole.performAjaxAction('hidecourse', args, this.hide, this);
                 break;
             default:
                 return false;
@@ -1473,13 +1553,13 @@ Course.prototype = {
      * @param {Number} previousid the course it was previously after in case we need to revert.
      */
     moveAfter : function(moveaftercourse, previousid) {
-        var console = this.get('console'),
+        var managementconsole = this.get('console'),
             args = {
                 courseid : this.get('courseid'),
                 moveafter : moveaftercourse,
                 previous : previousid
             };
-        console.performAjaxAction('movecourseafter', args, this.moveAfterResponse, this);
+        managementconsole.performAjaxAction('movecourseafter', args, this.moveAfterResponse, this);
     },
 
     /**

@@ -21,6 +21,7 @@ YUI.add('moodle-assignfeedback_editpdf-editor', function (Y, NAME) {
  * @module moodle-assignfeedback_editpdf-editor
  */
 var AJAXBASE = M.cfg.wwwroot + '/mod/assign/feedback/editpdf/ajax.php',
+    AJAXBASEPROGRESS = M.cfg.wwwroot + '/mod/assign/feedback/editpdf/ajax_progress.php',
     CSS = {
         DIALOGUE : 'assignfeedback_editpdf_widget'
     },
@@ -32,6 +33,7 @@ var AJAXBASE = M.cfg.wwwroot + '/mod/assign/feedback/editpdf/ajax.php',
         SEARCHCOMMENTSLIST : '.assignfeedback_editpdf_commentsearch ul',
         PAGESELECT : '.' + CSS.DIALOGUE + ' .navigate-page-select',
         LOADINGICON : '.' + CSS.DIALOGUE + ' .loading',
+        PROGRESSBARCONTAINER : '.' + CSS.DIALOGUE + ' .progress-info.progress-striped',
         DRAWINGREGION : '.' + CSS.DIALOGUE + ' .drawingregion',
         DRAWINGCANVAS : '.' + CSS.DIALOGUE + ' .drawingcanvas',
         SAVE : '.' + CSS.DIALOGUE + ' .savebutton',
@@ -45,21 +47,22 @@ var AJAXBASE = M.cfg.wwwroot + '/mod/assign/feedback/editpdf/ajax.php',
     },
     SELECTEDBORDERCOLOUR = 'rgba(200, 200, 255, 0.9)',
     SELECTEDFILLCOLOUR = 'rgba(200, 200, 255, 0.5)',
+    COMMENTTEXTCOLOUR = 'rgb(51, 51, 51)',
     COMMENTCOLOUR = {
         'white' : 'rgb(255,255,255)',
-        'yellow' : 'rgb(255,255,176)',
-        'red' : 'rgb(255,176,176)',
-        'green' : 'rgb(176,255,176)',
-        'blue' : 'rgb(208,208,255)',
+        'yellow' : 'rgb(255,236,174)',
+        'red' : 'rgb(249,181,179)',
+        'green' : 'rgb(214,234,178)',
+        'blue' : 'rgb(203,217,237)',
         'clear' : 'rgba(255,255,255, 0)'
     },
     ANNOTATIONCOLOUR = {
         'white' : 'rgb(255,255,255)',
-        'yellow' : 'rgb(255,255,0)',
-        'red' : 'rgb(255,0,0)',
-        'green' : 'rgb(0,255,0)',
-        'blue' : 'rgb(0,0,255)',
-        'black' : 'rgb(0,0,0)'
+        'yellow' : 'rgb(255,207,53)',
+        'red' : 'rgb(239,69,64)',
+        'green' : 'rgb(152,202,62)',
+        'blue' : 'rgb(125,159,211)',
+        'black' : 'rgb(51,51,51)'
     },
     CLICKTIMEOUT = 300,
     TOOLSELECTOR = {
@@ -246,6 +249,44 @@ RECT = function(x, y, width, height) {
         this.height = maxy - miny;
         // Allow chaining.
         return this;
+    };
+
+    /**
+     * Checks if rect has min width.
+     * @method has_min_width
+     * @return bool true if width is more than 5px.
+     * @public
+     */
+    this.has_min_width = function() {
+        return (this.width >= 5);
+    };
+
+    /**
+     * Checks if rect has min height.
+     * @method has_min_height
+     * @return bool true if height is more than 5px.
+     * @public
+     */
+    this.has_min_height = function() {
+        return (this.height >= 5);
+    };
+
+    /**
+     * Set min. width of annotation bound.
+     * @method set_min_width
+     * @public
+     */
+    this.set_min_width = function() {
+        this.width = 5;
+    };
+
+    /**
+     * Set min. height of annotation bound.
+     * @method set_min_height
+     * @public
+     */
+    this.set_min_height = function() {
+        this.height = 5;
     };
 };
 
@@ -667,8 +708,10 @@ Y.extend(ANNOTATION, Y.Base, {
      * @method remove
      * @param event
      */
-    remove : function() {
+    remove : function(e) {
         var annotations;
+
+        e.preventDefault();
 
         annotations = this.editor.pages[this.editor.currentpage].annotations;
         for (i = 0; i < annotations.length; i++) {
@@ -740,6 +783,7 @@ Y.extend(ANNOTATION, Y.Base, {
      * @public
      * @method init_from_edit
      * @param M.assignfeedback_editpdf.edit edit
+     * @return bool if width/height is more than min. required.
      */
     init_from_edit : function(edit) {
         var bounds = new M.assignfeedback_editpdf.rect();
@@ -753,6 +797,7 @@ Y.extend(ANNOTATION, Y.Base, {
         this.endy = bounds.y + bounds.height;
         this.colour = edit.annotationcolour;
         this.path = '';
+        return (bounds.has_min_width() && bounds.has_min_height());
     }
 
 });
@@ -855,6 +900,7 @@ Y.extend(ANNOTATIONLINE, M.assignfeedback_editpdf.annotation, {
      * @public
      * @method init_from_edit
      * @param M.assignfeedback_editpdf.edit edit
+     * @return bool true if line bound is more than min width/height, else false.
      */
     init_from_edit : function(edit) {
         this.gradeid = this.editor.get('gradeid');
@@ -865,6 +911,8 @@ Y.extend(ANNOTATIONLINE, M.assignfeedback_editpdf.annotation, {
         this.endy = edit.end.y;
         this.colour = edit.annotationcolour;
         this.path = '';
+
+        return !(((this.endx - this.x) === 0) && ((this.endy - this.y) === 0));
     }
 
 });
@@ -950,6 +998,14 @@ Y.extend(ANNOTATIONRECTANGLE, M.assignfeedback_editpdf.annotation, {
         bounds = new M.assignfeedback_editpdf.rect();
         bounds.bound([new M.assignfeedback_editpdf.point(edit.start.x, edit.start.y),
                       new M.assignfeedback_editpdf.point(edit.end.x, edit.end.y)]);
+
+        // Set min. width and height of rectangle.
+        if (!bounds.has_min_width()) {
+            bounds.set_min_width();
+        }
+        if (!bounds.has_min_height()) {
+            bounds.set_min_height();
+        }
 
         shape = this.editor.graphic.addShape({
             type: Y.Rect,
@@ -1050,6 +1106,14 @@ Y.extend(ANNOTATIONOVAL, M.assignfeedback_editpdf.annotation, {
         bounds = new M.assignfeedback_editpdf.rect();
         bounds.bound([new M.assignfeedback_editpdf.point(edit.start.x, edit.start.y),
                       new M.assignfeedback_editpdf.point(edit.end.x, edit.end.y)]);
+
+        // Set min. width and height of oval.
+        if (!bounds.has_min_width()) {
+            bounds.set_min_width();
+        }
+        if (!bounds.has_min_height()) {
+            bounds.set_min_height();
+        }
 
         shape = this.editor.graphic.addShape({
             type: Y.Ellipse,
@@ -1195,6 +1259,7 @@ Y.extend(ANNOTATIONPEN, M.assignfeedback_editpdf.annotation, {
      * @public
      * @method init_from_edit
      * @param M.assignfeedback_editpdf.edit edit
+     * @return bool true if pen bound is more than min width/height, else false.
      */
     init_from_edit : function(edit) {
         var bounds = new M.assignfeedback_editpdf.rect(),
@@ -1216,6 +1281,8 @@ Y.extend(ANNOTATIONPEN, M.assignfeedback_editpdf.annotation, {
         this.endy = bounds.y + bounds.height;
         this.colour = edit.annotationcolour;
         this.path = pathlist.join(':');
+
+        return (bounds.has_min_width() || bounds.has_min_height());
     }
 
 
@@ -1313,6 +1380,11 @@ Y.extend(ANNOTATIONHIGHLIGHT, M.assignfeedback_editpdf.annotation, {
         bounds.bound([new M.assignfeedback_editpdf.point(edit.start.x, edit.start.y),
                       new M.assignfeedback_editpdf.point(edit.end.x, edit.end.y)]);
 
+        // Set min. width of highlight.
+        if (!bounds.has_min_width()) {
+            bounds.set_min_width();
+        }
+
         highlightcolour = ANNOTATIONCOLOUR[edit.annotationcolour];
         // Add an alpha channel to the rgb colour.
 
@@ -1343,6 +1415,7 @@ Y.extend(ANNOTATIONHIGHLIGHT, M.assignfeedback_editpdf.annotation, {
      * @public
      * @method init_from_edit
      * @param M.assignfeedback_editpdf.edit edit
+     * @return bool true if highlight bound is more than min width/height, else false.
      */
     init_from_edit : function(edit) {
         var bounds = new M.assignfeedback_editpdf.rect();
@@ -1356,6 +1429,8 @@ Y.extend(ANNOTATIONHIGHLIGHT, M.assignfeedback_editpdf.annotation, {
         this.endy = edit.start.y + 16;
         this.colour = edit.annotationcolour;
         this.page = '';
+
+        return (bounds.has_min_width());
     }
 
 });
@@ -1408,6 +1483,7 @@ Y.extend(ANNOTATIONSTAMP, M.assignfeedback_editpdf.annotation, {
         position = this.editor.get_window_coordinates(new M.assignfeedback_editpdf.point(this.x, this.y));
         node = Y.Node.create('<div/>');
         node.setStyles({
+            'position': 'absolute',
             'display': 'inline-block',
             'backgroundImage': 'url(' + this.editor.get_stamp_image_url(this.path) + ')',
             'width': (this.endx - this.x),
@@ -1450,6 +1526,7 @@ Y.extend(ANNOTATIONSTAMP, M.assignfeedback_editpdf.annotation, {
 
         node = Y.Node.create('<div/>');
         node.setStyles({
+            'position': 'absolute',
             'display': 'inline-block',
             'backgroundImage': 'url(' + this.editor.get_stamp_image_url(edit.stamp) + ')',
             'width': bounds.width,
@@ -1473,6 +1550,7 @@ Y.extend(ANNOTATIONSTAMP, M.assignfeedback_editpdf.annotation, {
      * @public
      * @method init_from_edit
      * @param M.assignfeedback_editpdf.edit edit
+     * @return bool if width/height is more than min. required.
      */
     init_from_edit : function(edit) {
         var bounds = new M.assignfeedback_editpdf.rect();
@@ -1492,6 +1570,9 @@ Y.extend(ANNOTATIONSTAMP, M.assignfeedback_editpdf.annotation, {
         this.endy = bounds.y + bounds.height;
         this.colour = edit.annotationcolour;
         this.path = edit.stamp;
+
+        // Min width and height is always more than 40px.
+        return true;
     },
 
     /**
@@ -1538,7 +1619,6 @@ DROPDOWN = function(config) {
     config.width = 'auto';
     config.lightbox = false;
     config.visible = false;
-    config.zIndex = 100;
     config.footerContent = '';
     DROPDOWN.superclass.constructor.apply(this, [config]);
 };
@@ -1577,7 +1657,7 @@ Y.extend(DROPDOWN, M.core.dialogue, {
             }
         }, this);
 
-        button.on('click', this.show, this);
+        button.on('click', function(e) {e.preventDefault(); this.show();}, this);
         button.on('key', this.show, 'enter,space', this);
     },
 
@@ -1682,6 +1762,8 @@ Y.extend(COLOURPICKER, M.assignfeedback_editpdf.dropdown, {
         COLOURPICKER.superclass.initializer.call(this, config);
     },
     callback_handler : function(e) {
+        e.preventDefault();
+
         var callback = this.get('callback'),
             callbackcontext = this.get('context'),
             bind;
@@ -1776,7 +1858,7 @@ Y.extend(STAMPPICKER, M.assignfeedback_editpdf.dropdown, {
             var button, listitem, title;
 
             title = M.util.get_string('stamp', 'assignfeedback_editpdf');
-            button = Y.Node.create('<button><img height="40" alt="' + title + '" src="' + stamp + '"/></button>');
+            button = Y.Node.create('<button><img height="16" width="16" alt="' + title + '" src="' + stamp + '"/></button>');
             button.setAttribute('data-stamp', stamp);
             button.setStyle('backgroundImage', 'none');
             listitem = Y.Node.create('<li/>');
@@ -1798,6 +1880,7 @@ Y.extend(STAMPPICKER, M.assignfeedback_editpdf.dropdown, {
         STAMPPICKER.superclass.initializer.call(this, config);
     },
     callback_handler : function(e) {
+        e.preventDefault();
         var callback = this.get('callback'),
             callbackcontext = this.get('context'),
             bind;
@@ -1890,7 +1973,7 @@ Y.extend(COMMENTMENU, M.assignfeedback_editpdf.dropdown, {
         commentlinks.append(link);
 
         link = Y.Node.create('<li><a tabindex="-1" href="#">' + M.util.get_string('deletecomment', 'assignfeedback_editpdf') + '</a></li>');
-        link.on('click', function() { comment.menu.hide(); comment.remove(); }, comment);
+        link.on('click', function(e) { e.preventDefault(); this.menu.hide(); this.remove(); }, comment);
         link.on('key', function() { comment.menu.hide(); comment.remove(); }, 'enter,space', comment);
 
         commentlinks.append(link);
@@ -1920,6 +2003,8 @@ Y.extend(COMMENTMENU, M.assignfeedback_editpdf.dropdown, {
         var commentlinks = this.get('boundingBox').one('ul');
             commentlinks.all('.quicklist_comment').remove(true),
             comment = this.get('comment');
+
+        comment.deleteme = false; // Cancel the deleting of blank comments.
 
         // Now build the list of quicklist comments.
         Y.each(comment.editor.quicklist.comments, function(quickcomment) {
@@ -1981,7 +2066,6 @@ COMMENTSEARCH = function(config) {
     config.lightbox = true;
     config.visible = false;
     config.headerContent = M.util.get_string('searchcomments', 'assignfeedback_editpdf');
-    config.zIndex = 100;
     config.footerContent = '';
     COMMENTSEARCH.superclass.constructor.apply(this, [config]);
 };
@@ -2056,6 +2140,7 @@ Y.extend(COMMENTSEARCH, M.core.dialogue, {
      * @method focus_on_comment
      */
     focus_on_comment : function(e) {
+        e.preventDefault();
         var target = e.target.ancestor('li'),
             comment = target.getData('comment'),
             editor = this.get('editor');
@@ -2302,10 +2387,12 @@ COMMENT = function(editor, gradeid, pageno, x, y, width, colour, rawtext) {
         position = this.editor.get_window_coordinates(new M.assignfeedback_editpdf.point(this.x, this.y));
         node.setStyles({
             width: this.width + 'px',
-            backgroundColor: COMMENTCOLOUR[this.colour]
+            backgroundColor: COMMENTCOLOUR[this.colour],
+            color: COMMENTTEXTCOLOUR
         });
 
         drawingregion.append(container);
+        container.setStyle('position', 'absolute');
         container.setX(position.x);
         container.setY(position.y);
         drawable.nodes.push(container);
@@ -2360,6 +2447,7 @@ COMMENT = function(editor, gradeid, pageno, x, y, width, colour, rawtext) {
                 Y.later(400, this, this.delete_comment_later);
             }
             this.editor.save_current_page();
+            this.editor.editingcomment = false;
         }, this);
 
         // For delegated event handler.
@@ -2447,6 +2535,8 @@ COMMENT = function(editor, gradeid, pageno, x, y, width, colour, rawtext) {
      * @method remove_from_quicklist
      */
     this.remove_from_quicklist = function(e, quickcomment) {
+        e.preventDefault();
+
         this.menu.hide();
 
         this.editor.quicklist.remove(quickcomment);
@@ -2460,6 +2550,8 @@ COMMENT = function(editor, gradeid, pageno, x, y, width, colour, rawtext) {
      * @method set_from_quick_comment
      */
     this.set_from_quick_comment = function(e, quickcomment) {
+        e.preventDefault();
+
         this.menu.hide();
 
         this.rawtext = quickcomment.rawtext;
@@ -2477,7 +2569,8 @@ COMMENT = function(editor, gradeid, pageno, x, y, width, colour, rawtext) {
      * @protected
      * @method add_to_quicklist
      */
-    this.add_to_quicklist = function() {
+    this.add_to_quicklist = function(e) {
+        e.preventDefault();
         this.menu.hide();
         this.editor.quicklist.add(this);
     };
@@ -2520,6 +2613,7 @@ COMMENT = function(editor, gradeid, pageno, x, y, width, colour, rawtext) {
      * @public
      * @method init_from_edit
      * @param M.assignfeedback_editpdf.edit edit
+     * @return bool true if comment bound is more than min width/height, else false.
      */
     this.init_from_edit = function(edit) {
         var bounds = new M.assignfeedback_editpdf.rect();
@@ -2539,6 +2633,8 @@ COMMENT = function(editor, gradeid, pageno, x, y, width, colour, rawtext) {
         this.width = bounds.width;
         this.colour = edit.commentcolour;
         this.rawtext = '';
+
+        return (bounds.has_min_width() && bounds.has_min_height());
     };
 
 };
@@ -2983,6 +3079,16 @@ EDITOR.prototype = {
     stamps : [],
 
     /**
+     * Prevent new comments from appearing
+     * immediately after clicking off a current
+     * comment
+     * @property editingcomment
+     * @type Boolean
+     * @public
+     */
+    editingcomment : false,
+
+    /**
      * Called during the initialisation process of the object.
      * @method initializer
      */
@@ -3090,10 +3196,10 @@ EDITOR.prototype = {
                 bodyContent: this.get('body'),
                 footerContent: this.get('footer'),
                 width: '840px',
-                visible: true
+                visible: false,
+                draggable: true
             });
 
-            this.dialogue.centerDialogue();
             // Add custom class for styling.
             this.dialogue.get('boundingBox').addClass(CSS.DIALOGUE);
 
@@ -3109,11 +3215,11 @@ EDITOR.prototype = {
 
                 this.refresh_button_state();
             }
-        } else {
-            this.dialogue.show();
-        }
 
-        this.load_all_pages();
+            this.load_all_pages();
+        }
+        this.dialogue.centerDialogue();
+        this.dialogue.show();
     },
 
     /**
@@ -3122,30 +3228,88 @@ EDITOR.prototype = {
      */
     load_all_pages : function() {
         var ajaxurl = AJAXBASE,
-            config;
+            config,
+            checkconversionstatus,
+            ajax_error_total;
 
         config = {
             method: 'get',
             context: this,
             sync: false,
             data : {
-                'sesskey' : M.cfg.sesskey,
-                'action' : 'loadallpages',
-                'userid' : this.get('userid'),
-                'attemptnumber' : this.get('attemptnumber'),
-                'assignmentid' : this.get('assignmentid')
+                sesskey : M.cfg.sesskey,
+                action : 'loadallpages',
+                userid : this.get('userid'),
+                attemptnumber : this.get('attemptnumber'),
+                assignmentid : this.get('assignmentid')
             },
             on: {
                 success: function(tid, response) {
                     this.all_pages_loaded(response.responseText);
                 },
                 failure: function(tid, response) {
-                    return M.core.exception(response.responseText);
+                    return new M.core.exception(response.responseText);
                 }
             }
         };
 
         Y.io(ajaxurl, config);
+
+        // If pages are not loaded, check PDF conversion status for the progress bar.
+        if (this.pagecount <= 0) {
+            checkconversionstatus = {
+                method: 'get',
+                context: this,
+                sync: false,
+                data : {
+                    sesskey : M.cfg.sesskey,
+                    action : 'conversionstatus',
+                    userid : this.get('userid'),
+                    attemptnumber : this.get('attemptnumber'),
+                    assignmentid : this.get('assignmentid')
+                },
+                on: {
+                    success: function(tid, response) {
+                        ajax_error_total = 0;
+                        if (this.pagecount === 0) {
+                            var pagetotal = this.get('pagetotal');
+
+                            // Update the progress bar.
+                            var progressbarcontainer = Y.one(SELECTOR.PROGRESSBARCONTAINER);
+                            var progressbar = progressbarcontainer.one('.bar');
+                            if (progressbar) {
+                                // Calculate progress.
+                                var progress = (response.response / pagetotal) * 100;
+                                progressbar.setStyle('width', progress + '%');
+                                progressbarcontainer.setAttribute('aria-valuenow', progress);
+                            }
+
+                            // New ajax request delayed of a second.
+                            Y.later(1000, this, function () {
+                                Y.io(AJAXBASEPROGRESS, checkconversionstatus);
+                            });
+                        }
+                    },
+                    failure: function(tid, response) {
+                        ajax_error_total = ajax_error_total + 1;
+                        // We only continue on error if the all pages were not generated,
+                        // and if the ajax call did not produce 5 errors in the row.
+                        if (this.pagecount === 0 && ajax_error_total < 5) {
+                            Y.later(1000, this, function () {
+                                Y.io(AJAXBASEPROGRESS, checkconversionstatus);
+                            });
+                        }
+                        return new M.core.exception(response.responseText);
+                    }
+                }
+            };
+            // We start the AJAX "generated page total number" call a second later to give a chance to
+            // the AJAX "combined pdf generation" call to clean the previous submission images.
+            Y.later(1000, this, function () {
+                ajax_error_total = 0;
+                Y.io(AJAXBASEPROGRESS, checkconversionstatus);
+            });
+        }
     },
 
     /**
@@ -3291,8 +3455,7 @@ EDITOR.prototype = {
 
         stampfiles = this.get('stampfiles');
         if (stampfiles.length <= 0) {
-            Y.one(SELECTOR.STAMPSBUTTON).hide();
-            Y.one(TOOLSELECTOR.stamp).hide();
+            Y.one(TOOLSELECTOR.stamp).ancestor().hide();
         } else {
             filename = stampfiles[0].substr(stampfiles[0].lastIndexOf('/') + 1);
             this.currentedit.stamp = filename;
@@ -3427,6 +3590,10 @@ EDITOR.prototype = {
             return;
         }
 
+        if (this.editingcomment) {
+            return;
+        }
+
         this.currentedit.starttime = new Date().getTime();
         this.currentedit.start = point;
         this.currentedit.end = {x : point.x, y : point.y};
@@ -3525,9 +3692,11 @@ EDITOR.prototype = {
             }
             this.currentdrawable = false;
             comment = new M.assignfeedback_editpdf.comment(this);
-            comment.init_from_edit(this.currentedit);
-            this.pages[this.currentpage].comments.push(comment);
-            this.drawables.push(comment.draw(true));
+            if (comment.init_from_edit(this.currentedit)) {
+                this.pages[this.currentpage].comments.push(comment);
+                this.drawables.push(comment.draw(true));
+                this.editingcomment = true;
+            }
         } else {
             annotation = this.create_annotation(this.currentedit.tool, {});
             if (annotation) {
@@ -3535,12 +3704,12 @@ EDITOR.prototype = {
                     this.currentdrawable.erase();
                 }
                 this.currentdrawable = false;
-                annotation.init_from_edit(this.currentedit);
-                this.pages[this.currentpage].annotations.push(annotation);
-                this.drawables.push(annotation.draw());
+                if (annotation.init_from_edit(this.currentedit)) {
+                    this.pages[this.currentpage].annotations.push(annotation);
+                    this.drawables.push(annotation.draw());
+                }
             }
         }
-
 
         // Save the changes.
         this.save_current_page();
@@ -3612,7 +3781,7 @@ EDITOR.prototype = {
                     }
                 },
                 failure: function(tid, response) {
-                    return M.core.exception(response.responseText);
+                    return new M.core.exception(response.responseText);
                 }
             }
         };
@@ -3740,7 +3909,8 @@ EDITOR.prototype = {
      * @protected
      * @method previous_page
      */
-    previous_page : function() {
+    previous_page : function(e) {
+        e.preventDefault();
         this.currentpage--;
         if (this.currentpage < 0) {
             this.currentpage = 0;
@@ -3753,7 +3923,8 @@ EDITOR.prototype = {
      * @protected
      * @method next_page
      */
-    next_page : function() {
+    next_page : function(e) {
+        e.preventDefault();
         this.currentpage++;
         if (this.currentpage >= this.pages.length) {
             this.currentpage = this.pages.length - 1;
@@ -3807,6 +3978,10 @@ Y.extend(EDITOR, Y.Base, EDITOR.prototype, {
         stampfiles : {
             validator : Y.Lang.isArray,
             value : ''
+        },
+        pagetotal : {
+            validator : Y.Lang.isInteger,
+            value : 0
         }
     }
 });

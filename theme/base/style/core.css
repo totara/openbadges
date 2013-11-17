@@ -102,7 +102,7 @@ img.resize {height: 1em;width: 1em;}
 /* Icon styles */
 img.icon {height:16px;vertical-align:text-bottom;width:16px;padding-right: 6px;}
 .dir-rtl img.icon {padding-left: 6px; padding-right: 0; }
-img.iconsmall {height:12px;margin-right:3px;vertical-align:middle;width:12px;}
+img.iconsmall {height:12px;margin-right:3px; margin-left: 3px;vertical-align:middle;width:12px;}
 img.iconhelp, .helplink img {height:16px; padding-left:3px;vertical-align:text-bottom;width:16px;}
 .dir-rtl img.iconhelp, .dir-rtl .helplink img {padding-right: 3px; padding-left: 0; }
 img.iconlarge {height: 24px; width: 24px; vertical-align:middle;}
@@ -149,7 +149,10 @@ h4 img.iconhelp,
 h5 img.icon,
 h5 img.iconhelp,
 h6 img.icon,
-h6 img.iconhelp {vertical-align: middle;}
+h6 img.iconhelp {
+    vertical-align: middle;
+    padding: 4px;
+}
 
 /** The 1-pixel padding is there to avoid phantom scroll bars on OS X (FF, Safari and Chrome)**/
 .no-overflow {overflow:auto;padding-bottom:1px;}
@@ -326,6 +329,51 @@ input#id_externalurl {direction:ltr;}
 #portfolio-add-button {display:inline;}
 
 /**
+ * Show the labels above text editors and file managers except on wide screens.
+ */
+#region-main .mform .fitem .fitemtitle label {
+    font-weight: bold;
+}
+@media (max-width: 1199px) {
+    #region-main .mform .fitem .fitemtitle {
+        display: block;
+        margin-top: 4px;
+        margin-bottom: 4px;
+        text-align: left;
+        width: 100%;
+    }
+    .dir-rtl #region-main .mform .fitem .fitemtitle {
+        text-align: right;
+    }
+
+    #region-main .mform .fitem .felement {
+        margin-left: 0;
+        width: 100%;
+        float: left;
+        margin-bottom: 6px;
+        padding-left: 0;
+        padding-right: 0;
+    }
+    .dir-rtl #region-main .mform .fitem .felement {
+        margin-right: 0;
+        float: right;
+        padding-right: 0;
+        padding-left: 0;
+    }
+    #region-main .mform .fitem_fcheckbox .fitemtitle,
+    #region-main .mform .fitem_fcheckbox .felement {
+        display: inline-block;
+        width: auto;
+    }
+    .dir-rtl #region-main .mform .fitem_fcheckbox .felement {
+        float: right;
+    }
+    #region-main .mform .fitem_fcheckbox .felement {
+        padding: 6px;
+    }
+}
+
+/**
  * phpinfo styles
  */
 .phpinfo .center {text-align: center;}
@@ -365,7 +413,7 @@ input#id_externalurl {direction:ltr;}
 .groupmanagementtable #addselect_wrapper label {font-weight: normal;}
 .dir-rtl .groupmanagementtable p {text-align: right;}
 #group-usersummary {width: 14em;}
-.groupselector {margin-top: 3px;margin-bottom: 3px;}
+.groupselector {margin-top: 3px;margin-bottom: 3px;display: inline-block;}
 
 /**
  * Login
@@ -733,39 +781,23 @@ body.tag .managelink {padding: 5px;}
 .corelightbox {background-color:#CCC;position:absolute;top:0;left:0;width:100%;height:100%;text-align:center;}
 .corelightbox img {position:fixed;top:50%; left: 50%;}
 
-.mod-indent-1 {margin-left:30px;}
-.mod-indent-2 {margin-left:60px;}
-.mod-indent-3 {margin-left:90px;}
-.mod-indent-4 {margin-left:120px;}
-.mod-indent-5 {margin-left:150px;}
-.mod-indent-6 {margin-left:180px;}
-.mod-indent-7 {margin-left:210px;}
-.mod-indent-8 {margin-left:240px;}
-.mod-indent-9 {margin-left:270px;}
-.mod-indent-10 {margin-left:300px;}
-.mod-indent-11 {margin-left:330px;}
-.mod-indent-12 {margin-left:360px;}
-.mod-indent-13 {margin-left:390px;}
-.mod-indent-14 {margin-left:420px;}
+.mod-indent {display:table-cell;}
+.mod-indent-1    {width:30px;}
+.mod-indent-2    {width:60px;}
+.mod-indent-3    {width:90px;}
+.mod-indent-4    {width:120px;}
+.mod-indent-5    {width:150px;}
+.mod-indent-6    {width:180px;}
+.mod-indent-7    {width:210px;}
+.mod-indent-8    {width:240px;}
+.mod-indent-9    {width:270px;}
+.mod-indent-10   {width:300px;}
+.mod-indent-11   {width:330px;}
+.mod-indent-12   {width:360px;}
+.mod-indent-13   {width:390px;}
+.mod-indent-14   {width:420px;}
 .mod-indent-15,
-.mod-indent-huge {margin-left:420px;}
-
-.dir-rtl .mod-indent-1 {margin-right:30px;margin-left:0;}
-.dir-rtl .mod-indent-2 {margin-right:60px;margin-left:0;}
-.dir-rtl .mod-indent-3 {margin-right:90px;margin-left:0;}
-.dir-rtl .mod-indent-4 {margin-right:120px;margin-left:0;}
-.dir-rtl .mod-indent-5 {margin-right:150px;margin-left:0;}
-.dir-rtl .mod-indent-6 {margin-right:180px;margin-left:0;}
-.dir-rtl .mod-indent-7 {margin-right:210px;margin-left:0;}
-.dir-rtl .mod-indent-8 {margin-right:240px;margin-left:0;}
-.dir-rtl .mod-indent-9 {margin-right:270px;margin-left:0;}
-.dir-rtl .mod-indent-10 {margin-right:300px;margin-left:0;}
-.dir-rtl .mod-indent-11 {margin-right:330px;margin-left:0;}
-.dir-rtl .mod-indent-12 {margin-right:360px;margin-left:0;}
-.dir-rtl .mod-indent-13 {margin-right:390px;margin-left:0;}
-.dir-rtl .mod-indent-14 {margin-right:420px;margin-left:0;}
-.dir-rtl .mod-indent-15,
-.dir-rtl .mod-indent-huge {margin-right:420px;margin-left:0;}
+.mod-indent-huge {width:420px;}
 
 .dir-rtl .mform .fitem .felement {margin-right: 16%;margin-left:auto;text-align: right;}
 .dir-rtl .mform .fitem .felement input[name=email],
@@ -964,13 +996,15 @@ sup {vertical-align: super;}
     margin-left:-3px;
     background-color: #FFFFFF;
     border: 1px solid #CCCCCC;
-    border-radius:10px;
+    border-radius: 10px;
     box-shadow: 5px 5px 20px 0px #666666;
     -webkit-box-shadow: 5px 5px 20px 0px #666666;
     -moz-box-shadow: 5px 5px 20px 0px #666666;
+    overflow: hidden;
 }
 
-.moodle-dialogue-base .moodle-dialogue-wrap .moodle-dialogue-hd {
+.moodle-dialogue-base .moodle-dialogue-wrap .moodle-dialogue-hd,
+.moodle-dialogue-base .moodle-dialogue-wrap .moodle-dialogue-hd.yui3-widget-hd {
     margin:0;
     padding:5px;
     font-size:12px;
@@ -1016,7 +1050,6 @@ sup {vertical-align: super;}
 }
 
 .moodle-dialogue-base .moodle-dialogue .moodle-dialogue-bd {
-    overflow: auto;
     padding: 1em;
     line-height: 2em;
     color: #555;
@@ -1133,6 +1166,9 @@ sup {vertical-align: super;}
 }
 .moodle-dialogue-base .moodle-dialogue.moodle-dialogue-tooltip {
     z-index: 3001;
+}
+.moodle-dialogue-base .moodle-dialogue.moodle-dialogue-tooltip .moodle-dialogue-bd {
+    overflow: auto;
 }
 
 /* Question Bank - Question Chooser "Close" button */
@@ -1466,7 +1502,7 @@ img#persona_signin { cursor: pointer; }
 .moodle-actionmenu > ul,
 .moodle-actionmenu > ul > li {display: inline-block;}
 .moodle-actionmenu ul {padding: 0;margin: 0;list-style-type: none;}
-.moodle-actionmenu a.hidden {display: none;}
+#page .moodle-actionmenu a.hidden {display: none;}
 .moodle-actionmenu .toggle-display,
 .moodle-actionmenu .menu-action-text {display: none;}
 
@@ -1474,43 +1510,88 @@ img#persona_signin { cursor: pointer; }
 .jsenabled .moodle-actionmenu[data-enhance] {display: block;}
 .jsenabled .moodle-actionmenu[data-enhance] .menu {display: none;}
 .jsenabled .moodle-actionmenu[data-enhance] .toggle-display {display: inline;opacity: 0.5;filter: alpha(opacity=50);}
+
+.jsenabled .moodle-actionmenu[data-enhance] .toggle-display.textmenu {
+    display: block;
+    margin-left: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.jsenabled.dir-rtl .moodle-actionmenu[data-enhance] .toggle-display.textmenu {
+    margin-right: 4px;
+    margin-left: initial;
+}
+
+.jsenabled .moodle-actionmenu[data-enhance] .toggle-display.textmenu .iconsmall {
+    margin: 8px 4px 0px 2px;
+}
+
+.jsenabled .moodle-actionmenu[data-enhance] .toggle-display.textmenu .caret {
+    margin-top: 4px;
+    margin-left: 2px;
+}
+
+.jsenabled.dir-rtl .moodle-actionmenu[data-enhance] .toggle-display.textmenu .caret {
+    margin-right: 2px;
+    margin-left: initial;
+}
+
 .jsenabled .moodle-actionmenu[data-enhanced] .toggle-display {opacity: 1;filter: alpha(opacity=100);}
-.jsenabled .moodle-actionmenu[data-enhanced] .menu-action-text {display: inline;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu-action-text {
+    display: inline;
+}
 
 .moodle-actionmenu[data-enhanced].show {position: relative;}
 .moodle-actionmenu[data-enhanced].show .menu {position: absolute;text-align:left;z-index: 1000;display: block;background-color: #fff;border: 1px solid #ccc;-webkit-border-radius: 5px;-moz-border-radius: 5px;border-radius: 5px;-webkit-box-shadow: 5px 5px 20px 0 #666666;-moz-box-shadow: 5px 5px 20px 0 #666666;box-shadow: 5px 5px 20px 0 #666666;}
-.moodle-actionmenu[data-enhanced].show .menu a {white-space:nowrap;display: block;padding: 2px 1em 2px 0.5em;color: #333333;}
+.moodle-actionmenu[data-enhanced].show .menu a {
+    display: block;
+    padding: 4px 1em 4px 28px;
+    color: #333333;
+}
+.moodle-actionmenu[data-enhanced].show .menu a > img {
+    margin: 4px 4px 4px -24px;
+    padding: 4px;
+    width: 12px;
+    height: 12px;
+}
 .moodle-actionmenu[data-enhanced].show .menu a:hover,
 .moodle-actionmenu[data-enhanced].show .menu a:focus {color: #ffffff;background-color: #0088cc;}
 .moodle-actionmenu[data-enhanced].show .menu a:first-child {-webkit-border-top-right-radius: 4px;border-top-right-radius: 4px;-webkit-border-top-left-radius: 4px;border-top-left-radius: 4px;-moz-border-radius-topright: 4px;-moz-border-radius-topleft: 4px;}
 .moodle-actionmenu[data-enhanced].show .menu a:last-child {-webkit-border-bottom-right-radius: 4px;border-bottom-right-radius: 4px;-webkit-border-bottom-left-radius: 4px;border-bottom-left-radius: 4px;-moz-border-radius-bottomright: 4px;-moz-border-radius-bottomleft: 4px;}
 .moodle-actionmenu[data-enhanced].show .menu a.hidden {display: none;}
 .moodle-actionmenu[data-enhanced].show .menu img {vertical-align: middle;}
-.moodle-actionmenu[data-enhanced].show .menu .iconsmall {margin-right: 8px;}
 .moodle-actionmenu[data-enhanced].show .menu > li {display: block;}
-.action-menu-shown .moodle-actionmenu[data-enhanced] .toggle-display {background-color: #FFF;}
 .block .moodle-actionmenu {text-align: right;}
 
 .dir-rtl .block .moodle-actionmenu {text-align: right;}
 .dir-rtl .moodle-actionmenu[data-enhanced].show .menu {text-align: right;right: auto;left: 0;}
 .dir-rtl .moodle-actionmenu[data-enhanced].show .menu .iconsmall {margin-right: 0;margin-left: 8px;}
 
-.menu.align-tl-bl {top: 100%;left: 0;margin-top: 4px;}
-.menu.align-tr-bl {top: 100%;right: 100%;}
-.menu.align-bl-bl {bottom: 100%;left: 0;}
-.menu.align-br-bl {right: 100%;bottom: 100%;}
-.menu.align-tl-br {top: 100%;left: 100%;}
-.menu.align-tr-br {top: 100%;right: 0;margin-top: 4px;}
-.menu.align-bl-br {bottom: 100%;left: 100%;}
-.menu.align-br-br {right: 0;bottom: 100%;}
-.menu.align-tl-tl {top: 0;left: 0;}
-.menu.align-tr-tl {top: 0;right: 100%;margin-right: 4px;}
-.menu.align-bl-tl {bottom: 100%;left: 0;margin-bottom: 4px;}
-.menu.align-br-tl {right: 100%;bottom: 100%;}
-.menu.align-tl-tr {top: 0;left: 100%;margin-left: 4px;}
-.menu.align-tr-tr {top: 0;right: 0;}
-.menu.align-bl-tr {bottom: 100%;left: 100%;}
-.menu.align-br-tr {right: 0;bottom: 100%;margin-bottom: 4px;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-tl-bl {top: 100%;left: 0;margin-top: 4px;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-tr-bl {top: 100%;right: 100%;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-bl-bl {bottom: 100%;left: 0;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-br-bl {right: 100%;bottom: 100%;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-tl-br {top: 100%;left: 100%;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-tr-br {top: 100%;right: 0;margin-top: 4px;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-bl-br {bottom: 100%;left: 100%;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-br-br {right: 0;bottom: 100%;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-tl-tl {top: 0;left: 0;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-tr-tl {top: 0;right: 100%;margin-right: 4px;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-bl-tl {bottom: 100%;left: 0;margin-bottom: 4px;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-br-tl {right: 100%;bottom: 100%;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-tl-tr {top: 0;left: 100%;margin-left: 4px;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-tr-tr {top: 0;right: 0;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-bl-tr {bottom: 100%;left: 100%;}
+.jsenabled .moodle-actionmenu[data-enhanced] .menu.align-br-tr {right: 0;bottom: 100%;margin-bottom: 4px;}
+
+.moodle-actionmenu > ul > li[role="menuitem"] {
+    display: none;
+}
+
+.jsenabled .moodle-actionmenu[data-enhance="moodle-core-actionmenu"] > ul > li[role="menuitem"] {
+    display: inline-block;
+}
 
 .dir-rtl .menu.align-tl-bl {right: 0;left: auto;}
 .dir-rtl .menu.align-tr-bl {right: auto;left: 100%;}
@@ -1551,4 +1632,145 @@ a.disabled {
     cursor: default;
     font-style: italic;
     color: #808080;
+}
+
+.caret {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    vertical-align: top;
+    border-top: 4px solid #777;
+    border-right: 4px solid transparent;
+    border-left: 4px solid transparent;
+    content: "";
+}
+
+a:focus .caret,
+a:hover .caret {
+    border-top-color: #555;
+}
+
+/**
+ * Bootstrap 2.3.2 progress bar css.
+ * Required for none bootstrap theme.
+ */
+
+@-webkit-keyframes progress-bar-stripes {
+    from {
+        background-position: 40px 0;
+    }
+    to {
+        background-position: 0 0;
+    }
+}
+
+@-moz-keyframes progress-bar-stripes {
+    from {
+        background-position: 40px 0;
+    }
+    to {
+        background-position: 0 0;
+    }
+}
+
+@-ms-keyframes progress-bar-stripes {
+    from {
+        background-position: 40px 0;
+    }
+    to {
+        background-position: 0 0;
+    }
+}
+
+@-o-keyframes progress-bar-stripes {
+    from {
+        background-position: 0 0;
+    }
+    to {
+        background-position: 40px 0;
+    }
+}
+
+@keyframes progress-bar-stripes {
+    from {
+        background-position: 40px 0;
+    }
+    to {
+        background-position: 0 0;
+    }
+}
+
+.progress {
+    height: 20px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    background-color: #f7f7f7;
+    background-image: -moz-linear-gradient(top, #f5f5f5, #f9f9f9);
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#f5f5f5), to(#f9f9f9));
+    background-image: -webkit-linear-gradient(top, #f5f5f5, #f9f9f9);
+    background-image: -o-linear-gradient(top, #f5f5f5, #f9f9f9);
+    background-image: linear-gradient(to bottom, #f5f5f5, #f9f9f9);
+    background-repeat: repeat-x;
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fff5f5f5', endColorstr='#fff9f9f9', GradientType=0);
+    -webkit-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+    -moz-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.progress .bar {
+    float: left;
+    width: 0;
+    height: 100%;
+    font-size: 12px;
+    color: #ffffff;
+    text-align: center;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+    background-color: #0e90d2;
+    background-image: -moz-linear-gradient(top, #149bdf, #0480be);
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#149bdf), to(#0480be));
+    background-image: -webkit-linear-gradient(top, #149bdf, #0480be);
+    background-image: -o-linear-gradient(top, #149bdf, #0480be);
+    background-image: linear-gradient(to bottom, #149bdf, #0480be);
+    background-repeat: repeat-x;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff149bdf', endColorstr='#ff0480be', GradientType=0);
+    -webkit-box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+    -moz-box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    -webkit-transition: width 0.6s ease;
+    -moz-transition: width 0.6s ease;
+    -o-transition: width 0.6s ease;
+    transition: width 0.6s ease;
+}
+
+.progress .bar + .bar {
+    -webkit-box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+    -moz-box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+    box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+
+.progress-striped .bar {
+    background-color: #149bdf;
+    background-image: -webkit-gradient(linear, 0 100%, 100% 0, color-stop(0.25, rgba(255, 255, 255, 0.15)), color-stop(0.25, transparent), color-stop(0.5, transparent), color-stop(0.5, rgba(255, 255, 255, 0.15)), color-stop(0.75, rgba(255, 255, 255, 0.15)), color-stop(0.75, transparent), to(transparent));
+    background-image: -webkit-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+    background-image: -moz-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+    background-image: -o-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+    background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+    -webkit-background-size: 40px 40px;
+    -moz-background-size: 40px 40px;
+    -o-background-size: 40px 40px;
+    background-size: 40px 40px;
+}
+
+.progress.active .bar {
+    -webkit-animation: progress-bar-stripes 2s linear infinite;
+    -moz-animation: progress-bar-stripes 2s linear infinite;
+    -ms-animation: progress-bar-stripes 2s linear infinite;
+    -o-animation: progress-bar-stripes 2s linear infinite;
+    animation: progress-bar-stripes 2s linear infinite;
 }

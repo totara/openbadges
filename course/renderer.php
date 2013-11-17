@@ -363,10 +363,38 @@ class core_course_renderer extends plugin_renderer_base {
 
         $menu = new action_menu();
         $menu->set_owner_selector($ownerselector);
-        $menu->set_contraint($constraint);
-        $menu->set_alignment(action_menu::TL, action_menu::TR);
+        $menu->set_constraint($constraint);
+        $menu->set_alignment(action_menu::TR, action_menu::BR);
+        $menu->set_menu_trigger(get_string('edit'));
         if (isset($CFG->modeditingmenu) && !$CFG->modeditingmenu || !empty($displayoptions['donotenhance'])) {
             $menu->do_not_enhance();
+
+            // Swap the left/right icons.
+            // Normally we have have right, then left but this does not
+            // make sense when modactionmenu is disabled.
+            $moveright = null;
+            $_actions = array();
+            foreach ($actions as $key => $value) {
+                if ($key === 'moveright') {
+
+                    // Save moveright for later.
+                    $moveright = $value;
+                } else if ($moveright) {
+
+                    // This assumes that the order was moveright, moveleft.
+                    // If we have a moveright, then we should place it immediately after the current value.
+                    $_actions[$key] = $value;
+                    $_actions['moveright'] = $moveright;
+
+                    // Clear the value to prevent it being used multiple times.
+                    $moveright = null;
+                } else {
+
+                    $_actions[$key] = $value;
+                }
+            }
+            $actions = $_actions;
+            unset($_actions);
         }
         foreach ($actions as $action) {
             if ($action instanceof action_menu_link) {
@@ -375,6 +403,10 @@ class core_course_renderer extends plugin_renderer_base {
             $menu->add($action);
         }
         $menu->attributes['class'] .= ' section-cm-edit-actions commands';
+
+        // Prioritise the menu ahead of all other actions.
+        $menu->prioritise = true;
+
         return $this->render($menu);
     }
 
@@ -577,6 +609,9 @@ class core_course_renderer extends plugin_renderer_base {
         }
         $completion = $completioninfo->is_enabled($mod);
         if ($completion == COMPLETION_TRACKING_NONE) {
+            if ($this->page->user_is_editing()) {
+                $output .= html_writer::span('&nbsp;', 'filler');
+            }
             return $output;
         }
 
@@ -612,7 +647,14 @@ class core_course_renderer extends plugin_renderer_base {
         if ($completionicon) {
             $formattedname = $mod->get_formatted_name();
             $imgalt = get_string('completion-alt-' . $completionicon, 'completion', $formattedname);
-            if ($completion == COMPLETION_TRACKING_MANUAL && !$this->page->user_is_editing()) {
+
+            if ($this->page->user_is_editing()) {
+                // When editing, the icon is just an image.
+                $completionpixicon = new pix_icon('i/completion-'.$completionicon, $imgalt, '',
+                        array('title' => $imgalt, 'class' => 'iconsmall'));
+                $output .= html_writer::tag('span', $this->output->render($completionpixicon),
+                        array('class' => 'autocompletion'));
+            } else if ($completion == COMPLETION_TRACKING_MANUAL) {
                 $imgtitle = get_string('completion-title-' . $completionicon, 'completion', $formattedname);
                 $newstate =
                     $completiondata->completionstate == COMPLETION_COMPLETE
@@ -648,7 +690,7 @@ class core_course_renderer extends plugin_renderer_base {
                 $output .= html_writer::end_tag('div');
                 $output .= html_writer::end_tag('form');
             } else {
-                // In auto mode, or when editing, the icon is just an image
+                // In auto mode, the icon is just an image.
                 $completionpixicon = new pix_icon('i/completion-'.$completionicon, $imgalt, '',
                         array('title' => $imgalt));
                 $output .= html_writer::tag('span', $this->output->render($completionpixicon),
@@ -817,7 +859,8 @@ class core_course_renderer extends plugin_renderer_base {
             }
         } else {
             // No link, so display only content.
-            $output = html_writer::tag('div', $accesstext . $content, array('class' => $textclasses));
+            $output = html_writer::tag('div', $accesstext . $content,
+                    array('class' => 'contentwithoutlink ' . $textclasses));
         }
         return $output;
     }
@@ -933,19 +976,40 @@ class core_course_renderer extends plugin_renderer_base {
                 $indentclasses .= ' mod-indent-huge';
             }
         }
-        $output .= html_writer::start_tag('div', array('class' => $indentclasses));
 
-        // Start the div for the activity title, excluding the edit icons.
-        $output .= html_writer::start_tag('div', array('class' => 'activityinstance'));
+        $output .= html_writer::start_tag('div');
+
+        if ($this->page->user_is_editing()) {
+            $output .= course_get_cm_move($mod, $sectionreturn);
+        }
+
+        $output .= html_writer::start_tag('div', array('class' => 'mod-indent-outer'));
+
+        // This div is used to indent the content.
+        $output .= html_writer::div('', $indentclasses);
+
+        // Start a wrapper for the actual content to keep the indentation consistent
+        $output .= html_writer::start_tag('div');
 
         // Display the link to the module (or do nothing if module has no url)
-        $output .= $this->course_section_cm_name($mod, $displayoptions);
+        $cmname = $this->course_section_cm_name($mod, $displayoptions);
 
-        // Module can put text after the link (e.g. forum unread)
-        $output .= $mod->get_after_link();
+        if (!empty($cmname)) {
+            // Start the div for the activity title, excluding the edit icons.
+            $output .= html_writer::start_tag('div', array('class' => 'activityinstance'));
+            $output .= $cmname;
 
-        // Closing the tag which contains everything but edit icons. Content part of the module should not be part of this.
-        $output .= html_writer::end_tag('div'); // .activityinstance
+
+            if ($this->page->user_is_editing()) {
+                $output .= ' ' . course_get_cm_rename_action($mod, $sectionreturn);
+            }
+
+            // Module can put text after the link (e.g. forum unread)
+            $output .= $mod->get_after_link();
+
+            // Closing the tag which contains everything but edit icons. Content part of the module should not be part of this.
+            $output .= html_writer::end_tag('div'); // .activityinstance
+        }
 
         // If there is content but NO link (eg label), then display the
         // content here (BEFORE any icons). In this case cons must be
@@ -959,13 +1023,18 @@ class core_course_renderer extends plugin_renderer_base {
             $output .= $contentpart;
         }
 
+        $modicons = '';
         if ($this->page->user_is_editing()) {
             $editactions = course_get_cm_edit_actions($mod, $mod->indent, $sectionreturn);
-            $output .= ' '. $this->course_section_cm_edit_actions($editactions, $mod, $displayoptions);
-            $output .= $mod->get_after_edit_icons();
+            $modicons .= ' '. $this->course_section_cm_edit_actions($editactions, $mod, $displayoptions);
+            $modicons .= $mod->get_after_edit_icons();
         }
 
-        $output .= $this->course_section_cm_completion($course, $completioninfo, $mod, $displayoptions);
+        $modicons .= $this->course_section_cm_completion($course, $completioninfo, $mod, $displayoptions);
+
+        if (!empty($modicons)) {
+            $output .= html_writer::span($modicons, 'actions');
+        }
 
         // If there is content AND a link, then display the content here
         // (AFTER any icons). Otherwise it was displayed before
@@ -977,6 +1046,11 @@ class core_course_renderer extends plugin_renderer_base {
         $output .= $this->course_section_cm_availability($mod, $displayoptions);
 
         $output .= html_writer::end_tag('div'); // $indentclasses
+
+        // End of indentation div.
+        $output .= html_writer::end_tag('div');
+
+        $output .= html_writer::end_tag('div');
         return $output;
     }
 

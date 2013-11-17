@@ -1,4 +1,4 @@
-@core @core_course
+@core @core_course @test
 Feature: Course category management interface performs as expected
   In order to test JS enhanced display of categories and subcategories.
   As a moodle admin
@@ -12,7 +12,7 @@ Feature: Course category management interface performs as expected
     And I log in as "admin"
     And I go to the courses management page
     And I should see "Course and category management" in the "h2" "css_element"
-    And I should see "Viewing Course categories"
+    And I should see "Course categories" in the ".view-mode-selector" "css_element"
     And I should see "Course categories" in the "h3" "css_element"
     And I should see the "Course categories" management page
 
@@ -30,11 +30,11 @@ Feature: Course category management interface performs as expected
     And I should see the "Course categories" management page
     And I should see "Course categories" in the "#category-listing h3" "css_element"
     And I should see "Cat 1" in the "#category-listing" "css_element"
-    And I should see "Viewing Course categories" in the ".view-mode-selector" "css_element"
+    And I should see "Course categories" in the ".view-mode-selector" "css_element"
     And I should not see "Course categories and courses" in the ".view-mode-selector .menu" "css_element"
     And I should not see "Course categories" in the ".view-mode-selector .menu" "css_element"
     And I should not see "Courses" in the ".view-mode-selector .menu" "css_element"
-    When I click on "Viewing Course categories" "link" in the ".view-mode-selector" "css_element"
+    When I click on "Course categories" "link" in the ".view-mode-selector" "css_element"
     Then I should see "Course categories and courses" in the ".view-mode-selector .menu" "css_element"
     And I should see "Course categories" in the ".view-mode-selector .menu" "css_element"
     And I should see "Courses" in the ".view-mode-selector .menu" "css_element"
@@ -52,7 +52,7 @@ Feature: Course category management interface performs as expected
     And I should see "Cat 1" in the "#course-listing h3" "css_element"
     And I should see "Cat 1" in the "#category-listing" "css_element"
     And I should see "Course 1" in the "#course-listing" "css_element"
-    When I click on "Viewing Course categories" "link" in the ".view-mode-selector" "css_element"
+    When I click on "Course categories" "link" in the ".view-mode-selector" "css_element"
     Then I should see "Courses" in the ".view-mode-selector .menu" "css_element"
     And I click on "Courses" "link" in the ".view-mode-selector .menu" "css_element"
     # Redirect.
@@ -245,10 +245,9 @@ Feature: Course category management interface performs as expected
     And I log in as "admin"
     And I go to the courses management page
     And I should see the "Course categories" management page
-    And I click on "Re-sort categories" "link"
-    And I should see "By name" in the ".category-listing-actions" "css_element"
-    And I should see "By idnumber" in the ".category-listing-actions" "css_element"
-    And I click on <sortby> "link" in the ".category-listing-actions" "css_element"
+    And I select "All categories" from "menuselectsortby"
+    And I select <sortby> from "menuresortcategoriesby"
+    And I press "Sort"
     # Redirect.
     And I should see the "Course categories" management page
     And I should see category listing <cat1> before <cat2>
@@ -256,9 +255,8 @@ Feature: Course category management interface performs as expected
 
   Examples:
     | sortby | cat1 | cat2 | cat3 |
-    | "Re-sort categories" | "Social studies"          | "Applied sciences"        | "Extended social studies" |
-    | "By name"            | "Applied sciences"        | "Extended social studies" | "Social studies" |
-    | "By idnumber"        | "Extended social studies" | "Social studies" | "Applied sciences" |
+    | "Sort categories by name"       | "Applied sciences"        | "Extended social studies" | "Social studies" |
+    | "Sort categories by ID number"   | "Extended social studies" | "Social studies" | "Applied sciences" |
 
   @javascript
   Scenario Outline: Sub categories are displayed correctly when resorted
@@ -272,13 +270,10 @@ Feature: Course category management interface performs as expected
     And I log in as "admin"
     And I go to the courses management page
     And I should see the "Course categories" management page
-    And I click on "Master cat" "link"
+    And I click on "Master cat" category in the management category listing
     # Redirect.
     And I should see the "Course categories and courses" management page
-    And I click on "Re-sort subcategories" "link"
-    And I should see "By name" in the ".category-listing-actions" "css_element"
-    And I should see "By idnumber" in the ".category-listing-actions" "css_element"
-    And I click on <sortby> "link" in the ".category-listing-actions" "css_element"
+    And I click on <sortby> action for "Master cat" in management category listing
     # Redirect.
     And I should see the "Course categories and courses" management page
     And I should see category listing <cat1> before <cat2>
@@ -286,9 +281,8 @@ Feature: Course category management interface performs as expected
 
   Examples:
     | sortby | cat1 | cat2 | cat3 |
-    | "Re-sort subcategories" | "Social studies"          | "Applied sciences"        | "Extended social studies" |
-    | "By name"            | "Applied sciences"        | "Extended social studies" | "Social studies" |
-    | "By idnumber"        | "Extended social studies" | "Social studies" | "Applied sciences" |
+    | "resortbyname"            | "Applied sciences"        | "Extended social studies" | "Social studies" |
+    | "resortbyidnumber"        | "Extended social studies" | "Social studies" | "Applied sciences" |
 
   @javascript
   Scenario Outline: Test courses are displayed correctly after being resorted.
@@ -307,7 +301,7 @@ Feature: Course category management interface performs as expected
     And I click on "Cat 1" "link"
   # Redirect.
     And I should see the "Course categories and courses" management page
-    And I click on "Re-sort courses" "link"
+    And I click on "Sort courses" "link"
     And I should see "By fullname" in the ".course-listing-actions" "css_element"
     And I should see "By shortname" in the ".course-listing-actions" "css_element"
     And I should see "By idnumber" in the ".course-listing-actions" "css_element"
@@ -349,7 +343,7 @@ Feature: Course category management interface performs as expected
     And I click on "Cat 1" "link"
     # Redirect.
     And I should see the "Course categories and courses" management page
-    And I click on "Re-sort courses" "link"
+    And I click on "Sort courses" "link"
     And I click on "By idnumber" "link" in the ".course-listing-actions" "css_element"
     # Redirect.
     And I should see "Per page: 20" in the ".course-listing-actions" "css_element"
@@ -532,7 +526,7 @@ Feature: Course category management interface performs as expected
     And I click on "Cat 1" "link"
     # Redirect.
     And I should see the "Course categories and courses" management page
-    And I click on "Re-sort courses" "link"
+    And I click on "Sort courses" "link"
     And I click on "By idnumber" "link" in the ".course-listing-actions" "css_element"
     # Redirect.
     And I should see "Per page: 20" in the ".course-listing-actions" "css_element"
@@ -597,7 +591,7 @@ Feature: Course category management interface performs as expected
     And I click on "Cat 1" "link"
     # Redirect.
     And I should see the "Course categories and courses" management page
-    And I click on "Re-sort courses" "link"
+    And I click on "Sort courses" "link"
     And I click on "By idnumber" "link" in the ".course-listing-actions" "css_element"
     # Redirect.
     And I should see the "Course categories and courses" management page
@@ -733,7 +727,7 @@ Feature: Course category management interface performs as expected
     And I should see "Cat 2-1-2" in the "#course-category-listings ul.ml" "css_element"
     And I should not see "Cat 2-1-1-1" in the "#course-category-listings ul.ml" "css_element"
     And I should see "Cat 2-1-2-1" in the "#course-category-listings ul.ml" "css_element"
-    And I click on "Cat 1" "link"
+    And I click on "Cat 1" category in the management category listing
     # Redirect.
     And I should see the "Course categories and courses" management page
     And I should see "Cat 1" in the "#course-category-listings ul.ml" "css_element"
@@ -745,8 +739,7 @@ Feature: Course category management interface performs as expected
     And I should see "Cat 2-1-2" in the "#course-category-listings ul.ml" "css_element"
     And I should not see "Cat 2-1-1-1" in the "#course-category-listings ul.ml" "css_element"
     And I should see "Cat 2-1-2-1" in the "#course-category-listings ul.ml" "css_element"
-    And I click on "Re-sort subcategories" "link" in the ".category-listing-actions" "css_element"
-    And I click on "By idnumber" "link" in the ".category-listing-actions" "css_element"
+    And I click on "resortbyidnumber" action for "Cat 1" in management category listing
     # Redirect.
     And I should see the "Course categories and courses" management page
     And I should see "Cat 1" in the "#course-category-listings ul.ml" "css_element"

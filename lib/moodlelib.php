@@ -2187,8 +2187,16 @@ function userdate($date, $format = '', $timezone = 99, $fixday = true, $fixhour 
  */
 function date_format_string($date, $format, $tz = 99) {
     global $CFG;
+
+    $localewincharset = null;
+    // Get the calendar type user is using.
+    if ($CFG->ostype == 'WINDOWS') {
+        $calendartype = \core_calendar\type_factory::get_calendar_instance();
+        $localewincharset = $calendartype->locale_win_charset();
+    }
+
     if (abs($tz) > 13) {
-        if ($CFG->ostype == 'WINDOWS' and $localewincharset = get_string('localewincharset', 'langconfig')) {
+        if ($localewincharset) {
             $format = core_text::convert($format, 'utf-8', $localewincharset);
             $datestring = strftime($format, $date);
             $datestring = core_text::convert($datestring, $localewincharset, 'utf-8');
@@ -2196,7 +2204,7 @@ function date_format_string($date, $format, $tz = 99) {
             $datestring = strftime($format, $date);
         }
     } else {
-        if ($CFG->ostype == 'WINDOWS' and $localewincharset = get_string('localewincharset', 'langconfig')) {
+        if ($localewincharset) {
             $format = core_text::convert($format, 'utf-8', $localewincharset);
             $datestring = gmstrftime($format, $date);
             $datestring = core_text::convert($datestring, $localewincharset, 'utf-8');
@@ -3559,6 +3567,10 @@ function ismoving($courseid) {
 function fullname($user, $override=false) {
     global $CFG, $SESSION;
 
+    if (!isset($user->firstname) and !isset($user->lastname)) {
+        return '';
+    }
+
     // Get all of the name fields.
     $allnames = get_all_user_name_fields();
     if ($CFG->debugdeveloper) {
@@ -3570,10 +3582,6 @@ function fullname($user, $override=false) {
                 break;
             }
         }
-    }
-
-    if (!isset($user->firstname) and !isset($user->lastname)) {
-        return '';
     }
 
     if (!$override) {
@@ -3649,25 +3657,77 @@ function fullname($user, $override=false) {
  * A centralised location for the all name fields. Returns an array / sql string snippet.
  *
  * @param bool $returnsql True for an sql select field snippet.
- * @param string $alias table alias to use in front of each field.
+ * @param string $tableprefix table query prefix to use in front of each field.
+ * @param string $prefix prefix added to the name fields e.g. authorfirstname.
+ * @param string $fieldprefix sql field prefix e.g. id AS userid.
  * @return array|string All name fields.
  */
-function get_all_user_name_fields($returnsql = false, $alias = null) {
-    $alternatenames = array('firstnamephonetic',
-                            'lastnamephonetic',
-                            'middlename',
-                            'alternatename',
-                            'firstname',
-                            'lastname');
+function get_all_user_name_fields($returnsql = false, $tableprefix = null, $prefix = null, $fieldprefix = null) {
+    $alternatenames = array('firstnamephonetic' => 'firstnamephonetic',
+                            'lastnamephonetic' => 'lastnamephonetic',
+                            'middlename' => 'middlename',
+                            'alternatename' => 'alternatename',
+                            'firstname' => 'firstname',
+                            'lastname' => 'lastname');
+
+    // Let's add a prefix to the array of user name fields if provided.
+    if ($prefix) {
+        foreach ($alternatenames as $key => $altname) {
+            $alternatenames[$key] = $prefix . $altname;
+        }
+    }
+
+    // Create an sql field snippet if requested.
     if ($returnsql) {
-        if ($alias) {
-            foreach ($alternatenames as $key => $altname) {
-                $alternatenames[$key] = "$alias.$altname";
+        if ($tableprefix) {
+            if ($fieldprefix) {
+                foreach ($alternatenames as $key => $altname) {
+                    $alternatenames[$key] = $tableprefix . '.' . $altname . ' AS ' . $fieldprefix . $altname;
+                }
+            } else {
+                foreach ($alternatenames as $key => $altname) {
+                    $alternatenames[$key] = $tableprefix . '.' . $altname;
+                }
             }
         }
         $alternatenames = implode(',', $alternatenames);
     }
     return $alternatenames;
+}
+
+/**
+ * Reduces lines of duplicated code for getting user name fields.
+ *
+ * @param object $addtoobject Object to add user name fields to.
+ * @param object $secondobject Object that contains user name field information.
+ * @param string $prefix prefix to be added to all fields (including $additionalfields) e.g. authorfirstname.
+ * @param array $additionalfields Additional fields to be matched with data in the second object.
+ * The key can be set to the user table field name.
+ * @return object User name fields.
+ */
+function username_load_fields_from_object($addtoobject, $secondobject, $prefix = null, $additionalfields = null) {
+    $fields = get_all_user_name_fields(false, null, $prefix);
+    if ($additionalfields) {
+        // Additional fields can specify their own 'alias' such as 'id' => 'userid'. This checks to see if
+        // the key is a number and then sets the key to the array value.
+        foreach ($additionalfields as $key => $value) {
+            if (is_numeric($key)) {
+                $additionalfields[$value] = $prefix . $value;
+                unset($additionalfields[$key]);
+            } else {
+                $additionalfields[$key] = $prefix . $value;
+            }
+        }
+        $fields = array_merge($fields, $additionalfields);
+    }
+    foreach ($fields as $key => $field) {
+        // Important that we have all of the user name fields present in the object that we are sending back.
+        $addtoobject->$key = '';
+        if (isset($secondobject->$field)) {
+            $addtoobject->$key = $secondobject->$field;
+        }
+    }
+    return $addtoobject;
 }
 
 /**
@@ -4131,6 +4191,9 @@ function delete_user(stdClass $user) {
         return false;
     }
 
+    // Keep user record before updating it, as we have to pass this to user_deleted event.
+    $olduser = clone $user;
+
     // Keep a copy of user context, we need it for event.
     $usercontext = context_user::instance($user->id);
 
@@ -4210,10 +4273,16 @@ function delete_user(stdClass $user) {
             array(
                 'objectid' => $user->id,
                 'context' => $usercontext,
-                'other' => array('user' => (array)clone $user)
+                'other' => array(
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'idnumber' => $user->idnumber,
+                    'picture' => $user->picture,
+                    'mnethostid' => $user->mnethostid
+                    )
                 )
             );
-    $event->add_record_snapshot('user', $updateuser);
+    $event->add_record_snapshot('user', $olduser);
     $event->trigger();
 
     // We will update the user's timemodified, as it will be passed to the user_deleted event, which
@@ -4433,7 +4502,6 @@ function complete_user_login($user) {
             'other' => array('username' => $USER->username),
         )
     );
-    $event->add_record_snapshot('user', $user);
     $event->trigger();
 
     if (isguestuser()) {
@@ -4805,6 +4873,7 @@ function set_login_session_preferences() {
     $SESSION->justloggedin = true;
 
     unset($SESSION->lang);
+    unset($SESSION->load_navigation_admin);
 }
 
 
@@ -4842,10 +4911,6 @@ function delete_course($courseorid, $showfeedback = true) {
     // Delete the course and related context instance.
     context_helper::delete_instance(CONTEXT_COURSE, $courseid);
 
-    // We will update the course's timemodified, as it will be passed to the course_deleted event,
-    // which should know about this updated property, as this event is meant to pass the full course record.
-    $course->timemodified = time();
-
     $DB->delete_records("course", array("id" => $courseid));
     $DB->delete_records("course_format_options", array("courseid" => $courseid));
 
@@ -4853,8 +4918,11 @@ function delete_course($courseorid, $showfeedback = true) {
     $event = \core\event\course_deleted::create(array(
         'objectid' => $course->id,
         'context' => $context,
-        'other' => array('shortname' => $course->shortname,
-                         'fullname' => $course->fullname)
+        'other' => array(
+            'shortname' => $course->shortname,
+            'fullname' => $course->fullname,
+            'idnumber' => $course->idnumber
+            )
     ));
     $event->add_record_snapshot('course', $course);
     $event->trigger();
@@ -8602,7 +8670,8 @@ function message_popup_window() {
     }
 
     // Got unread messages so now do another query that joins with the user table.
-    $messagesql = "SELECT m.id, m.smallmessage, m.fullmessageformat, m.notification, u.firstname, u.lastname
+    $namefields = get_all_user_name_fields(true, 'u');
+    $messagesql = "SELECT m.id, m.smallmessage, m.fullmessageformat, m.notification, $namefields
                      FROM {message} m
                      JOIN {message_working} mw ON m.id=mw.unreadmessageid
                      JOIN {message_processors} p ON mw.processorid=p.id

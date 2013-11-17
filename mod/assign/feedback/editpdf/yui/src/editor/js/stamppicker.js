@@ -30,7 +30,7 @@ Y.extend(STAMPPICKER, M.assignfeedback_editpdf.dropdown, {
             var button, listitem, title;
 
             title = M.util.get_string('stamp', 'assignfeedback_editpdf');
-            button = Y.Node.create('<button><img height="40" alt="' + title + '" src="' + stamp + '"/></button>');
+            button = Y.Node.create('<button><img height="16" width="16" alt="' + title + '" src="' + stamp + '"/></button>');
             button.setAttribute('data-stamp', stamp);
             button.setStyle('backgroundImage', 'none');
             listitem = Y.Node.create('<li/>');
@@ -52,6 +52,7 @@ Y.extend(STAMPPICKER, M.assignfeedback_editpdf.dropdown, {
         STAMPPICKER.superclass.initializer.call(this, config);
     },
     callback_handler : function(e) {
+        e.preventDefault();
         var callback = this.get('callback'),
             callbackcontext = this.get('context'),
             bind;

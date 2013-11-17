@@ -131,6 +131,10 @@ class assign_feedback_editpdf extends assign_feedback_plugin {
            $filename = $feedbackfile->get_filename();
         }
 
+        // Retrieve total number of pages.
+        $pagetotal = document_services::page_number_for_attempt($this->assignment->get_instance()->id,
+                $userid,
+                $attempt);
 
         $widget = new assignfeedback_editpdf_widget($this->assignment->get_instance()->id,
                                                     $userid,
@@ -138,7 +142,8 @@ class assign_feedback_editpdf extends assign_feedback_plugin {
                                                     $url,
                                                     $filename,
                                                     $stampfiles,
-                                                    $readonly);
+                                                    $readonly,
+                                                    $pagetotal);
         return $widget;
     }
 
@@ -261,6 +266,9 @@ class assign_feedback_editpdf extends assign_feedback_plugin {
      */
     public function is_enabled() {
         $testpath = assignfeedback_editpdf\pdf::test_gs_path();
+        if (!extension_loaded('zlib')) {
+            return false;
+        }
         if ($testpath->status == assignfeedback_editpdf\pdf::GSPATH_OK) {
             return true;
         }

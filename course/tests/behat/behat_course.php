@@ -72,7 +72,7 @@ class behat_course extends behat_base {
             new Given('I should see the "'.get_string('categories').'" management page'),
             new Given('I click on category "'.get_string('miscellaneous').'" in the management interface'),
             new Given('I should see the "'.get_string('categoriesandcoures').'" management page'),
-            new Given('I click on "'.get_string('newcourse').'" "link" in the "#course-listing" "css_element"'),
+            new Given('I click on "'.get_string('createnewcourse').'" "link" in the "#course-listing" "css_element"'),
             new Given('I fill the moodle form with:', $table),
             new Given('I press "' . get_string('savechanges') . '"')
         );
@@ -85,13 +85,14 @@ class behat_course extends behat_base {
      * @return Given[]
      */
     public function i_go_to_the_courses_management_page() {
-
-        return array(
-            new Given('I am on homepage'),
-            new Given('I expand "' . get_string('administrationsite') . '" node'),
-            new Given('I expand "' . get_string('courses', 'admin') . '" node'),
-            new Given('I follow "' . get_string('coursemgmt', 'admin') . '"'),
-        );
+        if ($this->running_javascript()) {
+            $scenario = array(new Given('I expand "' . get_string('administrationsite') . '" node'));
+        } else {
+            $scenario = array(new Given('I follow "' . get_string('administrationsite') . '"'));
+        }
+        $scenario[] = new Given('I expand "' . get_string('courses', 'admin') . '" node');
+        $scenario[] = new Given('I follow "' . get_string('coursemgmt', 'admin') . '"');
+        return $scenario;
     }
 
     /**
@@ -227,6 +228,33 @@ class behat_course extends behat_base {
     }
 
     /**
+     * Go to editing section page for specified section number. You need to be in the course page and on editing mode.
+     *
+     * @Given /^I edit the section "(?P<section_number>\d+)"$/
+     * @param int $sectionnumber
+     */
+    public function i_edit_the_section($sectionnumber) {
+        return new Given('I click on "' . get_string('editsummary') . '" "link" in the "#section-' . $sectionnumber . '" "css_element"');
+    }
+
+    /**
+     * Edit specified section and fill the form data with the specified field/value pairs.
+     *
+     * @When /^I edit the section "(?P<section_number>\d+)" and I fill the form with:$/
+     * @param int $sectionnumber The section number
+     * @param TableNode $data The activity field/value data
+     * @return Given[]
+     */
+    public function i_edit_the_section_and_i_fill_the_form_with($sectionnumber, TableNode $data) {
+
+        return array(
+            new Given('I edit the section "' . $sectionnumber . '"'),
+            new Given('I fill the moodle form with:', $data),
+            new Given('I press "' . get_string('savechanges') . '"')
+        );
+    }
+
+    /**
      * Checks if the specified course section hightlighting is turned on. You need to be in the course page on editing mode.
      *
      * @Then /^section "(?P<section_number>\d+)" should be highlighted$/
@@ -299,6 +327,11 @@ class behat_course extends behat_base {
 
                     // Non-JS browsers can not click on img elements.
                     if ($this->running_javascript()) {
+
+                        // Expanding the actions menu.
+                        $actionsmenu = $this->find('css', "a[role='menuitem']", false, $activity);
+                        $actionsmenu->click();
+
                         // To check that the visibility is not clickable we check the funcionality rather than the applied style.
                         $visibilityiconnode = $this->find('css', 'a.editing_show img', false, $activity);
                         $visibilityiconnode->click();
@@ -499,7 +532,6 @@ class behat_course extends behat_base {
         // Adding chr(10) to save changes.
         $activity = $this->escape($activityname);
         return array(
-            new Given('I open "' . $activity . '" actions menu'),
             new Given('I click on "' . get_string('edittitle') . '" "link" in the "' . $activity .'" activity'),
             new Given('I fill in "title" with "' . $this->escape($newactivityname) . chr(10) . '"'),
             new Given('I wait "2" seconds')
@@ -527,7 +559,7 @@ class behat_course extends behat_base {
             return;
         }
 
-        return new Given('I click on "' . get_string('actions', 'moodle') . '" "link" in the "' . $this->escape($activityname) . '" activity');
+        return new Given('I click on "a[role=\'menuitem\']" "css_element" in the "' . $this->escape($activityname) . '" activity');
     }
 
     /**
@@ -626,8 +658,13 @@ class behat_course extends behat_base {
             $steps[] = new Given('I open "' . $activity . '" actions menu');
         }
         $steps[] = new Given('I click on "' . get_string('duplicate') . '" "link" in the "' . $activity . '" activity');
-        $steps[] = new Given('I press "' . get_string('continue') .'"');
-        $steps[] = new Given('I press "' . get_string('duplicatecontcourse') .'"');
+        if ($this->running_javascript()) {
+            // Temporary wait until MDL-41030 lands.
+            $steps[] = new Given('I wait "4" seconds');
+        } else {
+            $steps[] = new Given('I press "' . get_string('continue') .'"');
+            $steps[] = new Given('I press "' . get_string('duplicatecontcourse') .'"');
+        }
         return $steps;
     }
 
@@ -640,14 +677,31 @@ class behat_course extends behat_base {
      * @return Given[]
      */
     public function i_duplicate_activity_editing_the_new_copy_with($activityname, TableNode $data) {
+
         $steps = array();
+
         $activity = $this->escape($activityname);
+
         if ($this->running_javascript()) {
-            $steps[] = new Given('I open "' . $activity . '" actions menu');
+            $steps[] = new Given('I duplicate "' . $activity . '" activity');
+
+            // Determine the future new activity xpath from the former one.
+            $activityliteral = $this->getSession()->getSelectorsHandler()->xpathLiteral($activityname);
+            $duplicatedxpath = "//li[contains(concat(' ', normalize-space(@class), ' '), ' activity ')][contains(., $activityliteral)]" .
+                "/following-sibling::li";
+            $duplicatedactionsmenuxpath = $duplicatedxpath . "/descendant::a[@role='menuitem']";
+
+            // The next sibling of the former activity will be the duplicated one, so we click on it from it's xpath as, at
+            // this point, it don't even exists in the DOM (the steps are executed when we return them).
+            $steps[] = new Given('I click on "' . $this->escape($duplicatedactionsmenuxpath) . '" "xpath_element"');
+
+            // We force the xpath as otherwise mink tries to interact with the former one.
+            $steps[] = new Given('I click on "' . get_string('editsettings') . '" "link" in the "' . $this->escape($duplicatedxpath) . '" "xpath_element"');
+        } else {
+            $steps[] = new Given('I click on "' . get_string('duplicate') . '" "link" in the "' . $activity . '" activity');
+            $steps[] = new Given('I press "' . get_string('continue') .'"');
+            $steps[] = new Given('I press "' . get_string('duplicatecontedit') . '"');
         }
-        $steps[] = new Given('I click on "' . get_string('duplicate') . '" "link" in the "' . $activity . '" activity');
-        $steps[] = new Given('I press "' . get_string('continue') .'"');
-        $steps[] = new Given('I press "' . get_string('duplicatecontedit') . '"');
         $steps[] = new Given('I fill the moodle form with:', $data);
         $steps[] = new Given('I press "' . get_string('savechangesandreturntocourse') . '"');
         return $steps;
@@ -947,6 +1001,80 @@ class behat_course extends behat_base {
     }
 
     /**
+     * Clicks on a category checkbox in the management interface.
+     *
+     * @Given /^I select category "(?P<name>[^"]*)" in the management interface$/
+     * @param string $name
+     */
+    public function i_select_category_in_the_management_interface($name) {
+        $node = $this->get_management_category_listing_node_by_name($name);
+        $node->checkField('bcat[]');
+    }
+
+    /**
+     * Clicks course checkbox in the management interface.
+     *
+     * @Given /^I select course "(?P<name>[^"]*)" in the management interface$/
+     * @param string $name
+     */
+    public function i_select_course_in_the_management_interface($name) {
+        $node = $this->get_management_course_listing_node_by_name($name);
+        $node->checkField('bc[]');
+    }
+
+    /**
+     * Move selected categories to top level in the management interface.
+     *
+     * @Given /^I move category "(?P<idnumber>[^"]*)" to top level in the management interface$/
+     * @param string $idnumber
+     * @return Given[]
+     */
+    public function i_move_category_to_top_level_in_the_management_interface($idnumber) {
+        $id = $this->get_category_id($idnumber);
+        $selector = sprintf('.listitem-category[data-id="%d"] > div', $id);
+        $node = $this->find('css', $selector);
+        $node->checkField('bcat[]');
+        return array(
+            new Given('I select "' .  coursecat::get(0)->get_formatted_name() . '" from "menumovecategoriesto"'),
+            new Given('I press "bulkmovecategories"'),
+        );
+    }
+
+    /**
+     * Checks that a category is a subcategory of specific category.
+     *
+     * @Given /^I should see category "(?P<subcatidnumber>[^"]*)" as subcategory of "(?P<catidnumber>[^"]*)" in the management interface$/
+     * @throws ExpectationException
+     * @param string $subcatidnumber
+     * @param string $catidnumber
+     */
+    public function i_should_see_category_as_subcategory_of_in_the_management_interface($subcatidnumber, $catidnumber) {
+        $categorynodeid = $this->get_category_id($catidnumber);
+        $subcategoryid = $this->get_category_id($subcatidnumber);
+        $exception = new ExpectationException('The category '.$subcatidnumber.' is not a subcategory of '.$catidnumber, $this->getSession());
+        $selector = sprintf('#category-listing .listitem-category[data-id="%d"] .listitem-category[data-id="%d"]', $categorynodeid, $subcategoryid);
+        $this->find('css', $selector, $exception);
+    }
+
+    /**
+     * Checks that a category is not a subcategory of specific category.
+     *
+     * @Given /^I should not see category "(?P<subcatidnumber>[^"]*)" as subcategory of "(?P<catidnumber>[^"]*)" in the management interface$/
+     * @throws ExpectationException
+     * @param string $subcatidnumber
+     * @param string $catidnumber
+     */
+    public function i_should_not_see_category_as_subcategory_of_in_the_management_interface($subcatidnumber, $catidnumber) {
+        try {
+            $this->i_should_see_category_as_subcategory_of_in_the_management_interface($subcatidnumber, $catidnumber);
+        } catch (ExpectationException $e) {
+            // ExpectedException means that it is not highlighted.
+            return;
+        }
+        throw new ExpectationException('The category '.$subcatidnumber.' is a subcategory of '.$catidnumber, $this->getSession());
+    }
+
+    /**
      * Click to expand a category revealing its sub categories within the management UI.
      *
      * @Given /^I click to expand category "(?P<idnumber>[^"]*)" in the management interface$/
@@ -1220,6 +1348,30 @@ class behat_course extends behat_base {
     }
 
     /**
+     * Clicks to expand or collapse a category displayed on the frontpage
+     *
+     * @Given /^I toggle "(?P<categoryname_string>(?:[^"]|\\")*)" category children visibility in frontpage$/
+     * @throws ExpectationException
+     * @param string $categoryname
+     */
+    public function i_toggle_category_children_visibility_in_frontpage($categoryname) {
+
+        $headingtags = array();
+        for ($i = 1; $i <= 6; $i++) {
+            $headingtags[] = 'self::h' . $i;
+        }
+
+        $exception = new ExpectationException('"' . $categoryname . '" category can not be found', $this->getSession());
+        $categoryliteral = $this->getSession()->getSelectorsHandler()->xpathLiteral($categoryname);
+        $xpath = "//div[@class='info']/descendant::*[" . implode(' or ', $headingtags) . "][@class='categoryname'][./descendant::a[.=$categoryliteral]]";
+        $node = $this->find('xpath', $xpath, $exception);
+        $node->click();
+
+        // Smooth expansion.
+        $this->getSession()->wait(1000, false);
+    }
+
+    /**
      * Finds the node to use for a management listitem action and clicks it.
      *
      * @param string $listingtype Either course or category.
@@ -1233,15 +1385,24 @@ class behat_course extends behat_base {
             throw new ExpectationException("Could not find the actions for $listingtype", $this->getSession());
         }
         $actionnode = $actionsnode->find('css', '.action-'.$action);
-        if ($this->running_javascript() && !$actionnode->isVisible()) {
-            $actionsnode->find('css', 'a.toggle-display')->click();
-            if ($actionnode) {
-                $actionnode = $listingnode->find('css', '.action-'.$action);
-            }
-        }
         if (!$actionnode) {
             throw new ExpectationException("Expected action was not available or not found ($action)", $this->getSession());
         }
+        if ($this->running_javascript() && !$actionnode->isVisible()) {
+            $actionsnode->find('css', 'a.toggle-display')->click();
+            $actionnode = $actionsnode->find('css', '.action-'.$action);
+        }
         $actionnode->click();
+    }
+
+    /**
+     * Clicks on a category in the management interface.
+     *
+     * @Given /^I click on "([^"]*)" category in the management category listing$/
+     * @param string $name The name of the category to click.
+     */
+    public function i_click_on_category_in_the_management_category_listing($name) {
+        $node = $this->get_management_category_listing_node_by_name($name);
+        $node->find('css', 'a.categoryname')->click();
     }
 }
