@@ -2159,7 +2159,7 @@ class page_wiki_confirmrestore extends page_wiki_save {
         require_capability('mod/wiki:managewiki', $this->modcontext, NULL, true, 'nomanagewikipermission', 'wiki');
 
         $version = wiki_get_version($this->version->id);
-        if (wiki_restore_page($this->page, $version->content, $version->userid)) {
+        if (wiki_restore_page($this->page, $version, $this->modcontext)) {
             redirect($CFG->wwwroot . '/mod/wiki/view.php?pageid=' . $this->page->id, get_string('restoring', 'wiki', $version->version), 3);
         } else {
             print_error('restoreerror', 'wiki', $version->version);

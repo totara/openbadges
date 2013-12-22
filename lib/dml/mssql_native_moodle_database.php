@@ -903,6 +903,9 @@ class mssql_native_moodle_database extends moodle_database {
         $dataobject = (array)$dataobject;
 
         $columns = $this->get_columns($table);
+        if (empty($columns)) {
+            throw new dml_exception('ddltablenotexist', $table);
+        }
         $cleaned = array();
 
         foreach ($dataobject as $field => $value) {
@@ -1250,6 +1253,16 @@ s only returning name of SQL substring function, it now requires all parameters.
         } else {
             return "SUBSTRING($expr, $start, $length)";
         }
+    }
+
+    /**
+     * Does this driver support tool_replace?
+     *
+     * @since 2.6.1
+     * @return bool
+     */
+    public function replace_all_text_supported() {
+        return true;
     }
 
     public function session_lock_supported() {

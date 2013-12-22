@@ -43,15 +43,12 @@ define('COURSE_MAX_COURSES_PER_DROPDOWN', 1000);
 // Max users in log dropdown before switching to optional.
 define('COURSE_MAX_USERS_PER_DROPDOWN', 1000);
 define('FRONTPAGENEWS', '0');
-define('FRONTPAGECOURSELIST', '1'); // Not used. TODO MDL-38832 remove.
 define('FRONTPAGECATEGORYNAMES', '2');
-define('FRONTPAGETOPICONLY', '3'); // Not used. TODO MDL-38832 remove.
 define('FRONTPAGECATEGORYCOMBO', '4');
 define('FRONTPAGEENROLLEDCOURSELIST', '5');
 define('FRONTPAGEALLCOURSELIST', '6');
 define('FRONTPAGECOURSESEARCH', '7');
 // Important! Replaced with $CFG->frontpagecourselimit - maximum number of courses displayed on the frontpage.
-define('FRONTPAGECOURSELIMIT',    200); // TODO MDL-38832 remove.
 define('EXCELROWS', 65535);
 define('FIRSTUSEDEXCELROW', 3);
 
@@ -2183,7 +2180,7 @@ function course_get_cm_move(cm_info $mod, $sr = null) {
     if ($hasmanageactivities) {
         $pixicon = 'i/dragdrop';
 
-        if ($mod->course == SITEID) {
+        if (!course_ajax_enabled($mod->get_course())) {
             // Override for course frontpage until we get drag/drop working there.
             $pixicon = 't/move';
         }

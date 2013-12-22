@@ -102,7 +102,10 @@ class behat_util extends testing_util {
 
         // Sets maximum debug level.
         set_config('debug', DEBUG_DEVELOPER);
-        set_config('debugdisplay', true);
+        set_config('debugdisplay', 1);
+
+        // Disable some settings that are not wanted on test sites.
+        set_config('noemailever', 1);
 
         // Keeps the current version of database and dataroot.
         self::store_versions_hash();
@@ -181,7 +184,7 @@ class behat_util extends testing_util {
      * features and steps definitions.
      *
      * Stores a file in dataroot/behat to allow Moodle to switch
-     * to the test environment when using cli-server (or $CFG->behat_switchcompletely)
+     * to the test environment when using cli-server.
      * @throws coding_exception
      * @return void
      */
@@ -193,7 +196,7 @@ class behat_util extends testing_util {
         }
 
         // Checks the behat set up and the PHP version.
-        if ($errorcode = behat_command::behat_setup_problem(true)) {
+        if ($errorcode = behat_command::behat_setup_problem()) {
             exit($errorcode);
         }
 
@@ -227,7 +230,7 @@ class behat_util extends testing_util {
         }
 
         // Checks the behat set up and the PHP version, returning an error code if something went wrong.
-        if ($errorcode = behat_command::behat_setup_problem(true)) {
+        if ($errorcode = behat_command::behat_setup_problem()) {
             return $errorcode;
         }
 

@@ -451,8 +451,8 @@ class assign {
                 // Save changes button.
                 $action = 'grade';
                 if ($this->process_save_grade($mform)) {
-                    $message = get_string('gradingchangessaved', 'assign');
-                    $action = 'savegradingresult';
+                    $action = 'redirect';
+                    $nextpageparams['action'] = 'savegradingresult';
                 }
             } else {
                 // Cancel button.
@@ -488,6 +488,7 @@ class assign {
             redirect($nextpageurl);
             return;
         } else if ($action == 'savegradingresult') {
+            $message = get_string('gradingchangessaved', 'assign');
             $o .= $this->view_savegrading_result($message);
         } else if ($action == 'quickgradingresult') {
             $mform = null;
@@ -5119,7 +5120,7 @@ class assign {
     protected function process_copy_previous_attempt(&$notices) {
         require_sesskey();
 
-        return copy_previous_attempt($notices);
+        return $this->copy_previous_attempt($notices);
     }
 
     /**

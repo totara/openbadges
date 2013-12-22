@@ -348,12 +348,12 @@ abstract class base_moodleform extends moodleform {
         $config->yesLabel = get_string('confirmcancelyes', 'backup');
         $config->noLabel = get_string('confirmcancelno', 'backup');
         $config->closeButtonTitle = get_string('close', 'editor');
-        $PAGE->requires->yui_module('moodle-backup-confirmcancel', 'M.core_backup.watch_cancel_buttons', array($config));
+        $PAGE->requires->yui_module('moodle-backup-confirmcancel', 'M.core_backup.confirmcancel.watch_cancel_buttons', array($config));
 
         // Get list of module types on course.
         $modinfo = get_fast_modinfo($COURSE);
         $modnames = $modinfo->get_used_module_names(true);
-        $PAGE->requires->yui_module('moodle-backup-backupselectall', 'M.core_backup.select_all_init',
+        $PAGE->requires->yui_module('moodle-backup-backupselectall', 'M.core_backup.backupselectall',
                 array($modnames));
         $PAGE->requires->strings_for_js(array('select', 'all', 'none'), 'moodle');
         $PAGE->requires->strings_for_js(array('showtypes', 'hidetypes'), 'backup');
