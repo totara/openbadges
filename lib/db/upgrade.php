@@ -2862,5 +2862,46 @@ function xmldb_main_upgrade($oldversion) {
         upgrade_main_savepoint(true, 2013111800.01);
     }
 
+    if ($oldversion < 2013122400.01) {
+        // Purge stored passwords from config_log table, ideally this should be in each plugin
+        // but that would complicate backporting...
+        $items = array(
+            'core/cronremotepassword', 'core/proxypassword', 'core/smtppass', 'core/jabberpassword',
+            'enrol_database/dbpass', 'enrol_ldap/bind_pw', 'url/secretphrase');
+        foreach ($items as $item) {
+            list($plugin, $name) = explode('/', $item);
+            $sqlcomparevalue =  $DB->sql_compare_text('value');
+            $sqlcompareoldvalue = $DB->sql_compare_text('oldvalue');
+            if ($plugin === 'core') {
+                $sql = "UPDATE {config_log}
+                           SET value = :value
+                         WHERE name = :name AND plugin IS NULL AND $sqlcomparevalue <> :empty";
+                $params = array('value' => '********', 'name' => $name, 'empty' => '');
+                $DB->execute($sql, $params);
+
+                $sql = "UPDATE {config_log}
+                           SET oldvalue = :value
+                         WHERE name = :name AND plugin IS NULL AND $sqlcompareoldvalue <> :empty";
+                $params = array('value' => '********', 'name' => $name, 'empty' => '');
+                $DB->execute($sql, $params);
+
+            } else {
+                $sql = "UPDATE {config_log}
+                           SET value = :value
+                         WHERE name = :name AND plugin = :plugin AND $sqlcomparevalue <> :empty";
+                $params = array('value' => '********', 'name' => $name, 'plugin' => $plugin, 'empty' => '');
+                $DB->execute($sql, $params);
+
+                $sql = "UPDATE {config_log}
+                           SET oldvalue = :value
+                         WHERE name = :name AND plugin = :plugin AND  $sqlcompareoldvalue <> :empty";
+                $params = array('value' => '********', 'name' => $name, 'plugin' => $plugin, 'empty' => '');
+                $DB->execute($sql, $params);
+            }
+        }
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2013122400.01);
+    }
+
     return true;
 }

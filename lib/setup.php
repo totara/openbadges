@@ -128,7 +128,6 @@ if (defined('BEHAT_SITE_RUNNING')) {
 
         // Now we can begin switching $CFG->X for $CFG->behat_X.
         $CFG->wwwroot = $CFG->behat_wwwroot;
-        $CFG->passwordsaltmain = 'moodle';
         $CFG->prefix = $CFG->behat_prefix;
         $CFG->dataroot = $CFG->behat_dataroot;
     }
@@ -696,39 +695,6 @@ ini_set('pcre.backtrack_limit', 20971520);  // 20 MB
 $CFG->wordlist = $CFG->libdir .'/wordlist.txt';
 $CFG->moddata  = 'moddata';
 
-// A hack to get around magic_quotes_gpc being turned on
-// It is strongly recommended to disable "magic_quotes_gpc"!
-if (ini_get_bool('magic_quotes_gpc')) {
-    function stripslashes_deep($value) {
-        $value = is_array($value) ?
-                array_map('stripslashes_deep', $value) :
-                stripslashes($value);
-        return $value;
-    }
-    $_POST = array_map('stripslashes_deep', $_POST);
-    $_GET = array_map('stripslashes_deep', $_GET);
-    $_COOKIE = array_map('stripslashes_deep', $_COOKIE);
-    $_REQUEST = array_map('stripslashes_deep', $_REQUEST);
-    if (!empty($_SERVER['REQUEST_URI'])) {
-        $_SERVER['REQUEST_URI'] = stripslashes($_SERVER['REQUEST_URI']);
-    }
-    if (!empty($_SERVER['QUERY_STRING'])) {
-        $_SERVER['QUERY_STRING'] = stripslashes($_SERVER['QUERY_STRING']);
-    }
-    if (!empty($_SERVER['HTTP_REFERER'])) {
-        $_SERVER['HTTP_REFERER'] = stripslashes($_SERVER['HTTP_REFERER']);
-    }
-   if (!empty($_SERVER['PATH_INFO'])) {
-        $_SERVER['PATH_INFO'] = stripslashes($_SERVER['PATH_INFO']);
-    }
-    if (!empty($_SERVER['PHP_SELF'])) {
-        $_SERVER['PHP_SELF'] = stripslashes($_SERVER['PHP_SELF']);
-    }
-    if (!empty($_SERVER['PATH_TRANSLATED'])) {
-        $_SERVER['PATH_TRANSLATED'] = stripslashes($_SERVER['PATH_TRANSLATED']);
-    }
-}
-
 // neutralise nasty chars in PHP_SELF
 if (isset($_SERVER['PHP_SELF'])) {
     $phppos = strpos($_SERVER['PHP_SELF'], '.php');
@@ -985,9 +951,9 @@ if (PHPUNIT_TEST) {
 
 // // try to detect IE6 and prevent gzip because it is extremely buggy browser
 if (!empty($_SERVER['HTTP_USER_AGENT']) and strpos($_SERVER['HTTP_USER_AGENT'], 'MSIE 6') !== false) {
-    @ini_set('zlib.output_compression', 'Off');
+    ini_set('zlib.output_compression', 'Off');
     if (function_exists('apache_setenv')) {
-        @apache_setenv('no-gzip', 1);
+        apache_setenv('no-gzip', 1);
     }
 }
 

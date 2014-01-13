@@ -89,7 +89,7 @@ $string['bloglevel'] = 'Blog visibility';
 $string['bookmarkadded'] = 'Bookmark added.';
 $string['bookmarkalreadyexists'] = 'You have already bookmarked this page.';
 $string['bookmarkdeleted'] = 'Bookmark deleted.';
-$string['bookmarkthispage'] = 'bookmark this page';
+$string['bookmarkthispage'] = 'Bookmark this page';
 $string['cachejs'] = 'Cache Javascript';
 $string['cachejs_help'] = 'Javascript caching and compression greatly improves page loading performance. it is strongly recommended for production sites. Developers will probably want to disable this feature.';
 $string['cachetext'] = 'Text cache lifetime';
@@ -231,7 +231,7 @@ $string['configfrontpageloggedin'] = 'The items selected above will be displayed
 $string['configfullnamedisplay'] = 'This defines how names are shown when they are displayed in full. The default value, "language", leaves it to the string "fullnamedisplay" in the current language pack to decide. Some languages have different name display conventions.
 
 For most mono-lingual sites the most efficient setting is "firstname lastname", but you may choose to hide surnames altogether. Placeholders that can be used are: firstname, lastname, firstnamephonetic, lastnamephonetic, middlename, and alternatename.';
-$string['configgeoipfile'] = 'Location of GeoIP City binary data file. This file is not part of Moodle distribution and must be obtained separately from <a href="http://www.maxmind.com/">MaxMind</a>. You can either buy a commercial version or use the free version.<br />Simply download <a href="http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz" >http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz</a> and extract it into "{$a}" directory on your server.';
+$string['configgeoipfile'] = 'Location of GeoIP City binary data file. This file is not part of Moodle distribution and must be obtained separately from <a href="http://www.maxmind.com/">MaxMind</a>. You can either buy a commercial version or use the free version. Simply download <a href="http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz" >http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz</a> and extract it into "{$a}" directory on your server.';
 $string['configgetremoteaddrconf'] = 'If your server is behind a reverse proxy, you can use this setting to specify which HTTP headers can be trusted to contain the remote IP address. The headers are read in order, using the first one that is available.';
 $string['configgradebookroles'] = 'This setting allows you to control who appears on the gradebook.  Users need to have at least one of these roles in a course to be shown in the gradebook for that course.';
 $string['configgradeexport'] = 'Choose which gradebook export formats are your primary methods for exporting grades.  Chosen plugins will then set and use a "last exported" field for every grade.  For example, this might result in exported records being identified as being "new" or "updated".  If you are not sure about this then leave everything unchecked.';
@@ -490,7 +490,6 @@ $string['enablesafebrowserintegration'] = 'Enable Safe Exam Browser integration'
 $string['enablestats'] = 'Enable statistics';
 $string['enabletgzbackups'] = 'Enable new backup format';
 $string['enabletgzbackups_desc'] = 'If enabled, future backups will be created in a new compression format for .mbz files (internally stored as a .tar.gz file). This removes the 4GB backup size restriction and may improve performance. Restore supports both formats and the difference should be transparent to users.';
-$string['enabletgzbackups_nozlib'] = 'PHP extension &lsquo;zlib&rsquo; is not available. The new backup format relies on this extension and will be disabled until zlib is installed and enabled.';
 $string['enabletrusttext'] = 'Enable trusted content';
 $string['enablewebservices'] = 'Enable web services';
 $string['enablewsdocumentation'] = 'Web services documentation';
@@ -521,7 +520,6 @@ $string['experimental'] = 'Experimental';
 $string['experimentalsettings'] = 'Experimental settings';
 $string['extendedusernamechars'] = 'Allow extended characters in usernames';
 $string['extramemorylimit'] = 'Extra PHP memory limit';
-$string['fatalmagicquotesruntime'] = '<p>Serious configuration error detected, please notify server administrator.</p><p> To operate properly, Moodle requires that administrator changes PHP settings.</p><p><code>magic_quotes_runtime</code> must be set to <code>off</code>.</p><p>This setting is controlled by editing <code>php.ini</code>, Apache/IIS <br />configuration or <code>.htaccess</code> file on the server.</p>';
 $string['fatalsessionautostart'] = '<p>Serious configuration error detected, please notify server administrator.</p><p> To operate properly, Moodle requires that administrator changes PHP settings.</p><p><code>session.auto_start</code> must be set to <code>off</code>.</p><p>This setting is controlled by editing <code>php.ini</code>, Apache/IIS <br />configuration or <code>.htaccess</code> file on the server.</p>';
 $string['filecreated'] = 'New file created';
 $string['filestoredin'] = 'Save file into folder :';
@@ -626,7 +624,7 @@ $string['latinexcelexport'] = 'Excel encoding';
 $string['legacyfilesaddallowed'] = 'Allow adding to legacy course files';
 $string['legacyfilesaddallowed_help'] = 'If a course has legacy course files, allow new files and folders to be added to it.';
 $string['legacyfilesinnewcourses'] = 'Legacy course files in new courses';
-$string['legacyfilesinnewcourses_help'] = 'By default legacy course files areas are available only in upgraded courses. Please note some features like single activity backup/restore are not compatible with this settings.';
+$string['legacyfilesinnewcourses_help'] = 'By default, legacy course files areas are available in upgraded courses only. Please note that some features such as activity backup and restore are not compatible with this setting.';
 $string['licensesettings'] = 'Licence settings';
 $string['linkadmincategories'] = 'Link admin categories';
 $string['linkadmincategories_help'] = 'If enabled admin setting categories will be displayed as links in the navigation and will lead to the admin category pages.';
@@ -757,7 +755,7 @@ $string['navshowcategories'] = 'Show course categories';
 $string['navshowmycoursecategories'] = 'Show my course categories';
 $string['navshowmycoursecategories_help'] = 'If enabled courses in the users my courses branch will be shown in categories.';
 $string['navsortmycoursessort'] = 'Sort my courses';
-$string['navsortmycoursessort_help'] = 'This determines whether courses are listed under My courses according to the sort order (i.e. the order set in Settings > Site Administration > Courses > Add/edit courses) or alphabetically by course setting.';
+$string['navsortmycoursessort_help'] = 'This determines whether courses are listed under My courses according to the sort order (i.e. the order set in Site administration > Courses > Manage courses and categories) or alphabetically by course setting.';
 $string['neverdeleteruns'] = 'Never delete runs';
 $string['nobookmarksforuser'] = 'You do not have any bookmarks.';
 $string['nodatabase'] = 'No database';
@@ -921,6 +919,7 @@ $string['purgecaches']= 'Purge all caches';
 $string['purgecachesconfirm']= 'Moodle can cache themes, javascript, language strings, filtered text, rss feeds and many other pieces of calculated data.  Purging these caches will delete that data from the server and force browsers to refetch data, so that you can be sure you are seeing the most up-to-date values produced by the current code.  There is no danger in purging caches, but your site may appear slower for a while until the server and clients calculate new information and cache it.';
 $string['purgecachesfinished']= 'All caches were purged.';
 $string['requestcategoryselection'] = 'Enable category selection';
+$string['restorecourse'] = 'Restore course';
 $string['restorernewroleid'] = 'Restorers\' role in courses';
 $string['restorernewroleid_help'] = 'If the user does not already have the permission to manage the newly restored course, the user is automatically assigned this role and enrolled if necessary. Select "None" if you do not want restorers to be able to manage every restored course.';
 $string['reverseproxy'] = 'Reverse proxy';
@@ -1093,16 +1092,14 @@ This warning is often caused by unzipping a standard Moodle package over a previ
 This warning can also be caused by an incomplete checkout or update operation from the Git repository, in which case you may just have to wait for the operation to complete, or perhaps run the appropriate clean-up command and retry the operation.
 
 You can find more information in upgrade documentation at <a href="{$a}">{$a}</a>.';
-$string['upgradesure'] = 'Your Moodle files have been changed, and you are about to automatically upgrade your server to this version: <br /><br />
-<strong>{$a}</strong> <br /><br />
-Once you do this you can not go back again. <br /><br />
-Please note that this process can take a long time. <br /><br />
-Are you sure you want to upgrade this server to this version?';
+$string['upgradesure'] = '<p>Your Moodle files have been changed, and you are about to automatically upgrade your server to this version:</p>
+<p><strong>{$a}</strong></p>
+<p>Once you do this you can not go back again. Please note that this process can take a long time.</p>
+<p>Are you sure you want to upgrade this server to this version?</p>';
 $string['upgradetimedout'] = 'Upgrade timed out, please restart the upgrade.';
 $string['upgrade197notice'] = '<p>Moodle 1.9.7 contains a number of security fixes to user passwords and backups to protect the user data on your site. As a result some of your settings and permissions relating to backups may have changed.<br />
 See the <a href="http://docs.moodle.org/dev/Moodle_1.9.7_release_notes" target="_blank">Moodle 1.9.7 release notes</a> for full details.</p>';
 $string['upgrade197noticesubject'] = 'Moodle 1.9.7 upgrade security notices';
-$string['upgrade197salt'] = 'To reduce the risk of password theft, you are strongly recommended to set a password salt.<br />See the <a href="{$a}" target="_blank">password salting documentation</a> for details.';
 $string['upgradingdata'] = 'Upgrading data';
 $string['upgradinglogs'] = 'Upgrading logs';
 $string['upgradingversion'] = 'Upgrading to new version';
@@ -1127,7 +1124,6 @@ $string['webproxyinfo'] = 'Fill in following options if your Moodle server can n
 $string['xmlrpcrecommended'] = 'The xmlrpc extension is needed for hub communication, and useful for web services and Moodle networking';
 $string['yuicomboloading'] = 'YUI combo loading';
 $string['ziprequired'] = 'The Zip PHP extension is now required by Moodle, info-ZIP binaries or PclZip library are not used anymore.';
-$string['zlibenabled'] = 'zlib enabled';
 
 
 $string['caching'] = 'Caching';

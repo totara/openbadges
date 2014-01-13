@@ -226,6 +226,20 @@ class page_requirements_manager {
             )
         ));
 
+        $this->YUI_config->add_group('gallery', array(
+            'name' => 'gallery',
+            'base' => $CFG->httpswwwroot . '/lib/yuilib/gallery/',
+            'combine' => $this->yui3loader->combine,
+            'comboBase' => $CFG->httpswwwroot . '/theme/yui_combo.php' . $sep,
+            'ext' => false,
+            'root' => 'gallery/' . $jsrev . '/',
+            'patterns' => array(
+                'gallery-' => array(
+                    'group' => 'gallery',
+                )
+            )
+        ));
+
         // Set some more loader options applying to groups too.
         if ($CFG->debugdeveloper) {
             // When debugging is enabled, we want to load the non-minified (RAW) versions of YUI library modules rather
@@ -617,20 +631,6 @@ class page_requirements_manager {
     }
 
     /**
-     * This method was used to load YUI2 libraries into global scope,
-     * use YUI 2in3 instead. Every YUI2 module is represented as a yui2-*
-     * sandboxed module in YUI3 code via Y.YUI2. property.
-     *
-     * {@see http://tracker.moodle.org/browse/MDL-34741}
-     *
-     * @param string|array $libname
-     * @deprecated since 2.4
-     */
-    public function yui2_lib($libname) {
-        throw new coding_exception('PAGE->yui2_lib() is not available any more, use YUI 2in3 instead, see MDL-34741 for more information.');
-    }
-
-    /**
      * Returns the actual url through which a script is served.
      *
      * @param moodle_url|string $url full moodle url, or shortened path to script
@@ -955,23 +955,6 @@ class page_requirements_manager {
     }
 
     /**
-     * Adds a call to make use of a YUI gallery module. DEPRECATED DO NOT USE!!!
-     *
-     * @deprecated DO NOT USE
-     *
-     * @param string|array $modules One or more gallery modules to require
-     * @param string $version
-     * @param string $function
-     * @param array $arguments
-     * @param bool $ondomready
-     */
-    public function js_gallery_module($modules, $version, $function, array $arguments = null, $ondomready = false) {
-        global $CFG;
-        debugging('This function will be removed before 2.0 is released please change it from js_gallery_module to yui_module', DEBUG_DEVELOPER);
-        $this->yui_module($modules, $function, $arguments, $version, $ondomready);
-    }
-
-    /**
      * Creates a JavaScript function call that requires one or more modules to be loaded.
      *
      * This function can be used to include all of the standard YUI module types within JavaScript:
@@ -983,27 +966,19 @@ class page_requirements_manager {
      * @param array|string $modules One or more modules
      * @param string $function The function to call once modules have been loaded
      * @param array $arguments An array of arguments to pass to the function
-     * @param string $galleryversion The gallery version to use
+     * @param string $galleryversion Deprecated: The gallery version to use
      * @param bool $ondomready
      */
     public function yui_module($modules, $function, array $arguments = null, $galleryversion = null, $ondomready = false) {
-        global $CFG;
-
-        if (!$galleryversion) {
-            $galleryversion = '2010.04.08-12-35';
-        }
-
         if (!is_array($modules)) {
             $modules = array($modules);
         }
-        if (empty($CFG->useexternalyui)) {
-            // We need to set the M.yui.galleryversion to the correct version
-            $jscode = 'M.yui.galleryversion='.json_encode($galleryversion).';';
-        } else {
-            // Set Y's config.gallery to the version
-            $jscode = 'Y.config.gallery='.json_encode($galleryversion).';';
+
+        if ($galleryversion != null) {
+            debugging('The galleryversion parameter to yui_module has been deprecated since Moodle 2.3.');
         }
-        $jscode .= 'Y.use('.join(',', array_map('json_encode', convert_to_array($modules))).',function() {'.js_writer::function_call($function, $arguments).'});';
+
+        $jscode = 'Y.use('.join(',', array_map('json_encode', convert_to_array($modules))).',function() {'.js_writer::function_call($function, $arguments).'});';
         if ($ondomready) {
             $jscode = "Y.on('domready', function() { $jscode });";
         }

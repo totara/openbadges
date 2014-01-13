@@ -296,15 +296,45 @@ class mod_assign_locallib_testcase extends mod_assign_base_testcase {
     public function test_update_calendar() {
         global $DB;
 
-        $now = time();
         $this->setUser($this->editingteachers[0]);
-        $assign = $this->create_instance(array('duedate'=>$now));
+        $userctx = context_user::instance($this->editingteachers[0]->id)->id;
+
+        // Hack to pretend that there was an editor involved. We need both $_POST and $_REQUEST, and a sesskey.
+        $draftid = file_get_unused_draft_itemid();
+        $_REQUEST['introeditor'] = $draftid;
+        $_POST['introeditor'] = $draftid;
+        $_POST['sesskey'] = sesskey();
+
+        // Write links to a draft area.
+        $fakearealink1 = file_rewrite_pluginfile_urls('<a href="@@PLUGINFILE@@/pic.gif">link</a>', 'draftfile.php', $userctx,
+            'user', 'draft', $draftid);
+        $fakearealink2 = file_rewrite_pluginfile_urls('<a href="@@PLUGINFILE@@/pic.gif">new</a>', 'draftfile.php', $userctx,
+            'user', 'draft', $draftid);
+
+        // Create a new assignment with links to a draft area.
+        $now = time();
+        $assign = $this->create_instance(array(
+            'duedate' => $now,
+            'intro' => $fakearealink1,
+            'introformat' => FORMAT_HTML
+        ));
 
         // See if there is an event in the calendar.
         $params = array('modulename'=>'assign', 'instance'=>$assign->get_instance()->id);
-        $id = $DB->get_field('event', 'id', $params);
+        $event = $DB->get_record('event', $params);
+        $this->assertNotEmpty($event);
+        $this->assertSame('link', $event->description);     // The pluginfile links are removed.
 
-        $this->assertEquals(false, empty($id));
+        // Make sure the same works when updating the assignment.
+        $instance = $assign->get_instance();
+        $instance->instance = $instance->id;
+        $instance->intro = $fakearealink2;
+        $instance->introformat = FORMAT_HTML;
+        $assign->update_instance($instance);
+        $params = array('modulename' => 'assign', 'instance' => $assign->get_instance()->id);
+        $event = $DB->get_record('event', $params);
+        $this->assertNotEmpty($event);
+        $this->assertSame('new', $event->description);     // The pluginfile links are removed.
     }
 
     public function test_update_instance() {
@@ -533,7 +563,29 @@ class mod_assign_locallib_testcase extends mod_assign_base_testcase {
         $this->assertEquals(false, $assign->testable_is_graded($this->students[1]->id));
     }
 
+    public function test_can_grade() {
+        global $DB;
+
+        $this->setUser($this->editingteachers[0]);
+        $assign = $this->create_instance();
+
+        $this->setUser($this->students[0]);
+        $this->assertEquals(false, $assign->can_grade());
+        $this->setUser($this->editingteachers[0]);
+        $this->assertEquals(true, $assign->can_grade());
+        $this->setUser($this->teachers[0]);
+        $this->assertEquals(true, $assign->can_grade());
+
+        // Test the viewgrades capability - without mod/assign:grade.
+        $this->setUser($this->students[0]);
+        $studentrole = $DB->get_record('role', array('shortname' => 'student'));
+        assign_capability('mod/assign:viewgrades', CAP_ALLOW, $studentrole->id, $assign->get_context()->id);
+        $this->assertEquals(false, $assign->can_grade());
+    }
+
     public function test_can_view_submission() {
+        global $DB;
+
         $this->create_extra_users();
         $this->setUser($this->editingteachers[0]);
         $assign = $this->create_instance();
@@ -552,6 +604,15 @@ class mod_assign_locallib_testcase extends mod_assign_base_testcase {
         $this->assertEquals(true, $assign->can_view_submission($this->students[1]->id));
         $this->assertEquals(true, $assign->can_view_submission($this->teachers[0]->id));
         $this->assertEquals(true, $assign->can_view_submission($this->extrasuspendedstudents[0]->id));
+
+        // Test the viewgrades capability - without mod/assign:grade.
+        $this->setUser($this->students[0]);
+        $studentrole = $DB->get_record('role', array('shortname' => 'student'));
+        assign_capability('mod/assign:viewgrades', CAP_ALLOW, $studentrole->id, $assign->get_context()->id);
+        $this->assertEquals(true, $assign->can_view_submission($this->students[0]->id));
+        $this->assertEquals(true, $assign->can_view_submission($this->students[1]->id));
+        $this->assertEquals(true, $assign->can_view_submission($this->teachers[0]->id));
+        $this->assertEquals(false, $assign->can_view_submission($this->extrasuspendedstudents[0]->id));
     }
 
 
@@ -1581,6 +1642,28 @@ Anchor link 2:<a title=\"bananas\" href=\"../logo-240x60.gif\">Link text</a>
         $assign = $this->create_instance(array('assignfeedback_comments_enabled' => 1));
         $plugin = $assign->get_feedback_plugin_by_type('comments');
         $this->assertEquals(1, $plugin->is_enabled('enabled'));
+    }
+
+    /**
+     * Testing if gradebook feedback plugin is enabled.
+     */
+    public function test_is_gradebook_feedback_enabled() {
+        $adminconfig = get_config('assign');
+        $gradebookplugin = $adminconfig->feedback_plugin_for_gradebook;
+
+        // Create assignment with gradebook feedback enabled and grade = 0.
+        $assign = $this->create_instance(array($gradebookplugin . '_enabled' => 1, 'grades' => 0));
+
+        // Get gradebook feedback plugin.
+        $gradebookplugintype = str_replace('assignfeedback_', '', $gradebookplugin);
+        $plugin = $assign->get_feedback_plugin_by_type($gradebookplugintype);
+        $this->assertEquals(1, $plugin->is_enabled('enabled'));
+        $this->assertEquals(1, $assign->is_gradebook_feedback_enabled());
+
+        // Create assignment with gradebook feedback disabled and grade = 0.
+        $assign = $this->create_instance(array($gradebookplugin . '_enabled' => 0, 'grades' => 0));
+        $plugin = $assign->get_feedback_plugin_by_type($gradebookplugintype);
+        $this->assertEquals(0, $plugin->is_enabled('enabled'));
     }
 }
 

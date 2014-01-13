@@ -2188,11 +2188,11 @@ function send_temp_file($path, $filename, $pathisstring=false) {
 
     header('Content-Disposition: attachment; filename="'.$filename.'"');
     if (strpos($CFG->wwwroot, 'https://') === 0) { //https sites - watch out for IE! KB812935 and KB316431
-        header('Cache-Control: private, max-age=10');
+        header('Cache-Control: private, max-age=10, no-transform');
         header('Expires: '. gmdate('D, d M Y H:i:s', 0) .' GMT');
         header('Pragma: ');
     } else { //normal http - prevent caching at all cost
-        header('Cache-Control: private, must-revalidate, pre-check=0, post-check=0, max-age=0');
+        header('Cache-Control: private, must-revalidate, pre-check=0, post-check=0, max-age=0, no-transform');
         header('Expires: '. gmdate('D, d M Y H:i:s', 0) .' GMT');
         header('Pragma: no-cache');
     }
@@ -2274,18 +2274,18 @@ function send_file($path, $filename, $lifetime = null , $filter=0, $pathisstring
             $private = ' private,';
         }
         $nobyteserving = false;
-        header('Cache-Control:'.$private.' max-age='.$lifetime);
+        header('Cache-Control:'.$private.' max-age='.$lifetime.', no-transform');
         header('Expires: '. gmdate('D, d M Y H:i:s', time() + $lifetime) .' GMT');
         header('Pragma: ');
 
     } else { // Do not cache files in proxies and browsers
         $nobyteserving = true;
         if (strpos($CFG->wwwroot, 'https://') === 0) { //https sites - watch out for IE! KB812935 and KB316431
-            header('Cache-Control: private, max-age=10');
+            header('Cache-Control: private, max-age=10, no-transform');
             header('Expires: '. gmdate('D, d M Y H:i:s', 0) .' GMT');
             header('Pragma: ');
         } else { //normal http - prevent caching at all cost
-            header('Cache-Control: private, must-revalidate, pre-check=0, post-check=0, max-age=0');
+            header('Cache-Control: private, must-revalidate, pre-check=0, post-check=0, max-age=0, no-transform');
             header('Expires: '. gmdate('D, d M Y H:i:s', 0) .' GMT');
             header('Pragma: no-cache');
         }
@@ -2445,17 +2445,17 @@ function send_stored_file($stored_file, $lifetime=null, $filter=0, $forcedownloa
         if (isloggedin() and !isguestuser()) {
             $private = ' private,';
         }
-        header('Cache-Control:'.$private.' max-age='.$lifetime);
+        header('Cache-Control:'.$private.' max-age='.$lifetime.', no-transform');
         header('Expires: '. gmdate('D, d M Y H:i:s', time() + $lifetime) .' GMT');
         header('Pragma: ');
 
     } else { // Do not cache files in proxies and browsers
         if (strpos($CFG->wwwroot, 'https://') === 0) { //https sites - watch out for IE! KB812935 and KB316431
-            header('Cache-Control: private, max-age=10');
+            header('Cache-Control: private, max-age=10, no-transform');
             header('Expires: '. gmdate('D, d M Y H:i:s', 0) .' GMT');
             header('Pragma: ');
         } else { //normal http - prevent caching at all cost
-            header('Cache-Control: private, must-revalidate, pre-check=0, post-check=0, max-age=0');
+            header('Cache-Control: private, must-revalidate, pre-check=0, post-check=0, max-age=0, no-transform');
             header('Expires: '. gmdate('D, d M Y H:i:s', 0) .' GMT');
             header('Pragma: no-cache');
         }
@@ -2672,7 +2672,7 @@ function fulldelete($location) {
  */
 function byteserving_send_file($handle, $mimetype, $ranges, $filesize) {
     // better turn off any kind of compression and buffering
-    @ini_set('zlib.output_compression', 'Off');
+    ini_set('zlib.output_compression', 'Off');
 
     $chunksize = 1*(1024*1024); // 1MB chunks - must be less than 2MB!
     if ($handle === false) {
@@ -2924,7 +2924,7 @@ class curl {
         }
 
         if (!isset($this->emulateredirects)) {
-            $this->emulateredirects = (ini_get('open_basedir') or ini_get('safe_mode'));
+            $this->emulateredirects = ini_get('open_basedir');
         }
     }
 

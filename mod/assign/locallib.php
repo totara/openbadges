@@ -788,6 +788,10 @@ class assign {
         require_once($CFG->dirroot.'/mod/assign/lib.php');
         $assign = clone $this->get_instance();
         $assign->cmidnumber = $coursemoduleid;
+
+        // Set assign gradebook feedback plugin status (enabled and visible).
+        $assign->gradefeedbackenabled = $this->is_gradebook_feedback_enabled();
+
         $param = null;
         if ($reset) {
             $param = 'reset';
@@ -827,30 +831,37 @@ class assign {
             $event = new stdClass();
 
             $params = array('modulename'=>'assign', 'instance'=>$instance->id);
-            $event->id = $DB->get_field('event',
-                                        'id',
-                                        $params);
+            $event->id = $DB->get_field('event', 'id', $params);
+            $event->name = $instance->name;
+            $event->timestart = $instance->duedate;
+
+            // Convert the links to pluginfile. It is a bit hacky but at this stage the files
+            // might not have been saved in the module area yet.
+            $intro = $instance->intro;
+            if ($draftid = file_get_submitted_draft_itemid('introeditor')) {
+                $intro = file_rewrite_urls_to_pluginfile($intro, $draftid);
+            }
+
+            // We need to remove the links to files as the calendar is not ready
+            // to support module events with file areas.
+            $intro = strip_pluginfile_content($intro);
+            $event->description = array(
+                'text' => $intro,
+                'format' => $instance->introformat
+            );
 
             if ($event->id) {
-                $event->name        = $instance->name;
-                $event->description = format_module_intro('assign', $instance, $coursemoduleid);
-                $event->timestart   = $instance->duedate;
-
                 $calendarevent = calendar_event::load($event->id);
                 $calendarevent->update($event);
             } else {
-                $event = new stdClass();
-                $event->name        = $instance->name;
-                $event->description = format_module_intro('assign', $instance, $coursemoduleid);
+                unset($event->id);
                 $event->courseid    = $instance->course;
                 $event->groupid     = 0;
                 $event->userid      = 0;
                 $event->modulename  = 'assign';
                 $event->instance    = $instance->id;
                 $event->eventtype   = 'due';
-                $event->timestart   = $instance->duedate;
                 $event->timeduration = 0;
-
                 calendar_event::create($event);
             }
         } else {
@@ -2130,9 +2141,7 @@ class assign {
             $item = $this->get_submission($submissionid);
 
             // Check permissions.
-            if ($item->userid != $USER->id) {
-                require_capability('mod/assign:grade', $this->context);
-            }
+            $this->require_view_submission($item->userid);
             $o .= $this->get_renderer()->render(new assign_header($this->get_instance(),
                                                               $this->get_context(),
                                                               $this->show_intro(),
@@ -2154,9 +2163,7 @@ class assign {
             }
             $item = $this->get_grade($gradeid);
             // Check permissions.
-            if ($item->userid != $USER->id) {
-                require_capability('mod/assign:grade', $this->context);
-            }
+            $this->require_view_submission($item->userid);
             $o .= $this->get_renderer()->render(new assign_header($this->get_instance(),
                                                               $this->get_context(),
                                                               $this->show_intro(),
@@ -2319,6 +2326,44 @@ class assign {
     }
 
     /**
+     * Throw an error if the permissions to view this users submission are missing.
+     *
+     * @throws required_capability_exception
+     * @return none
+     */
+    public function require_view_submission($userid) {
+        if (!$this->can_view_submission($userid)) {
+            throw new required_capability_exception($this->context, 'mod/assign:viewgrades', 'nopermission', '');
+        }
+    }
+
+    /**
+     * Throw an error if the permissions to view grades in this assignment are missing.
+     *
+     * @throws required_capability_exception
+     * @return none
+     */
+    public function require_view_grades() {
+        if (!$this->can_view_grades()) {
+            throw new required_capability_exception($this->context, 'mod/assign:viewgrades', 'nopermission', '');
+        }
+    }
+
+    /**
+     * Does this user have view grade or grade permission for this assignment?
+     *
+     * @return bool
+     */
+    public function can_view_grades() {
+        // Permissions check.
+        if (!has_any_capability(array('mod/assign:viewgrades', 'mod/assign:grade'), $this->context)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Does this user have grade permission for this assignment?
      *
      * @return bool
@@ -2343,7 +2388,7 @@ class assign {
         // More efficient to load this here.
         require_once($CFG->libdir.'/filelib.php');
 
-        require_capability('mod/assign:grade', $this->context);
+        $this->require_view_grades();
 
         // Load all users with submit.
         $students = get_enrolled_users($this->context, "mod/assign:submit", null, 'u.*', null, null, null,
@@ -2968,7 +3013,7 @@ class assign {
         $markerfilter = get_user_preferences('assign_markerfilter', '');
         $workflowfilter = get_user_preferences('assign_workflowfilter', '');
         $controller = $gradingmanager->get_active_controller();
-        $showquickgrading = empty($controller);
+        $showquickgrading = empty($controller) && $this->can_grade();
         $quickgrading = get_user_preferences('assign_quickgrading', false);
         $showonlyactiveenrolopt = has_capability('moodle/course:viewsuspendedusers', $this->context);
 
@@ -3073,7 +3118,7 @@ class assign {
 
         $currentgroup = groups_get_activity_group($this->get_course_module(), true);
         $users = array_keys($this->list_participants($currentgroup, true));
-        if (count($users) != 0) {
+        if (count($users) != 0 && $this->can_grade()) {
             // If no enrolled user in a course then don't display the batch operations feature.
             $assignform = new assign_form('gradingbatchoperationsform', $gradingbatchoperationsform);
             $o .= $this->get_renderer()->render($assignform);
@@ -3095,7 +3140,7 @@ class assign {
 
         $o = '';
         // Need submit permission to submit an assignment.
-        require_capability('mod/assign:grade', $this->context);
+        $this->require_view_grades();
         require_once($CFG->dirroot . '/mod/assign/gradeform.php');
 
         // Only load this if it is.
@@ -3247,7 +3292,7 @@ class assign {
         if (!$this->is_active_user($userid) && !has_capability('moodle/course:viewsuspendedusers', $this->context)) {
             return false;
         }
-        if (has_capability('mod/assign:grade', $this->context)) {
+        if (has_any_capability(array('mod/assign:viewgrades', 'mod/assign:grade'), $this->context)) {
             return true;
         }
         if (!is_enrolled($this->get_course_context(), $userid)) {
@@ -3866,7 +3911,7 @@ class assign {
                                                       $this->show_intro(),
                                                       $this->get_course_module()->id));
 
-        if ($this->can_grade()) {
+        if ($this->can_view_grades()) {
             $draft = ASSIGN_SUBMISSION_STATUS_DRAFT;
             $submitted = ASSIGN_SUBMISSION_STATUS_SUBMITTED;
             if ($instance->teamsubmission) {
@@ -3999,7 +4044,8 @@ class assign {
         }
         $assign = clone $this->get_instance();
         $assign->cmidnumber = $this->get_course_module()->idnumber;
-
+        // Set assign gradebook feedback plugin status (enabled and visible).
+        $assign->gradefeedbackenabled = $this->is_gradebook_feedback_enabled();
         return assign_grade_item_update($assign, $gradebookgrade);
     }
 
@@ -5958,6 +6004,8 @@ class assign {
                     // Update Gradebook.
                     $assign = clone $this->get_instance();
                     $assign->cmidnumber = $this->get_course_module()->idnumber;
+                    // Set assign gradebook feedback plugin status.
+                    $assign->gradefeedbackenabled = $this->is_gradebook_feedback_enabled();
                     assign_update_grades($assign, $userid);
                 }
 
@@ -6778,6 +6826,28 @@ class assign {
             $this->susers = get_suspended_userids($this->context);
         }
         return !in_array($userid, $this->susers);
+    }
+
+    /**
+     * Returns true if gradebook feedback plugin is enabled
+     *
+     * @return bool true if gradebook feedback plugin is enabled and visible else false.
+     */
+    public function is_gradebook_feedback_enabled() {
+        // Get default grade book feedback plugin.
+        $adminconfig = $this->get_admin_config();
+        $gradebookplugin = $adminconfig->feedback_plugin_for_gradebook;
+        $gradebookplugin = str_replace('assignfeedback_', '', $gradebookplugin);
+
+        // Check if default gradebook feedback is visible and enabled.
+        $gradebookfeedbackplugin = $this->get_feedback_plugin_by_type($gradebookplugin);
+
+        if ($gradebookfeedbackplugin->is_visible() && $gradebookfeedbackplugin->is_enabled()) {
+            return true;
+        }
+
+        // Gradebook feedback plugin is either not visible/enabled.
+        return false;
     }
 }
 

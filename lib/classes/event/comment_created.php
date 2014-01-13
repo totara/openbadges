@@ -31,6 +31,12 @@ defined('MOODLE_INTERNAL') || die();
  *
  * This class has to be extended by any event which is triggred while creating new comment.
  *
+ * @property-read array $other {
+ *      Extra information about event.
+ *
+ *      @type int itemid id of item for which comment is added.
+ * }
+ *
  * @package    core
  * @copyright  2013 Rajesh Taneja <rajesh@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -63,8 +69,17 @@ abstract class comment_created extends \core\event\base {
      * @return string
      */
     public function get_description() {
-        return 'User with id '. $this->userid . ' added comment for ' . $this->component . ' with instance id ' .
+        return 'User with id ' . $this->userid . ' added comment for ' . $this->component . ' with instance id ' .
                 $this->contextinstanceid;
+    }
+
+    /**
+     * Get URL related to the action.
+     *
+     * @return \moodle_url
+     */
+    public function get_url() {
+        return $this->context->get_url();
     }
 
     /**
