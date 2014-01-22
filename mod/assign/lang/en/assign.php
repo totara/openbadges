@@ -42,6 +42,7 @@ $string['alwaysshowdescription_help'] = 'If disabled, the Assignment Description
 $string['applytoteam'] = 'Apply grades and feedback to entire group';
 $string['assign:addinstance'] = 'Add a new assignment';
 $string['assign:exportownsubmission'] = 'Export own submission';
+$string['assign:editothersubmission'] = 'Edit another students submission';
 $string['assign:grade'] = 'Grade assignment';
 $string['assign:grantextension'] = 'Grant extension';
 $string['assign:manageallocations'] = 'Manage markers allocated to submissions';
@@ -135,6 +136,7 @@ $string['duedatevalidation'] = 'Due date must be after the allow submissions fro
 $string['editattemptfeedback'] = 'Edit the grade and feedback for attempt number {$a}.';
 $string['editingpreviousfeedbackwarning'] = 'You are editing the feedback for a previous attempt. This is attempt {$a->attemptnumber} out of {$a->totalattempts}.';
 $string['editsubmission'] = 'Edit submission';
+$string['editsubmissionother'] = 'Edit submission for {$a}';
 $string['editsubmission_help'] = 'Make changes to your submission';
 $string['editingstatus'] = 'Editing status';
 $string['editaction'] = 'Actions...';
@@ -312,6 +314,10 @@ $string['savegradingresult'] = 'Grade';
 $string['saveallquickgradingchanges'] = 'Save all quick grading changes';
 $string['savenext'] = 'Save and show next';
 $string['scale'] = 'Scale';
+$string['sendstudentnotificationsdefault'] = 'Default setting for "Notify students"';
+$string['sendstudentnotificationsdefault_help'] = 'Set the default value for the "Notify students" checkbox on the grading form.';
+$string['sendstudentnotifications'] = 'Notify students';
+$string['sendstudentnotifications_help'] = 'If enabled, students receive a message about the updated grade or feedback.';
 $string['sendnotifications'] = 'Notify graders about submissions';
 $string['sendnotifications_help'] = 'If enabled, graders (usually teachers) receive a message whenever a student submits an assignment, early, on time and late. Message methods are configurable.';
 $string['selectlink'] = 'Select...';
@@ -346,6 +352,16 @@ $string['submissionnoteditable'] = 'Student cannot edit this submission';
 $string['submissionnotready'] = 'This assignment is not ready to submit:';
 $string['submissionplugins'] = 'Submission plugins';
 $string['submissionreceipts'] = 'Send submission receipts';
+$string['submissionreceiptothertext'] = 'Your assignment submission for
+\'{$a->assignment}\' has been submitted.
+
+You can see the status of your assignment submission:
+
+    {$a->url}';
+$string['submissionreceiptotherhtml'] = 'Your assignment submission for
+\'<i>{$a->assignment}</i>\' has been submitted.<br /><br />
+You can see the status of your <a href="{$a->url}">assignment submission</a>.';
+$string['submissionreceiptothersmall'] = 'Your assignment submission for {$a->assignment} has been submitted.';
 $string['submissionreceipttext'] = 'You have submitted an
 assignment submission for \'{$a->assignment}\'
 
@@ -377,6 +393,7 @@ $string['submissionsummary'] = '{$a->status}. Last modified on {$a->timemodified
 $string['submissionteam'] = 'Group';
 $string['submission'] = 'Submission';
 $string['submitaction'] = 'Submit';
+$string['submitforgrading'] = 'Submit for grading';
 $string['submitassignment_help'] = 'Once this assignment is submitted you will not be able to make any more changes.';
 $string['submitassignment'] = 'Submit assignment';
 $string['submittedearly'] = 'Assignment was submitted {$a} early';
@@ -422,3 +439,4 @@ $string['workflowfilter'] = 'Workflow filter';
 $string['submissiontypes'] = 'Submission types';
 $string['feedbacktypes'] = 'Feedback types';
 $string['groupsubmissionsettings'] = 'Group submission settings';
+$string['submissionlog'] = 'Student: {$a->fullname}, Status: {$a->status}';
