@@ -136,8 +136,8 @@ class quiz {
             throw new moodle_quiz_exception($this, 'noquestions', $this->edit_url());
         }
         $this->questions = question_preload_questions($this->questionids,
-                'qqi.grade AS maxmark, qqi.id AS instance',
-                '{quiz_question_instances} qqi ON qqi.quiz = :quizid AND q.id = qqi.question',
+                'qqi.maxmark, qqi.id AS instance',
+                '{quiz_question_instances} qqi ON qqi.quizid = :quizid AND q.id = qqi.questionid',
                 array('quizid' => $this->quiz->id));
     }
 
@@ -1512,14 +1512,15 @@ class quiz_attempt {
      */
     protected function fire_state_transition_event($eventclass, $timestamp) {
         global $USER;
-
+        $quizrecord = $this->get_quiz();
         $params = array(
             'context' => $this->get_quizobj()->get_context(),
             'courseid' => $this->get_courseid(),
             'objectid' => $this->attempt->id,
             'relateduserid' => $this->attempt->userid,
             'other' => array(
-                'submitterid' => CLI_SCRIPT ? null : $USER->id
+                'submitterid' => CLI_SCRIPT ? null : $USER->id,
+                'quizid' => $quizrecord->id
             )
         );
 

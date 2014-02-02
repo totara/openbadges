@@ -114,6 +114,9 @@ a.dimmed_text:visited,
 .notifysuccess {
     color: @successText;
 }
+.highlight {
+    background: @infoBackground;
+}
 .reportlink {
     text-align: right;
 }
@@ -529,6 +532,13 @@ a.skip:active {
     margin-bottom: -2000px;
     padding-bottom: 2000px;
 }
+.dir-rtl {
+    .loginbox.twocolumns .loginpanel,
+    .loginbox.twocolumns .signuppanel {
+        float:right;
+    }
+}
+
 .loginbox .potentialidp .smallicon {
     vertical-align: text-bottom;
     margin: 0 .3em;
@@ -1662,6 +1672,12 @@ body#page-lib-editor-tinymce-plugins-moodlemedia-preview {
     padding: 0.7em 0;
     text-align: center;
 }
+/* Fixed for safari browser on iPhone4S with ios7.*/
+@media (max-height: 639px) {
+    .ios.safari .choosercontainer #chooseform .submitbuttons {
+        padding: 45px 0;
+    }
+}
 .choosercontainer #chooseform .submitbuttons input {
     min-width: 100px;
     margin: 0 0.5em;
@@ -2214,4 +2230,8 @@ a.disabled {
     cursor: default;
     font-style: italic;
     color: #808080;
+}
+body.lockscroll {
+  height: 100%;
+  overflow: hidden;
 }

@@ -3210,8 +3210,8 @@ function require_logout() {
  */
 function require_course_login($courseorid, $autologinguest = true, $cm = null, $setwantsurltome = true, $preventredirect = false) {
     global $CFG, $PAGE, $SITE;
-    $issite = (is_object($courseorid) and $courseorid->id == SITEID)
-          or (!is_object($courseorid) and $courseorid == SITEID);
+    $issite = ((is_object($courseorid) and $courseorid->id == SITEID)
+          or (!is_object($courseorid) and $courseorid == SITEID));
     if ($issite && !empty($cm) && !($cm instanceof cm_info)) {
         // Note: nearly all pages call get_fast_modinfo anyway and it does not make any
         // db queries so this is not really a performance concern, however it is obviously
@@ -3628,7 +3628,7 @@ function fullname($user, $override=false) {
     // The special characters are Japanese brackets that are common enough to make allowances for them (not covered by :punct:).
     $patterns[] = '/[[:punct:]「」]*EMPTY[[:punct:]「」]*/u';
     // This regular expression is to remove any double spaces in the display name.
-    $patterns[] = '/\s{2,}/';
+    $patterns[] = '/\s{2,}/u';
     foreach ($patterns as $pattern) {
         $displayname = preg_replace($pattern, ' ', $displayname);
     }
@@ -4232,6 +4232,9 @@ function delete_user(stdClass $user) {
 
     // Remove users private keys.
     $DB->delete_records('user_private_key', array('userid' => $user->id));
+
+    // Remove users customised pages.
+    $DB->delete_records('my_pages', array('userid' => $user->id, 'private' => 1));
 
     // Force logout - may fail if file based sessions used, sorry.
     \core\session\manager::kill_user_sessions($user->id);
@@ -5830,7 +5833,18 @@ function email_to_user($user, $from, $subject, $messagetext, $messagehtml = '', 
         }
         return true;
     } else {
-        add_to_log(SITEID, 'library', 'mailer', qualified_me(), 'ERROR: '. $mail->ErrorInfo);
+        // Trigger event for failing to send email.
+        $event = \core\event\email_failed::create(array(
+            'context' => context_system::instance(),
+            'userid' => $from->id,
+            'relateduserid' => $user->id,
+            'other' => array(
+                'subject' => $subject,
+                'message' => $messagetext,
+                'errorinfo' => $mail->ErrorInfo
+            )
+        ));
+        $event->trigger();
         if (CLI_SCRIPT) {
             mtrace('Error: lib/moodlelib.php email_to_user(): '.$mail->ErrorInfo);
         }
@@ -8845,6 +8859,10 @@ function get_performance_info() {
     $info['dbqueries'] = $DB->perf_get_reads().'/'.($DB->perf_get_writes() - $PERF->logwrites);
     $info['html'] .= '<span class="dbqueries">DB reads/writes: '.$info['dbqueries'].'</span> ';
     $info['txt'] .= 'db reads/writes: '.$info['dbqueries'].' ';
+
+    $info['dbtime'] = round($DB->perf_get_queries_time(), 5);
+    $info['html'] .= '<span class="dbtime">DB queries time: '.$info['dbtime'].' secs</span> ';
+    $info['txt'] .= 'db queries time: ' . $info['dbtime'] . 's ';
 
     if (function_exists('posix_times')) {
         $ptimes = posix_times();

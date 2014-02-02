@@ -39,7 +39,7 @@ class attempt_started extends \core\event\base {
     protected function init() {
         $this->data['objecttable'] = 'quiz_attempts';
         $this->data['crud'] = 'c';
-        $this->data['level'] = self::LEVEL_PARTICIPATING;
+        $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
     }
 
     /**
@@ -94,7 +94,7 @@ class attempt_started extends \core\event\base {
         $legacyeventdata->timestamp = $attempt->timestart;
         $legacyeventdata->userid = $this->relateduserid;
         $legacyeventdata->quizid = $attempt->quiz;
-        $legacyeventdata->cmid = $this->context->instanceid;
+        $legacyeventdata->cmid = $this->contextinstanceid;
         $legacyeventdata->courseid = $this->courseid;
 
         return $legacyeventdata;

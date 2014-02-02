@@ -46,7 +46,7 @@ class user_enrolment_created extends base {
     protected function init() {
         $this->data['objecttable'] = 'user_enrolments';
         $this->data['crud'] = 'c';
-        $this->data['level'] = self::LEVEL_OTHER;
+        $this->data['edulevel'] = self::LEVEL_OTHER;
     }
 
     /**
@@ -95,6 +95,15 @@ class user_enrolment_created extends base {
         $legacyeventdata->enrol = $this->other['enrol'];
         $legacyeventdata->courseid = $this->courseid;
         return $legacyeventdata;
+    }
+
+    /**
+     * Return legacy data for add_to_log().
+     *
+     * @return array
+     */
+    protected function get_legacy_logdata() {
+        return array($this->courseid, 'course', 'enrol', '../enrol/users.php?id=' . $this->courseid, $this->courseid);
     }
 
     /**

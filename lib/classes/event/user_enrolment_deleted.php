@@ -47,7 +47,7 @@ class user_enrolment_deleted extends base {
     protected function init() {
         $this->data['objecttable'] = 'user_enrolments';
         $this->data['crud'] = 'd';
-        $this->data['level'] = self::LEVEL_OTHER;
+        $this->data['edulevel'] = self::LEVEL_OTHER;
     }
 
     /**
@@ -95,6 +95,14 @@ class user_enrolment_deleted extends base {
         return (object)$this->other['userenrolment'];
     }
 
+    /**
+     * Return legacy data for add_to_log().
+     *
+     * @return array
+     */
+    protected function get_legacy_logdata() {
+        return array($this->courseid, 'course', 'unenrol', '../enrol/users.php?id=' . $this->courseid, $this->courseid);
+    }
 
     /**
      * Custom validation.

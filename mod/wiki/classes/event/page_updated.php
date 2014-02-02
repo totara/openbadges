@@ -46,7 +46,7 @@ class page_updated extends \core\event\base {
      */
     protected function init() {
         $this->data['crud'] = 'u';
-        $this->data['level'] = self::LEVEL_PARTICIPATING;
+        $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
         $this->data['objecttable'] = 'wiki_pages';
     }
 
@@ -75,7 +75,7 @@ class page_updated extends \core\event\base {
      */
     protected function get_legacy_logdata() {
         return(array($this->courseid, 'wiki', 'edit', 'view.php?pageid=' . $this->objectid, $this->objectid,
-            $this->context->instanceid));
+            $this->contextinstanceid));
     }
 
     /**

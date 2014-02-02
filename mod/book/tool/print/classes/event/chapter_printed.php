@@ -40,7 +40,8 @@ class chapter_printed extends \core\event\base {
      * @return string
      */
     public function get_description() {
-        return "The user $this->userid has printed the chapter $this->objectid of the book module $this->context->instanceid.";
+        return "The user " . $this->userid . " has printed the chapter $this->objectid of the book module " .
+                $this->contextinstanceid;
     }
 
     /**
@@ -49,8 +50,8 @@ class chapter_printed extends \core\event\base {
      * @return array|null
      */
     protected function get_legacy_logdata() {
-        return array($this->courseid, 'book', 'print chapter', 'tool/print/index.php?id=' . $this->context->instanceid .
-            '&chapterid=' . $this->objectid, $this->objectid, $this->context->instanceid);
+        return array($this->courseid, 'book', 'print chapter', 'tool/print/index.php?id=' . $this->contextinstanceid .
+            '&chapterid=' . $this->objectid, $this->objectid, $this->contextinstanceid);
     }
 
     /**
@@ -68,7 +69,7 @@ class chapter_printed extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/mod/book/tool/print/index.php', array('id' => $this->context->instanceid));
+        return new \moodle_url('/mod/book/tool/print/index.php', array('id' => $this->contextinstanceid));
     }
 
     /**
@@ -78,7 +79,7 @@ class chapter_printed extends \core\event\base {
      */
     protected function init() {
         $this->data['crud'] = 'r';
-        $this->data['level'] = self::LEVEL_PARTICIPATING;
+        $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
         $this->data['objecttable'] = 'book';
     }
 

@@ -51,6 +51,7 @@ class core_events_testcase extends advanced_testcase {
         $this->assertEquals(context_coursecat::instance($category->id), $event->get_context());
         $expected = array(SITEID, 'category', 'add', 'editcategory.php?id=' . $category->id, $category->id);
         $this->assertEventLegacyLogData($expected, $event);
+        $this->assertEventContextNotUsed($event);
     }
 
     /**
@@ -139,5 +140,38 @@ class core_events_testcase extends advanced_testcase {
         $this->assertEquals(context_coursecat::instance($category2->id), $event->get_context());
         $expected = array(SITEID, 'category', 'show', 'editcategory.php?id=' . $category2->id, $category2->id);
         $this->assertEventLegacyLogData($expected, $event);
+        $this->assertEventContextNotUsed($event);
+    }
+
+    /**
+     * Test the email failed event.
+     *
+     * It's not possible to use the moodle API to simulate the failure of sending
+     * an email, so here we simply create the event and trigger it.
+     */
+    public function test_email_failed() {
+        // Trigger event for failing to send email.
+        $event = \core\event\email_failed::create(array(
+            'context' => context_system::instance(),
+            'userid' => 1,
+            'relateduserid' => 2,
+            'other' => array(
+                'subject' => 'This is a subject',
+                'message' => 'This is a message',
+                'errorinfo' => 'The email failed to send!'
+            )
+        ));
+
+        // Trigger and capture the event.
+        $sink = $this->redirectEvents();
+        $event->trigger();
+        $events = $sink->get_events();
+        $event = reset($events);
+
+        $this->assertInstanceOf('\core\event\email_failed', $event);
+        $this->assertEquals(context_system::instance(), $event->get_context());
+        $expected = array(SITEID, 'library', 'mailer', qualified_me(), 'ERROR: The email failed to send!');
+        $this->assertEventLegacyLogData($expected, $event);
+        $this->assertEventContextNotUsed($event);
     }
 }

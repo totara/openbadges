@@ -40,7 +40,7 @@ class page_viewed extends \core\event\base {
      */
     protected function init() {
         $this->data['crud'] = 'r';
-        $this->data['level'] = self::LEVEL_PARTICIPATING;
+        $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
         $this->data['objecttable'] = 'wiki_pages';
     }
 
@@ -71,13 +71,13 @@ class page_viewed extends \core\event\base {
         if (!empty($this->other['wid'])) {
             return(array($this->courseid, 'wiki', 'view',
                 'view.php?wid=' . $this->data['other']['wid'] . '&title=' . $this->data['other']['title'],
-                $this->data['other']['wid'], $this->context->instanceid));
+                $this->data['other']['wid'], $this->contextinstanceid));
         } else if (!empty($this->other['prettyview'])) {
             return(array($this->courseid, 'wiki', 'view',
-                'prettyview.php?pageid=' . $this->objectid, $this->objectid, $this->context->instanceid));
+                'prettyview.php?pageid=' . $this->objectid, $this->objectid, $this->contextinstanceid));
         } else {
             return(array($this->courseid, 'wiki', 'view',
-                'view.php?pageid=' . $this->objectid, $this->objectid, $this->context->instanceid));
+                'view.php?pageid=' . $this->objectid, $this->objectid, $this->contextinstanceid));
         }
     }
 

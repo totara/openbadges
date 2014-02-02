@@ -52,7 +52,7 @@ class core_event_testcase extends advanced_testcase {
         $this->assertSame('unittest', $event->target);
         $this->assertSame(5, $event->objectid);
         $this->assertSame('u', $event->crud);
-        $this->assertSame(\core\event\base::LEVEL_PARTICIPATING, $event->level);
+        $this->assertSame(\core\event\base::LEVEL_PARTICIPATING, $event->edulevel);
 
         $this->assertEquals($system, $event->get_context());
         $this->assertSame($system->id, $event->contextid);
@@ -451,6 +451,23 @@ class core_event_testcase extends advanced_testcase {
             \core_tests\event\unittest_observer::$info);
     }
 
+    public function test_deprecated() {
+        global $DB;
+
+        $this->resetAfterTest(true);
+
+        $event = \core_tests\event\deprecated_event1::create();
+        $this->assertDebuggingCalled('level property is deprecated, use edulevel property instead');
+
+        $this->assertSame($event::LEVEL_TEACHING, $event->level);
+        $this->assertDebuggingCalled('level property is deprecated, use edulevel property instead');
+
+        $this->assertTrue(isset($event->level));
+        $this->assertDebuggingCalled('level property is deprecated, use edulevel property instead');
+
+        $this->assertSame($event::LEVEL_TEACHING, $event->edulevel);
+    }
+
     public function test_legacy() {
         global $DB;
 
@@ -731,5 +748,17 @@ class core_event_testcase extends advanced_testcase {
         }
 
         $this->assertSame($event->get_data(), $data);
+    }
+
+    /**
+     * @expectedException PHPUnit_Framework_Error_Notice
+     */
+    public function test_context_not_used() {
+        $event = \core_tests\event\context_used_in_event::create(array('courseid' => 1, 'other' => array('sample' => 1, 'xx' => 10)));
+        $this->assertEventContextNotUsed($event);
+
+        $eventcontext = phpunit_event_mock::testable_get_event_context($event);
+        phpunit_event_mock::testable_set_event_context($event, null);
+        $this->assertEventContextNotUsed($event);
     }
 }

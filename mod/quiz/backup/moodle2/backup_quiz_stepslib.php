@@ -57,7 +57,7 @@ class backup_quiz_activity_structure_step extends backup_questions_activity_stru
         $qinstances = new backup_nested_element('question_instances');
 
         $qinstance = new backup_nested_element('question_instance', array('id'), array(
-            'question', 'grade'));
+            'questionid', 'maxmark'));
 
         $feedbacks = new backup_nested_element('feedbacks');
 
@@ -108,7 +108,7 @@ class backup_quiz_activity_structure_step extends backup_questions_activity_stru
         $quiz->set_source_table('quiz', array('id' => backup::VAR_ACTIVITYID));
 
         $qinstance->set_source_table('quiz_question_instances',
-                array('quiz' => backup::VAR_PARENTID));
+                array('quizid' => backup::VAR_PARENTID));
 
         $feedback->set_source_table('quiz_feedback',
                 array('quizid' => backup::VAR_PARENTID));
@@ -137,7 +137,7 @@ class backup_quiz_activity_structure_step extends backup_questions_activity_stru
         $attempt->set_source_alias('attempt', 'attemptnum');
 
         // Define id annotations.
-        $qinstance->annotate_ids('question', 'question');
+        $qinstance->annotate_ids('question', 'questionid');
         $override->annotate_ids('user', 'userid');
         $override->annotate_ids('group', 'groupid');
         $grade->annotate_ids('user', 'userid');

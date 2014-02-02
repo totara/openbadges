@@ -60,9 +60,9 @@ class answer_updated extends \core\event\base {
         $legacylogdata = array($this->courseid,
             'choice',
             'choose again',
-            'view.php?id=' . $this->context->instanceid,
+            'view.php?id=' . $this->contextinstanceid,
             $this->other['choiceid'],
-            $this->context->instanceid);
+            $this->contextinstanceid);
 
         return $legacylogdata;
     }
@@ -82,7 +82,7 @@ class answer_updated extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/mod/choice/view.php', array('id' => $this->context->instanceid));
+        return new \moodle_url('/mod/choice/view.php', array('id' => $this->contextinstanceid));
     }
 
     /**
@@ -92,7 +92,7 @@ class answer_updated extends \core\event\base {
      */
     protected function init() {
         $this->data['crud'] = 'u';
-        $this->data['level'] = self::LEVEL_PARTICIPATING;
+        $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
         $this->data['objecttable'] = 'choice_answers';
     }
 

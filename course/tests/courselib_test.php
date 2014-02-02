@@ -26,8 +26,9 @@
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
-require_once($CFG->dirroot.'/course/lib.php');
-require_once($CFG->dirroot.'/course/tests/fixtures/course_capability_assignment.php');
+require_once($CFG->dirroot . '/course/lib.php');
+require_once($CFG->dirroot . '/course/tests/fixtures/course_capability_assignment.php');
+require_once($CFG->dirroot . '/enrol/imsenterprise/tests/imsenterprise_test.php');
 
 class core_course_courselib_testcase extends advanced_testcase {
 
@@ -1400,8 +1401,10 @@ class core_course_courselib_testcase extends advanced_testcase {
         // Catch the events.
         $sink = $this->redirectEvents();
 
-        // Create the course.
-        $course = $this->getDataGenerator()->create_course();
+        // Create the course with an id number which is used later when generating a course via the imsenterprise plugin.
+        $data = new stdClass();
+        $data->idnumber = 'idnumber';
+        $course = $this->getDataGenerator()->create_course($data);
         // Get course from DB for comparison.
         $course = $DB->get_record('course', array('id' => $course->id));
 
@@ -1420,6 +1423,33 @@ class core_course_courselib_testcase extends advanced_testcase {
         $this->assertEventLegacyData($course, $event);
         $expectedlog = array(SITEID, 'course', 'new', 'view.php?id=' . $course->id, $course->fullname . ' (ID ' . $course->id . ')');
         $this->assertEventLegacyLogData($expectedlog, $event);
+
+        // Now we want to trigger creating a course via the imsenterprise.
+        // Delete the course we created earlier, as we want the imsenterprise plugin to create this.
+        // We do not want print out any of the text this function generates while doing this, which is why
+        // we are using ob_start() and ob_end_clean().
+        ob_start();
+        delete_course($course);
+        ob_end_clean();
+
+        // Create the XML file we want to use.
+        $imstestcase = new enrol_imsenterprise_testcase();
+        $imstestcase->imsplugin = enrol_get_plugin('imsenterprise');
+        $imstestcase->set_test_config();
+        $imstestcase->set_xml_file(false, array($course));
+
+        // Capture the event.
+        $sink = $this->redirectEvents();
+        $imstestcase->imsplugin->cron();
+        $events = $sink->get_events();
+        $sink->close();
+        $event = $events[0];
+
+        // Validate the event triggered is \core\event\course_created. There is no need to validate the other values
+        // as they have already been validated in the previous steps. Here we only want to make sure that when the
+        // imsenterprise plugin creates a course an event is triggered.
+        $this->assertInstanceOf('\core\event\course_created', $event);
+        $this->assertEventContextNotUsed($event);
     }
 
     /**
@@ -1498,6 +1528,7 @@ class core_course_courselib_testcase extends advanced_testcase {
         $this->assertEventLegacyData($movedcoursehidden, $event);
         $expectedlog = array($movedcoursehidden->id, 'course', 'move', 'edit.php?id=' . $movedcoursehidden->id, $movedcoursehidden->id);
         $this->assertEventLegacyLogData($expectedlog, $event);
+        $this->assertEventContextNotUsed($event);
     }
 
     /**
@@ -1543,6 +1574,7 @@ class core_course_courselib_testcase extends advanced_testcase {
         $this->assertEventLegacyData($course, $event);
         $expectedlog = array(SITEID, 'course', 'delete', 'view.php?id=' . $course->id, $course->fullname . '(ID ' . $course->id . ')');
         $this->assertEventLegacyLogData($expectedlog, $event);
+        $this->assertEventContextNotUsed($event);
     }
 
     /**
@@ -1584,6 +1616,7 @@ class core_course_courselib_testcase extends advanced_testcase {
         $course->context = $coursecontext;
         $course->options = array();
         $this->assertEventLegacyData($course, $event);
+        $this->assertEventContextNotUsed($event);
     }
 
     /**
@@ -1646,6 +1679,7 @@ class core_course_courselib_testcase extends advanced_testcase {
         $this->assertEventLegacyData($category2, $event);
         $expectedlog = array(SITEID, 'category', 'delete', 'index.php', $category2->name . '(ID ' . $category2->id . ')');
         $this->assertEventLegacyLogData($expectedlog, $event);
+        $this->assertEventContextNotUsed($event);
     }
 
     /**
@@ -1711,6 +1745,7 @@ class core_course_courselib_testcase extends advanced_testcase {
             'samesite' => $rc->is_samesite()
         );
         $this->assertEventLegacyData($legacydata, $event);
+        $this->assertEventContextNotUsed($event);
 
         // Destroy the resource controller since we are done using it.
         $rc->destroy();
@@ -1765,6 +1800,7 @@ class core_course_courselib_testcase extends advanced_testcase {
         $sectionnum = $section->section;
         $expectedlegacydata = array($course->id, "course", "editsection", 'editsection.php?id=' . $id, $sectionnum);
         $this->assertEventLegacyLogData($expectedlegacydata, $event);
+        $this->assertEventContextNotUsed($event);
     }
 
     public function test_course_integrity_check() {
@@ -1924,6 +1960,7 @@ class core_course_courselib_testcase extends advanced_testcase {
 
         $arr = array($cm->course, "course", "add mod", "../mod/assign/view.php?id=$mod->id", "assign $cm->instance");
         $this->assertEventLegacyLogData($arr, $event);
+        $this->assertEventContextNotUsed($event);
 
     }
 
@@ -2029,7 +2066,7 @@ class core_course_courselib_testcase extends advanced_testcase {
 
         $arr = array($cm->course, "course", "update mod", "../mod/forum/view.php?id=$mod->id", "forum $cm->instance");
         $this->assertEventLegacyLogData($arr, $event);
-
+        $this->assertEventContextNotUsed($event);
     }
 
     /**

@@ -130,6 +130,7 @@ class mod_feedback_events_testcase extends advanced_testcase {
         $arr = array($this->eventcourse->id, 'feedback', 'delete', 'view.php?id=' . $this->eventcm->id, $this->eventfeedback->id,
                 $this->eventfeedback->id);
         $this->assertEventLegacyLogData($arr, $event);
+        $this->assertEventContextNotUsed($event);
 
         // Test can_view() .
         $this->setUser($this->eventuser);
@@ -163,6 +164,7 @@ class mod_feedback_events_testcase extends advanced_testcase {
         $this->assertTrue($event->can_view());
         $this->setAdminUser();
         $this->assertTrue($event->can_view());
+        $this->assertEventContextNotUsed($event);
     }
 
     /**
@@ -181,6 +183,7 @@ class mod_feedback_events_testcase extends advanced_testcase {
                 'objectid' => $this->eventfeedbackcompleted->id,
                 'other'    => array('cmid' => $this->eventcm->id, 'anonymous' => 2)
             ));
+            $this->assertEventContextNotUsed($event);
             $this->fail("Event validation should not allow \\mod_feedback\\event\\response_deleted to be triggered without
                     other['instanceid']");
         } catch (coding_exception $e) {
@@ -290,7 +293,7 @@ class mod_feedback_events_testcase extends advanced_testcase {
         $this->assertTrue($event->can_view());
         $this->setAdminUser();
         $this->assertTrue($event->can_view());
-
+        $this->assertEventContextNotUsed($event);
     }
 
     /**

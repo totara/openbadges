@@ -486,20 +486,20 @@ function quiz_get_all_question_grades($quiz) {
     $wheresql = '';
     if (!is_null($questionlist)) {
         list($usql, $question_params) = $DB->get_in_or_equal(explode(',', $questionlist));
-        $wheresql = " AND question $usql ";
+        $wheresql = ' AND questionid ' . $usql;
         $params = array_merge($params, $question_params);
     }
 
-    $instances = $DB->get_records_sql("SELECT question, grade, id
+    $instances = $DB->get_records_sql("SELECT questionid, maxmark, id
                                     FROM {quiz_question_instances}
-                                    WHERE quiz = ? $wheresql", $params);
+                                    WHERE quizid = ?{$wheresql}", $params);
 
-    $list = explode(",", $questionlist);
+    $list = explode(',', $questionlist);
     $grades = array();
 
     foreach ($list as $qid) {
         if (isset($instances[$qid])) {
-            $grades[$qid] = $instances[$qid]->grade;
+            $grades[$qid] = $instances[$qid]->maxmark;
         } else {
             $grades[$qid] = 1;
         }
@@ -601,9 +601,9 @@ function quiz_update_sumgrades($quiz) {
 
     $sql = 'UPDATE {quiz}
             SET sumgrades = COALESCE((
-                SELECT SUM(grade)
+                SELECT SUM(maxmark)
                 FROM {quiz_question_instances}
-                WHERE quiz = {quiz}.id
+                WHERE quizid = {quiz}.id
             ), 0)
             WHERE id = ?';
     $DB->execute($sql, array($quiz->id));
@@ -1375,6 +1375,7 @@ function quiz_get_review_options($quiz, $attempt, $context) {
         $options->marks = question_display_options::MARK_AND_MAX;
         $options->feedback = question_display_options::VISIBLE;
         $options->numpartscorrect = question_display_options::VISIBLE;
+        $options->manualcomment = question_display_options::VISIBLE;
         $options->generalfeedback = question_display_options::VISIBLE;
         $options->rightanswer = question_display_options::VISIBLE;
         $options->overallfeedback = question_display_options::VISIBLE;
@@ -1936,6 +1937,7 @@ class mod_quiz_display_options extends question_display_options {
         $options->overallfeedback = self::extract($quiz->reviewoverallfeedback, $when);
 
         $options->numpartscorrect = $options->feedback;
+        $options->manualcomment = $options->feedback;
 
         if ($quiz->questiondecimalpoints != -1) {
             $options->markdp = $quiz->questiondecimalpoints;

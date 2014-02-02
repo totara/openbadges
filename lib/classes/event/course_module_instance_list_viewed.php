@@ -52,7 +52,7 @@ abstract class course_module_instance_list_viewed extends base{
      */
     protected function init() {
         $this->data['crud'] = 'r';
-        $this->data['level'] = self::LEVEL_OTHER;
+        $this->data['edulevel'] = self::LEVEL_OTHER;
         if (strstr($this->component, 'mod_') === false) {
             throw new \coding_exception('The event name or namespace is invalid.');
         } else {
@@ -105,7 +105,7 @@ abstract class course_module_instance_list_viewed extends base{
      * @return void
      */
     protected function validate_data() {
-        if ($this->context->contextlevel !== CONTEXT_COURSE) {
+        if ($this->contextlevel !== CONTEXT_COURSE) {
             throw new \coding_exception('The context must be a course level context.');
         }
     }

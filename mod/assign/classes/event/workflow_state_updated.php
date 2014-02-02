@@ -81,7 +81,7 @@ class workflow_state_updated extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/mod/assign/view.php', array('id' => $this->context->instanceid));
+        return new \moodle_url('/mod/assign/view.php', array('id' => $this->contextinstanceid));
     }
 
     /**
@@ -91,7 +91,7 @@ class workflow_state_updated extends \core\event\base {
      */
     protected function init() {
         $this->data['crud'] = 'u';
-        $this->data['level'] = self::LEVEL_TEACHING;
+        $this->data['edulevel'] = self::LEVEL_TEACHING;
         $this->data['objecttable'] = 'assign';
     }
 

@@ -48,7 +48,7 @@ class attempt_becameoverdue extends \core\event\base {
     protected function init() {
         $this->data['objecttable'] = 'quiz_attempts';
         $this->data['crud'] = 'u';
-        $this->data['level'] = self::LEVEL_PARTICIPATING;
+        $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
     }
 
     /**
@@ -102,7 +102,7 @@ class attempt_becameoverdue extends \core\event\base {
         $legacyeventdata->timestamp = $attempt->timemodified;
         $legacyeventdata->userid = $this->relateduserid;
         $legacyeventdata->quizid = $attempt->quiz;
-        $legacyeventdata->cmid = $this->context->instanceid;
+        $legacyeventdata->cmid = $this->contextinstanceid;
         $legacyeventdata->courseid = $this->courseid;
         $legacyeventdata->submitterid = $this->other['submitterid'];
 

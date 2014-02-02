@@ -50,7 +50,7 @@ class response_deleted extends \core\event\base {
     protected function init() {
         $this->data['objecttable'] = 'feedback_completed';
         $this->data['crud'] = 'd';
-        $this->data['level'] = self::LEVEL_PARTICIPATING;
+        $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
     }
 
     /**
@@ -68,7 +68,7 @@ class response_deleted extends \core\event\base {
      * @return string
      */
     public function get_description() {
-        return 'The feedback from user ' . $this->other['relateduserid']. ' was deleted by' . $this->userid;
+        return 'The feedback from user ' . $this->relateduserid . ' was deleted by' . $this->userid;
     }
 
     /**

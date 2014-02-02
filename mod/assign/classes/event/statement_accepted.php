@@ -75,7 +75,7 @@ class statement_accepted extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/mod/assign/view.php', array('id' => $this->context->instanceid));
+        return new \moodle_url('/mod/assign/view.php', array('id' => $this->contextinstanceid));
     }
 
     /**
@@ -85,7 +85,7 @@ class statement_accepted extends \core\event\base {
      */
     protected function init() {
         $this->data['crud'] = 'r';
-        $this->data['level'] = self::LEVEL_PARTICIPATING;
+        $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
         $this->data['objecttable'] = 'assign_submission';
     }
 
