@@ -14,17 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace core\progress;
+
+defined('MOODLE_INTERNAL') || die();
+
 /**
- * Base class for handling progress information during a backup and restore.
+ * Base class for handling progress information.
  *
- * Subclasses should generally override the current_progress function which
+ * Subclasses should generally override the {@link current_progress} function which
  * summarises all progress information.
  *
- * @package core_backup
+ * @package core_progress
  * @copyright 2013 The Open University
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-abstract class core_backup_progress {
+abstract class base {
     /**
      * @var int Constant indicating that the number of progress calls is unknown.
      */
@@ -36,7 +40,7 @@ abstract class core_backup_progress {
      * frontendservertimeout config option to a lower value, such as 180
      * seconds (default for some commercial products).
      *
-     * @var int The number of seconds that can pass without progress() calls.
+     * @var int The number of seconds that can pass without {@link progress()} calls.
      */
     const TIME_LIMIT_WITHOUT_PROGRESS = 3600;
 
@@ -66,7 +70,7 @@ abstract class core_backup_progress {
     protected $currents = array();
 
     /**
-     * @var int Array of counts within parent progress entry (ignored for first)
+     * @var int[] Array of counts within parent progress entry (ignored for first)
      */
     protected $parentcounts = array();
 
@@ -76,28 +80,28 @@ abstract class core_backup_progress {
      * This can be called multiple times for nested progress sections. It must
      * be paired with calls to end_progress.
      *
-     * The progress maximum may be INDETERMINATE if the current operation has
+     * The progress maximum may be {@link self::INDETERMINATE} if the current operation has
      * an unknown number of steps. (This is default.)
      *
      * Calling this function will always result in a new display, so this
      * should not be called exceedingly frequently.
      *
-     * When it is complete by calling end_progress, each start_progress section
+     * When it is complete by calling {@link end_progress()}, each {@link start_progress} section
      * automatically adds progress to its parent, as defined by $parentcount.
      *
      * @param string $description Description to display
      * @param int $max Maximum value of progress for this section
      * @param int $parentcount How many progress points this section counts for
-     * @throws coding_exception If max is invalid
+     * @throws \coding_exception If max is invalid
      */
     public function start_progress($description, $max = self::INDETERMINATE,
             $parentcount = 1) {
         if ($max != self::INDETERMINATE && $max < 0) {
-            throw new coding_exception(
+            throw new \coding_exception(
                     'start_progress() max value cannot be negative');
         }
         if ($parentcount < 1) {
-            throw new coding_exception(
+            throw new \coding_exception(
                     'start_progress() parent progress count must be at least 1');
         }
         if (!empty($this->descriptions)) {
@@ -105,13 +109,13 @@ abstract class core_backup_progress {
             if ($prevmax !== self::INDETERMINATE) {
                 $prevcurrent = end($this->currents);
                 if ($prevcurrent + $parentcount > $prevmax) {
-                    throw new coding_exception(
+                    throw new \coding_exception(
                             'start_progress() parent progress would exceed max');
                 }
             }
         } else {
             if ($parentcount != 1) {
-                throw new coding_exception(
+                throw new \coding_exception(
                         'start_progress() progress count must be 1 when no parent');
             }
         }
@@ -125,16 +129,16 @@ abstract class core_backup_progress {
     /**
      * Marks the end of an operation that will display progress.
      *
-     * This must be paired with each start_progress call.
+     * This must be paired with each {@link start_progress} call.
      *
      * If there is a parent progress section, its progress will be increased
      * automatically to reflect the end of the child section.
      *
-     * @throws coding_exception If progress hasn't been started
+     * @throws \coding_exception If progress hasn't been started
      */
     public function end_progress() {
         if (!count($this->descriptions)) {
-            throw new coding_exception('end_progress() without start_progress()');
+            throw new \coding_exception('end_progress() without start_progress()');
         }
         array_pop($this->descriptions);
         array_pop($this->maxes);
@@ -154,29 +158,23 @@ abstract class core_backup_progress {
      * Indicates that progress has occurred.
      *
      * The progress value should indicate the total progress so far, from 0
-     * to the value supplied for $max (inclusive) in start_progress.
+     * to the value supplied for $max (inclusive) in {@link start_progress}.
      *
      * You do not need to call this function for every value. It is OK to skip
      * values. It is also OK to call this function as often as desired; it
-     * doesn't do anything if called more than once per second.
+     * doesn't update the display if called more than once per second.
      *
-     * It must be INDETERMINATE if start_progress was called with $max set to
+     * It must be INDETERMINATE if {@link start_progress} was called with $max set to
      * INDETERMINATE. Otherwise it must not be indeterminate.
      *
      * @param int $progress Progress so far
-     * @throws coding_exception If progress value is invalid
+     * @throws \coding_exception If progress value is invalid
      */
     public function progress($progress = self::INDETERMINATE) {
-        // Ignore too-frequent progress calls (more than once per second).
-        $now = $this->get_time();
-        if ($now === $this->lastprogresstime) {
-            return;
-        }
-
         // Check we are inside a progress section.
         $max = end($this->maxes);
         if ($max === false) {
-            throw new coding_exception(
+            throw new \coding_exception(
                     'progress() without start_progress');
         }
 
@@ -184,23 +182,29 @@ abstract class core_backup_progress {
         if ($progress === self::INDETERMINATE) {
             // Indeterminate progress.
             if ($max !== self::INDETERMINATE) {
-                throw new coding_exception(
+                throw new \coding_exception(
                         'progress() INDETERMINATE, expecting value');
             }
         } else {
             // Determinate progress.
             $current = end($this->currents);
             if ($max === self::INDETERMINATE) {
-                throw new coding_exception(
+                throw new \coding_exception(
                         'progress() with value, expecting INDETERMINATE');
             } else if ($progress < 0 || $progress > $max) {
-                throw new coding_exception(
+                throw new \coding_exception(
                         'progress() value out of range');
             } else if ($progress < $current) {
-                throw new coding_Exception(
+                throw new \coding_exception(
                         'progress() value may not go backwards');
             }
             $this->currents[key($this->currents)] = $progress;
+        }
+
+        // Don't update progress bar too frequently (more than once per second).
+        $now = $this->get_time();
+        if ($now === $this->lastprogresstime) {
+            return;
         }
 
         // Update progress.
@@ -208,8 +212,23 @@ abstract class core_backup_progress {
         $this->lastprogresstime = $now;
 
         // Update time limit before next progress display.
-        core_php_time_limit::raise(self::TIME_LIMIT_WITHOUT_PROGRESS);
+        \core_php_time_limit::raise(self::TIME_LIMIT_WITHOUT_PROGRESS);
         $this->update_progress();
+    }
+
+    /**
+     * An alternative to calling progress. This keeps track of the number of items done internally. Call this method
+     * with no parameters to increment the internal counter by one or you can use the $incby parameter to specify a positive
+     * change in progress. The internal progress counter should not exceed $max as passed to {@link start_progress} for this
+     * section.
+     *
+     * If you called {@link start_progress} with parameter INDETERMINATE then you cannot call this method.
+     *
+     * @var int $incby The positive change to apply to the internal progress counter. Defaults to 1.
+     */
+    public function increment_progress($incby = 1) {
+        $current = end($this->currents);
+        $this->progress($current + $incby);
     }
 
     /**
@@ -236,24 +255,25 @@ abstract class core_backup_progress {
     /**
      * Checks max value of current progress section.
      *
-     * @return int Current max value (may be core_backup_progress::INDETERMINATE)
-     * @throws coding_exception If not in a progress section
+     * @return int Current max value - may be {@link \core\progress\base::INDETERMINATE}.
+     * @throws \coding_exception If not in a progress section
      */
     public function get_current_max() {
         $max = end($this->maxes);
         if ($max === false) {
-            throw new coding_exception('Not inside progress section');
+            throw new \coding_exception('Not inside progress section');
         }
         return $max;
     }
 
     /**
+     * @throws \coding_exception
      * @return string Current progress section description
      */
     public function get_current_description() {
         $description = end($this->descriptions);
         if ($description === false) {
-            throw new coding_exception('Not inside progress section');
+            throw new \coding_exception('Not inside progress section');
         }
         return $description;
     }

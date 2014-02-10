@@ -1,3 +1,5 @@
+YUI.add('moodle-question-preview', function (Y, NAME) {
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -16,29 +18,32 @@
 /**
  * JavaScript required by the question preview pop-up.
  *
- * @package    moodlecore
- * @subpackage questionengine
- * @copyright  2009 The Open University
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @module moodle-question-preview
+ * @copyright 2014 The Open University
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
-M.core_question_preview = M.core_question_preview || {};
-
+M.question = M.question || {};
+M.question.preview = M.question.preview || {};
 
 /**
  * Initialise JavaScript-specific parts of the question preview popup.
  */
-M.core_question_preview.init = function(Y) {
+M.question.preview.init = function() {
     M.core_question_engine.init_form(Y, '#responseform');
 
     // Add a close button to the window.
-    var closebutton = Y.Node.create('<input type="button" />');
-    closebutton.set('value', M.str.question.closepreview);
-    Y.one('#previewcontrols').append(closebutton);
-    Y.on('click', function() { window.close() }, closebutton);
+    var closebutton = Y.Node.create('<input type="button" />')
+            .set('value', M.util.get_string('closepreview', 'question'));
 
-    // Make changing the settings disable all submit buttons, like clicking one
-    // of the question buttons does.
-    Y.on('submit', M.core_question_engine.prevent_repeat_submission, '#mform1', null, Y)
-}
+    closebutton.on('click', function() {
+        window.close();
+    });
+    Y.one('#previewcontrols').append(closebutton);
+
+    // Stop a question form being submitted more than once.
+    Y.on('submit', M.core_question_engine.prevent_repeat_submission, '#mform1', null, Y);
+};
+
+
+}, '@VERSION@', {"requires": ["base", "dom", "event-delegate", "event-key", "core_question_engine"]});

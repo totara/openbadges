@@ -136,11 +136,17 @@ class quiz_statistics_table extends flexible_table {
      * @return string contents of this table cell.
      */
     protected function col_number($questionstat) {
-        if ($questionstat->subquestion) {
-            return '';
+        $number = $questionstat->question->number;
+
+        if (isset($questionstat->subqdisplayorder)) {
+            $number = $number . '.'.$questionstat->subqdisplayorder;
         }
 
-        return $questionstat->question->number;
+        if ($questionstat->question->qtype != 'random' && !is_null($questionstat->variant)) {
+            $number = $number . '.'.$questionstat->variant;
+        }
+
+        return $number;
     }
 
     /**
@@ -180,6 +186,13 @@ class quiz_statistics_table extends flexible_table {
     protected function col_name($questionstat) {
         $name = $questionstat->question->name;
 
+        if (!is_null($questionstat->variant)) {
+            $a = new stdClass();
+            $a->name = $name;
+            $a->variant = $questionstat->variant;
+            $name = get_string('nameforvariant', 'quiz_statistics', $a);
+        }
+
         if ($this->is_downloading()) {
             return $name;
         }
@@ -198,6 +211,10 @@ class quiz_statistics_table extends flexible_table {
 
         if ($this->is_dubious_question($questionstat)) {
             $name = html_writer::tag('div', $name, array('class' => 'dubious'));
+        }
+
+        if (!empty($questionstat->minmedianmaxnotice)) {
+            $name = $questionstat->minmedianmaxnotice . '<br />' . $name;
         }
 
         return $name;
