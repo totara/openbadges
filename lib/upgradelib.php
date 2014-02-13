@@ -2069,7 +2069,7 @@ function upgrade_grade_item_fix_sortorder() {
 
     $transaction = $DB->start_delegated_transaction();
 
-    $sql = "SELECT g1.id, g1.courseid, g1.sortorder
+    $sql = "SELECT DISTINCT g1.id, g1.courseid, g1.sortorder
               FROM {grade_items} g1
               JOIN {grade_items} g2 ON g1.courseid = g2.courseid
              WHERE g1.sortorder = g2.sortorder AND g1.id != g2.id
@@ -2091,5 +2091,36 @@ function upgrade_grade_item_fix_sortorder() {
     }
     $rs->close();
 
+    $transaction->allow_commit();
+}
+
+/**
+ * Detect file areas with missing root directory records and add them.
+ */
+function upgrade_fix_missing_root_folders() {
+    global $DB, $USER;
+
+    $transaction = $DB->start_delegated_transaction();
+
+    $sql = "SELECT contextid, component, filearea, itemid
+              FROM {files}
+             WHERE (component <> 'user' OR filearea <> 'draft')
+          GROUP BY contextid, component, filearea, itemid
+            HAVING MAX(CASE WHEN filename = '.' AND filepath = '/' THEN 1 ELSE 0 END) = 0";
+
+    $rs = $DB->get_recordset_sql($sql);
+    $defaults = array('filepath' => '/',
+        'filename' => '.',
+        'userid' => 0, // Don't rely on any particular user for these system records.
+        'filesize' => 0,
+        'timecreated' => time(),
+        'timemodified' => time(),
+        'contenthash' => sha1(''));
+    foreach ($rs as $r) {
+        $pathhash = sha1("/$r->contextid/$r->component/$r->filearea/$r->itemid/.");
+        $DB->insert_record('files', (array)$r + $defaults +
+            array('pathnamehash' => $pathhash));
+    }
+    $rs->close();
     $transaction->allow_commit();
 }
