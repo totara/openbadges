@@ -19,7 +19,7 @@
  *
  * @author Andreas Grabs
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
- * @package feedback
+ * @package mod_feedback
  */
 
 require_once('../../config.php');
@@ -160,7 +160,7 @@ $PAGE->set_title($feedback->name);
 
 //Adding the javascript module for the items dragdrop.
 if (count($feedbackitems) > 1) {
-    if ($do_show == 'edit' and $CFG->enableajax) {
+    if ($do_show == 'edit') {
         $PAGE->requires->strings_for_js(array(
                'pluginname',
                'move_item',

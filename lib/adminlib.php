@@ -195,6 +195,9 @@ function uninstall_plugin($type, $name) {
     // delete calendar events
     $DB->delete_records('event', array('modulename' => $pluginname));
 
+    // Delete scheduled tasks.
+    $DB->delete_records('scheduled_task', array('component' => $pluginname));
+
     // delete all the logs
     $DB->delete_records('log', array('module' => $pluginname));
 
@@ -8506,7 +8509,7 @@ class admin_setting_devicedetectregex extends admin_setting {
     public function output_html($data, $query='') {
         global $OUTPUT;
 
-        $out  = html_writer::start_tag('table', array('border' => 1, 'class' => 'generaltable'));
+        $out  = html_writer::start_tag('table', array('class' => 'generaltable'));
         $out .= html_writer::start_tag('thead');
         $out .= html_writer::start_tag('tr');
         $out .= html_writer::tag('th', get_string('devicedetectregexexpression', 'admin'));

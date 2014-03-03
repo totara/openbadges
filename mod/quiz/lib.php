@@ -381,6 +381,16 @@ function quiz_has_grades($quiz) {
 }
 
 /**
+ * Does this quiz allow multiple tries?
+ *
+ * @return bool
+ */
+function quiz_allows_multiple_tries($quiz) {
+    $bt = question_engine::get_behaviour_type($quiz->preferredbehaviour);
+    return $bt->allows_multiple_submitted_responses();
+}
+
+/**
  * Return a small object with summary information about what a
  * user has done with a given particular instance of this module
  * Used for user activity reports.
@@ -847,9 +857,10 @@ function quiz_get_recent_mod_activity(&$activities, &$index, $timestart,
     $params['timestart'] = $timestart;
     $params['quizid'] = $quiz->id;
 
+    $ufields = user_picture::fields('u');
     if (!$attempts = $DB->get_records_sql("
               SELECT qa.*,
-                     u.firstname, u.lastname, u.email, u.picture, u.imagealt
+                     {$ufields}
                 FROM {quiz_attempts} qa
                      JOIN {user} u ON u.id = qa.userid
                      $groupjoin
@@ -919,14 +930,9 @@ function quiz_get_recent_mod_activity(&$activities, &$index, $timestart,
             $tmpactivity->content->maxgrade  = null;
         }
 
-        $tmpactivity->user = new stdClass();
-        $tmpactivity->user->id        = $attempt->userid;
-        $tmpactivity->user->firstname = $attempt->firstname;
-        $tmpactivity->user->lastname  = $attempt->lastname;
-        $tmpactivity->user->fullname  = fullname($attempt, $viewfullnames);
-        $tmpactivity->user->picture   = $attempt->picture;
-        $tmpactivity->user->imagealt  = $attempt->imagealt;
-        $tmpactivity->user->email     = $attempt->email;
+        $tmpactivity->user = username_load_fields_from_object(new stdClass(), $attempt, null,
+                explode(',', user_picture::fields()));
+        $tmpactivity->user->fullname  = fullname($tmpactivity->user, $viewfullnames);
 
         $activities[$index++] = $tmpactivity;
     }

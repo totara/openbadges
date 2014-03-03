@@ -72,6 +72,7 @@ class quiz_statistics_report extends quiz_default_report {
         // A qid paramter indicates we should display the detailed analysis of a sub question.
         $qid = optional_param('qid', 0, PARAM_INT);
         $slot = optional_param('slot', 0, PARAM_INT);
+        $variantno = optional_param('variant', null, PARAM_INT);
         $whichattempts = optional_param('whichattempts', $quiz->grademethod, PARAM_INT);
 
         $pageoptions = array();
@@ -170,7 +171,7 @@ class quiz_statistics_report extends quiz_default_report {
                 echo $OUTPUT->notification(get_string('noattempts', 'quiz'));
             }
 
-            foreach($questionstats->any_error_messages() as $errormessage) {
+            foreach ($questionstats->any_error_messages() as $errormessage) {
                 echo $OUTPUT->notification($errormessage);
             }
 
@@ -190,58 +191,58 @@ class quiz_statistics_report extends quiz_default_report {
                     $this->output_statistics_graph($quiz->id, $currentgroup, $whichattempts);
                 }
 
-                foreach ($questions as $slot => $question) {
-                    if (question_bank::get_qtype(
-                            $question->qtype, false)->can_analyse_responses()) {
-                        $this->output_individual_question_response_analysis(
-                                $question, $questionstats->for_slot($slot)->s, $reporturl, $qubaids);
-
-                    } else if ($subqids = $questionstats->for_slot($slot)->get_sub_question_ids()) {
-                        foreach ($subqids as $subqid) {
-                            $this->output_individual_question_response_analysis($questionstats->for_subq($subqid)->question,
-                                                                                $questionstats->for_subq($subqid)->s,
-                                                                                $reporturl,
-                                                                                $qubaids);
-                        }
-                    }
-                }
+                $this->output_all_question_response_analysis($qubaids, $questions, $questionstats, $reporturl);
             }
 
             $this->table->export_class_instance()->finish_document();
 
+        } else if ($qid) {
+            // Report on an individual sub-question indexed questionid.
+            if (is_null($questionstats->for_subq($qid, $variantno))) {
+                print_error('questiondoesnotexist', 'question');
+            }
+
+            $this->output_individual_question_data($quiz, $questionstats->for_subq($qid, $variantno));
+            $this->output_individual_question_response_analysis($questionstats->for_subq($qid, $variantno)->question,
+                                                                $variantno,
+                                                                $questionstats->for_subq($qid, $variantno)->s,
+                                                                $reporturl,
+                                                                $qubaids);
+            // Back to overview link.
+            echo $OUTPUT->box('<a href="' . $reporturl->out() . '">' .
+                              get_string('backtoquizreport', 'quiz_statistics') . '</a>',
+                              'boxaligncenter generalbox boxwidthnormal mdl-align');
         } else if ($slot) {
             // Report on an individual question indexed by position.
             if (!isset($questions[$slot])) {
                 print_error('questiondoesnotexist', 'question');
             }
 
-            $this->output_individual_question_data($quiz, $questionstats->for_slot($slot));
-            $this->output_individual_question_response_analysis($questions[$slot],
-                                                                $questionstats->for_slot($slot)->s,
-                                                                $reporturl,
-                                                                $qubaids);
-
-            // Back to overview link.
-            echo $OUTPUT->box('<a href="' . $reporturl->out() . '">' .
-                    get_string('backtoquizreport', 'quiz_statistics') . '</a>',
-                    'backtomainstats boxaligncenter generalbox boxwidthnormal mdl-align');
-
-        } else if ($qid) {
-            // Report on an individual sub-question indexed questionid.
-            if (is_null($questionstats->for_subq($qid))) {
-                print_error('questiondoesnotexist', 'question');
+            if ($variantno === null &&
+                                ($questionstats->for_slot($slot)->get_sub_question_ids()
+                                || $questionstats->for_slot($slot)->get_variants())) {
+                if (!$this->table->is_downloading()) {
+                    $number = $questionstats->for_slot($slot)->question->number;
+                    echo $OUTPUT->heading(get_string('slotstructureanalysis', 'quiz_statistics', $number), 3);
+                }
+                $this->table->define_baseurl(new moodle_url($reporturl, array('slot' => $slot)));
+                $this->table->format_and_add_array_of_rows($questionstats->structure_analysis_for_one_slot($slot));
+            } else {
+                $this->output_individual_question_data($quiz, $questionstats->for_slot($slot, $variantno));
+                $this->output_individual_question_response_analysis($questions[$slot],
+                                                                    $variantno,
+                                                                    $questionstats->for_slot($slot, $variantno)->s,
+                                                                    $reporturl,
+                                                                    $qubaids);
             }
-
-            $this->output_individual_question_data($quiz, $questionstats->for_subq($qid));
-            $this->output_individual_question_response_analysis($questionstats->for_subq($qid)->question,
-                                                                $questionstats->for_subq($qid)->s,
-                                                                $reporturl,
-                                                                $qubaids);
-
-            // Back to overview link.
-            echo $OUTPUT->box('<a href="' . $reporturl->out() . '">' .
-                    get_string('backtoquizreport', 'quiz_statistics') . '</a>',
-                    'boxaligncenter generalbox boxwidthnormal mdl-align');
+            if (!$this->table->is_downloading()) {
+                // Back to overview link.
+                echo $OUTPUT->box('<a href="' . $reporturl->out() . '">' .
+                        get_string('backtoquizreport', 'quiz_statistics') . '</a>',
+                        'backtomainstats boxaligncenter generalbox boxwidthnormal mdl-align');
+            } else {
+                $this->table->finish_output();
+            }
 
         } else if ($this->table->is_downloading()) {
             // Downloading overview report.
@@ -292,6 +293,11 @@ class quiz_statistics_report extends quiz_default_report {
         $questioninfotable->data[] = array(get_string('modulename', 'quiz'), $quiz->name);
         $questioninfotable->data[] = array(get_string('questionname', 'quiz_statistics'),
                 $questionstat->question->name.'&nbsp;'.$datumfromtable['actions']);
+
+        if ($questionstat->variant !== null) {
+            $questioninfotable->data[] = array(get_string('variant', 'quiz_statistics'), $questionstat->variant);
+
+        }
         $questioninfotable->data[] = array(get_string('questiontype', 'quiz_statistics'),
                 $datumfromtable['icon'] . '&nbsp;' .
                 question_bank::get_qtype($questionstat->question->qtype, false)->menu_name() . '&nbsp;' .
@@ -351,12 +357,14 @@ class quiz_statistics_report extends quiz_default_report {
 
     /**
      * Display the response analysis for a question.
+     *
      * @param object           $question  the question to report on.
+     * @param int|null         $variantno the variant
      * @param int              $s
      * @param moodle_url       $reporturl the URL to redisplay this report.
      * @param qubaid_condition $qubaids
      */
-    protected function output_individual_question_response_analysis($question, $s, $reporturl, $qubaids) {
+    protected function output_individual_question_response_analysis($question, $variantno, $s, $reporturl, $qubaids) {
         global $OUTPUT;
 
         if (!question_bank::get_qtype($question->qtype, false)->can_analyse_responses()) {
@@ -375,6 +383,9 @@ class quiz_statistics_report extends quiz_default_report {
             $questiontabletitle = '"' . $question->name . '"';
             if (!empty($question->number)) {
                 $questiontabletitle = '(' . $question->number . ') ' . $questiontabletitle;
+            }
+            if (!is_null($variantno)) {
+                $questiontabletitle .= ' '.get_string('variantno', 'quiz_statistics', $variantno);
             }
             if ($this->table->is_downloading() == 'xhtml') {
                 $questiontabletitle = get_string('analysisofresponsesfor', 'quiz_statistics', $questiontabletitle);
@@ -395,8 +406,13 @@ class quiz_statistics_report extends quiz_default_report {
         if ($this->table->is_downloading()) {
             $exportclass->output_headers($qtable->headers);
         }
-        foreach ($responseanalysis->get_subpart_ids() as $partid) {
-            $subpart = $responseanalysis->get_subpart($partid);
+
+        // Where no variant no is specified the variant no is actually one.
+        if ($variantno === null) {
+            $variantno = 1;
+        }
+        foreach ($responseanalysis->get_subpart_ids($variantno) as $partid) {
+            $subpart = $responseanalysis->get_analysis_for_subpart($variantno, $partid);
             foreach ($subpart->get_response_class_ids() as $responseclassid) {
                 $responseclass = $subpart->get_response_class($responseclassid);
                 $tabledata = $responseclass->data_for_question_response_table($subpart->has_multiple_response_classes(), $partid);
@@ -416,25 +432,13 @@ class quiz_statistics_report extends quiz_default_report {
      *                                                                                               variants.
      */
     protected function output_quiz_structure_analysis_table($questionstats) {
+        $tooutput = array();
+        $limitvariants = !$this->table->is_downloading();
         foreach ($questionstats->get_all_slots() as $slot) {
             // Output the data for these question statistics.
-            $this->table->add_data_keyed($this->table->format_row($questionstats->for_slot($slot)));
-
-            $limitvariants = !$this->table->is_downloading();
-            $this->add_array_of_rows_to_table($questionstats->all_subq_and_variant_stats_for_slot($slot, $limitvariants));
-
+            $tooutput = array_merge($tooutput, $questionstats->structure_analysis_for_one_slot($slot, $limitvariants));
         }
-
-        $this->table->finish_output(!$this->table->is_downloading());
-    }
-
-    /**
-     * @param \core_question\statistics\questions\calculated[] $statstoadd
-     */
-    protected function add_array_of_rows_to_table($statstoadd) {
-        foreach ($statstoadd as $stattoadd) {
-            $this->table->add_data_keyed($this->table->format_row($stattoadd));
-        }
+        $this->table->format_and_add_array_of_rows($tooutput);
     }
 
     /**
@@ -543,7 +547,7 @@ class quiz_statistics_report extends quiz_default_report {
             $progress->progress(2);
             if ($quizstats->s()) {
                 $subquestions = $questionstats->get_sub_questions();
-                $this->analyse_responses_for_all_questions_and_subquestions($qubaids, $questions, $subquestions, $progress);
+                $this->analyse_responses_for_all_questions_and_subquestions($questions, $subquestions, $qubaids, $progress);
             }
             $progress->progress(3);
             $progress->end_progress();
@@ -563,7 +567,7 @@ class quiz_statistics_report extends quiz_default_report {
     protected function get_progress_trace_instance() {
         if ($this->progress === null) {
             if (!$this->table->is_downloading()) {
-                $this->progress =  new \core\progress\display_if_slow(get_string('calculatingallstats', 'quiz_statistics'));
+                $this->progress = new \core\progress\display_if_slow(get_string('calculatingallstats', 'quiz_statistics'));
                 $this->progress->set_display_names();
             } else {
                 $this->progress = new \core\progress\null();
@@ -572,9 +576,7 @@ class quiz_statistics_report extends quiz_default_report {
         return $this->progress;
     }
 
-    protected function analyse_responses_for_all_questions_and_subquestions($qubaids, $questions, $subquestions,
-                                                                            $progress = null) {
-
+    protected function analyse_responses_for_all_questions_and_subquestions($questions, $subquestions, $qubaids, $progress = null) {
         if ($progress === null) {
             $progress = new \core\progress\null();
         }
@@ -582,45 +584,33 @@ class quiz_statistics_report extends quiz_default_report {
         // Starting response analysis tasks.
         $progress->start_progress('', count($questions) + count($subquestions));
 
-        // Starting response analysis of main questions.
-        $progress->start_progress('', count($questions), count($questions));
+        $done = $this->analyse_responses_for_questions($questions, $qubaids, $progress);
 
-        $done = array();
-        $donecount = 1;
-        foreach ($questions as $question) {
-            $progress->progress($donecount);
-            $donecount++;
-            if (!question_bank::get_qtype($question->qtype, false)->can_analyse_responses()) {
-                continue;
-            }
-            $done[$question->id] = 1;
-
-            $responesstats = new \core_question\statistics\responses\analyser($question);
-            $responesstats->calculate($qubaids);
-        }
-        $progress->end_progress();
-
-        // Starting response analysis of sub-questions.
-        $countsubquestions = count($subquestions);
-        $progress->start_progress('', $countsubquestions, $countsubquestions);
-        $donecount = 1;
-        foreach ($subquestions as $subquestion) {
-            $progress->progress($donecount);
-            $donecount++;
-            if (!question_bank::get_qtype($subquestion->qtype, false)->can_analyse_responses() ||
-                    isset($done[$subquestion->id])) {
-                continue;
-            }
-            $done[$subquestion->id] = 1;
-
-            $responesstats = new \core_question\statistics\responses\analyser($subquestion);
-            $responesstats->calculate($qubaids);
-        }
-        // Finished sub-question tasks.
-        $progress->end_progress();
+        $this->analyse_responses_for_questions($subquestions, $qubaids, $progress, $done);
 
         // Finished all response analysis tasks.
         $progress->end_progress();
+    }
+
+    protected function analyse_responses_for_questions($questions, $qubaids, $progress = null, $done = array()) {
+        $countquestions = count($questions);
+        if (!$countquestions) {
+            return array();
+        }
+        if ($progress === null) {
+            $progress = new \core\progress\null();
+        }
+        $progress->start_progress('', $countquestions, $countquestions);
+        foreach ($questions as $question) {
+            $progress->increment_progress();
+            if (question_bank::get_qtype($question->qtype, false)->can_analyse_responses()  && !isset($done[$question->id])) {
+                $responesstats = new \core_question\statistics\responses\analyser($question);
+                $responesstats->calculate($qubaids);
+            }
+            $done[$question->id] = 1;
+        }
+        $progress->end_progress();
+        return $done;
     }
 
     /**
@@ -728,5 +718,57 @@ class quiz_statistics_report extends quiz_default_report {
         }
         return $questions;
     }
-}
 
+    /**
+     * Output all response analysis for all questions, sub-questions and variants. For download in a number of formats.
+     *
+     * @param $qubaids
+     * @param $questions
+     * @param $questionstats
+     * @param $reporturl
+     */
+    protected function output_all_question_response_analysis($qubaids, $questions, $questionstats, $reporturl) {
+        foreach ($questions as $slot => $question) {
+            if (question_bank::get_qtype(
+                $question->qtype, false)->can_analyse_responses()
+            ) {
+                if ($questionstats->for_slot($slot)->get_variants()) {
+                    foreach ($questionstats->for_slot($slot)->get_variants() as $variantno) {
+                        $this->output_individual_question_response_analysis($question,
+                                                                            $variantno,
+                                                                            $questionstats->for_slot($slot, $variantno)->s,
+                                                                            $reporturl,
+                                                                            $qubaids);
+                    }
+                } else {
+                    $this->output_individual_question_response_analysis($question,
+                                                                        null,
+                                                                        $questionstats->for_slot($slot)->s,
+                                                                        $reporturl,
+                                                                        $qubaids);
+                }
+            } else if ($subqids = $questionstats->for_slot($slot)->get_sub_question_ids()) {
+                foreach ($subqids as $subqid) {
+                    if ($variants = $questionstats->for_subq($subqid)->get_variants()) {
+                        foreach ($variants as $variantno) {
+                            $this->output_individual_question_response_analysis(
+                                $questionstats->for_subq($subqid, $variantno)->question,
+                                $variantno,
+                                $questionstats->for_subq($subqid, $variantno)->s,
+                                $reporturl,
+                                $qubaids);
+                        }
+                    } else {
+                        $this->output_individual_question_response_analysis(
+                            $questionstats->for_subq($subqid)->question,
+                            null,
+                            $questionstats->for_subq($subqid)->s,
+                            $reporturl,
+                            $qubaids);
+
+                    }
+                }
+            }
+        }
+    }
+}

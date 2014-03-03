@@ -41,40 +41,12 @@ function user_preference_allow_ajax_update($name, $paramtype) {
 }
 
 /**
- * Returns whether ajax is enabled/allowed or not.
- * @param array $browsers optional list of alowed browsers, empty means use default list
- * @return bool
- */
-function ajaxenabled(array $browsers = null) {
-    global $CFG;
-
-    if (!empty($browsers)) {
-        $valid = false;
-        foreach ($browsers as $brand => $version) {
-            if (core_useragent::check_browser_version($brand, $version)) {
-                $valid = true;
-            }
-        }
-
-        if (!$valid) {
-            return false;
-        }
-    }
-
-    if (!empty($CFG->enableajax)) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-/**
  * Starts capturing output whilst processing an AJAX request.
  *
  * This should be used in combination with ajax_check_captured_output to
  * report any captured output to the user.
  *
- * @retrun Boolean Returns true on success or false on failure.
+ * @return Boolean Returns true on success or false on failure.
  */
 function ajax_capture_output() {
     // Start capturing output in case of broken plugins.

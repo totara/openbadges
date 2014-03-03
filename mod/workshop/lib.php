@@ -21,8 +21,7 @@
  * All the functions neeeded by Moodle core, gradebook, file subsystem etc
  * are placed here.
  *
- * @package    mod
- * @subpackage workshop
+ * @package    mod_workshop
  * @copyright  2009 David Mudrak <david.mudrak@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -938,7 +937,18 @@ function workshop_cron() {
             $course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
             $workshop = new workshop($workshop, $cm, $course);
             $workshop->switch_phase(workshop::PHASE_ASSESSMENT);
-            $workshop->log('update switch phase', $workshop->view_url(), $workshop->phase);
+
+            $params = array(
+                'objectid' => $workshop->id,
+                'context' => $workshop->context,
+                'courseid' => $workshop->course->id,
+                'other' => array(
+                    'workshopphase' => $workshop->phase
+                )
+            );
+            $event = \mod_workshop\event\phase_switched::create($params);
+            $event->trigger();
+
             // disable the automatic switching now so that it is not executed again by accident
             // if the teacher changes the phase back to the submission one
             $DB->set_field('workshop', 'phaseswitchassessment', 0, array('id' => $workshop->id));

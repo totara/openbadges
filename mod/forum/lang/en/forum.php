@@ -18,7 +18,7 @@
 /**
  * Strings for component 'forum', language 'en', branch 'MOODLE_20_STABLE'
  *
- * @package   forum
+ * @package   mod_forum
  * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -144,6 +144,22 @@ $string['edit'] = 'Edit';
 $string['editedby'] = 'Edited by {$a->name} - original submission {$a->date}';
 $string['editedpostupdated'] = '{$a}\'s post was updated';
 $string['editing'] = 'Editing';
+$string['eventcoursesearched'] = 'Course searched';
+$string['eventdiscussioncreated'] = 'Discussion created';
+$string['eventdiscussionupdated'] = 'Discussion updated';
+$string['eventdiscussiondeleted'] = 'Discussion deleted';
+$string['eventdiscussionmoved'] = 'Discussion moved';
+$string['eventdiscussionviewed'] = 'Discussion viewed';
+$string['eventforumviewed'] = 'Forum viewed';
+$string['eventuserreportviewed'] = 'User report viewed';
+$string['eventpostcreated'] = 'Post created';
+$string['eventpostdeleted'] = 'Post deleted';
+$string['eventpostupdated'] = 'Post updated';
+$string['eventreadtrackingdisabled'] = 'Read tracking disabled';
+$string['eventreadtrackingenabled'] = 'Read tracking enabled';
+$string['eventsubscribersviewed'] = 'Subscribers viewed';
+$string['eventsubscriptioncreated'] = 'Subscription created';
+$string['eventsubscriptiondeleted'] = 'Subscription deleted';
 $string['emaildigestcompleteshort'] = 'Complete posts';
 $string['emaildigestdefault'] = 'Default ({$a})';
 $string['emaildigestoffshort'] = 'No digest';

@@ -1610,6 +1610,7 @@ function purge_all_caches() {
     remove_dir($CFG->localcachedir, true);
     set_config('localcachedirpurged', time());
     make_localcache_directory('', true);
+    \core\task\manager::clear_static_caches();
 }
 
 /**
@@ -8856,35 +8857,6 @@ function get_performance_info() {
         foreach ($filterinfo as $key => $value) {
             $info['html'] .= "<span class='$key'>$nicenames[$key]: $value </span> ";
             $info['txt'] .= "$key: $value ";
-        }
-    }
-
-    $jsmodules = $PAGE->requires->get_loaded_modules();
-    if ($jsmodules) {
-        $yuicount = 0;
-        $othercount = 0;
-        $details = '';
-        foreach ($jsmodules as $module => $backtraces) {
-            if (strpos($module, 'yui') === 0) {
-                $yuicount += 1;
-            } else {
-                $othercount += 1;
-            }
-            if (!empty($CFG->yuimoduledebug)) {
-                // Hidden feature for developers working on YUI module infrastructure.
-                $details .= "<div class='yui-module'><p>$module</p>";
-                foreach ($backtraces as $backtrace) {
-                    $details .= "<div class='backtrace'>$backtrace</div>";
-                }
-                $details .= '</div>';
-            }
-        }
-        $info['html'] .= "<span class='includedyuimodules'>Included YUI modules: $yuicount</span> ";
-        $info['txt'] .= "includedyuimodules: $yuicount ";
-        $info['html'] .= "<span class='includedjsmodules'>Other JavaScript modules: $othercount</span> ";
-        $info['txt'] .= "includedjsmodules: $othercount ";
-        if ($details) {
-            $info['html'] .= '<div id="yui-module-debug" class="notifytiny">'.$details.'</div>';
         }
     }
 

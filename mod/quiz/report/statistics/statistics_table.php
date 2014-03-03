@@ -202,17 +202,45 @@ class quiz_statistics_table extends flexible_table {
             return $name;
         }
 
-        $url = null;
-        if ($questionstat->subquestion) {
-            $url = new moodle_url($this->baseurl, array('qid' => $questionstat->questionid));
-        } else if ($questionstat->slot && $questionstat->question->qtype != 'random') {
-            $url = new moodle_url($this->baseurl, array('slot' => $questionstat->slot));
+        $baseurl = new moodle_url($this->baseurl);
+        if (!is_null($questionstat->variant)) {
+            if ($questionstat->subquestion) {
+                // Variant of a sub-question.
+                $url = new moodle_url($baseurl, array('qid' => $questionstat->questionid, 'variant' => $questionstat->variant));
+                $name = html_writer::link($url, $name, array('title' => get_string('detailedanalysisforvariant',
+                                                                                   'quiz_statistics',
+                                                                                   $questionstat->variant)));
+            } else if ($questionstat->slot) {
+                // Variant of a question in a slot.
+                $url = new moodle_url($baseurl, array('slot' => $questionstat->slot, 'variant' => $questionstat->variant));
+                $name = html_writer::link($url, $name, array('title' => get_string('detailedanalysisforvariant',
+                                                                                   'quiz_statistics',
+                                                                                   $questionstat->variant)));
+            }
+        } else {
+            if ($questionstat->subquestion && !$questionstat->get_variants()) {
+                // Sub question without variants.
+                $url = new moodle_url($baseurl, array('qid' => $questionstat->questionid));
+                $name = html_writer::link($url, $name, array('title' => get_string('detailedanalysis', 'quiz_statistics')));
+            } else if ($baseurl->param('slot') === null && $questionstat->slot) {
+                // Question in a slot, we are not on a page showing structural analysis of one slot,
+                // we don't want linking on those pages.
+                $number = $questionstat->question->number;
+                $url = new moodle_url($baseurl, array('slot' => $questionstat->slot));
+                if ($questionstat->get_variants() || $questionstat->get_sub_question_ids()) {
+                    // Question can be broken down into sub-questions or variants. Link will show structural analysis page.
+                    $name = html_writer::link($url,
+                                              $name,
+                                              array('title' => get_string('slotstructureanalysis', 'quiz_statistics', $number)));
+                } else {
+                    // Question cannot be broken down into sub-questions or variants. Link will show response analysis page.
+                    $name = html_writer::link($url,
+                                              $name,
+                                              array('title' => get_string('detailedanalysis', 'quiz_statistics')));
+                }
+            }
         }
 
-        if ($url) {
-            $name = html_writer::link($url, $name,
-                    array('title' => get_string('detailedanalysis', 'quiz_statistics')));
-        }
 
         if ($this->is_dubious_question($questionstat)) {
             $name = html_writer::tag('div', $name, array('class' => 'dubious'));
@@ -298,7 +326,7 @@ class quiz_statistics_table extends flexible_table {
     protected function col_effective_weight($questionstat) {
         global $OUTPUT;
 
-        if ($questionstat->subquestion) {
+        if (is_null($questionstat->effectiveweight)) {
             return '';
         }
 

@@ -45,10 +45,18 @@ class analyser {
     public $analysis;
 
     /**
-     * @var array Two index array first index is unique for each sub question part, the second index is the 'class' that this sub
-     *          question part can be classified into. This is the return value from {@link \question_type::get_possible_responses()}
+     * @var array Two index array first index is unique string for each sub question part, the second string index is the 'class'
+     * that sub-question part can be classified into.
+     *
+     * This is the return value from {@link \question_type::get_possible_responses()} see that method for fuller documentation.
      */
     public $responseclasses = array();
+
+    /**
+     * @var bool whether to break down response analysis by variant. This only applies to questions that have variants and is
+     *           used to suppress the break down of analysis by variant when there are going to be very many variants.
+     */
+    protected $breakdownbyvariant;
 
     /**
      * Create a new instance of this class for holding/computing the statistics
@@ -60,7 +68,7 @@ class analyser {
         $this->questiondata = $questiondata;
         $qtypeobj = \question_bank::get_qtype($this->questiondata->qtype);
         $this->analysis = new analysis_for_question($qtypeobj->get_possible_responses($this->questiondata));
-
+        $this->breakdownbyvariant = $qtypeobj->break_down_stats_and_response_analysis_by_variant($this->questiondata);
     }
 
     /**
@@ -117,7 +125,12 @@ class analyser {
         // Analyse it.
         foreach ($questionattempts as $qa) {
             $responseparts = $qa->classify_response();
-            $this->analysis->count_response_parts($responseparts);
+            if ($this->breakdownbyvariant) {
+                $this->analysis->count_response_parts($qa->get_variant(), $responseparts);
+            } else {
+                $this->analysis->count_response_parts(1, $responseparts);
+            }
+
         }
         $this->analysis->cache($qubaids, $this->questiondata->id);
         return $this->analysis;
@@ -144,7 +157,7 @@ class analyser {
         }
 
         foreach ($rows as $row) {
-            $class = $this->analysis->get_subpart($row->subqid)->get_response_class($row->aid);
+            $class = $this->analysis->get_analysis_for_subpart($row->variant, $row->subqid)->get_response_class($row->aid);
             $class->add_response_and_count($row->response, $row->credit, $row->rcount);
         }
         return $this->analysis;

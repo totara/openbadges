@@ -258,4 +258,31 @@ class calculated {
             return array();
         }
     }
+
+    /**
+     * Array of variants that have appeared in the attempt data for this question.
+     *
+     * @return int[]
+     */
+    public function get_variants() {
+        $variants = array_keys($this->variantstats);
+        if (count($variants) > 1) {
+            return $variants;
+        } else {
+            return array();
+        }
+    }
+
+    public function break_down_by_variant() {
+        $qtype = \question_bank::get_qtype($this->question->qtype);
+        return $qtype->break_down_stats_and_response_analysis_by_variant($this->question);
+    }
+
+
+    /**
+     * Delete the data structure for storing variant stats.
+     */
+    public function clear_variants() {
+        $this->variantstats = array();
+    }
 }
