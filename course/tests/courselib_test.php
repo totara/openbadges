@@ -1569,9 +1569,14 @@ class core_course_courselib_testcase extends advanced_testcase {
         $this->assertSame($course->idnumber, $eventdata['other']['idnumber']);
         $this->assertSame($course->fullname, $eventdata['other']['fullname']);
         $this->assertSame($course->shortname, $eventdata['other']['shortname']);
-        // The legacy data also passed the context in the course object.
-        $course->context = $coursecontext;
-        $this->assertEventLegacyData($course, $event);
+
+        // The legacy data also passed the context in the course object and substitutes timemodified with the current date.
+        $expectedlegacy = clone($course);
+        $expectedlegacy->context = $coursecontext;
+        $expectedlegacy->timemodified = $event->timecreated;
+        $this->assertEventLegacyData($expectedlegacy, $event);
+
+        // Validate legacy log data.
         $expectedlog = array(SITEID, 'course', 'delete', 'view.php?id=' . $course->id, $course->fullname . '(ID ' . $course->id . ')');
         $this->assertEventLegacyLogData($expectedlog, $event);
         $this->assertEventContextNotUsed($event);
@@ -1945,7 +1950,7 @@ class core_course_courselib_testcase extends advanced_testcase {
         $this->assertEquals($cm->id, $event->objectid);
         $this->assertEquals($USER->id, $event->userid);
         $this->assertEquals('course_modules', $event->objecttable);
-        $url = new moodle_url('/mod/assign/view.php', array('id' => $mod->id));
+        $url = new moodle_url('/mod/assign/view.php', array('id' => $cm->id));
         $this->assertEquals($url, $event->get_url());
 
         // Test legacy data.
@@ -1958,7 +1963,7 @@ class core_course_courselib_testcase extends advanced_testcase {
         $eventdata->userid     = $USER->id;
         $this->assertEventLegacyData($eventdata, $event);
 
-        $arr = array($cm->course, "course", "add mod", "../mod/assign/view.php?id=$mod->id", "assign $cm->instance");
+        $arr = array($cm->course, "course", "add mod", "../mod/assign/view.php?id=$cm->id", "assign $cm->instance");
         $this->assertEventLegacyLogData($arr, $event);
         $this->assertEventContextNotUsed($event);
 
@@ -2051,7 +2056,7 @@ class core_course_courselib_testcase extends advanced_testcase {
         $this->assertEquals($cm->id, $event->objectid);
         $this->assertEquals($USER->id, $event->userid);
         $this->assertEquals('course_modules', $event->objecttable);
-        $url = new moodle_url('/mod/forum/view.php', array('id' => $mod->id));
+        $url = new moodle_url('/mod/forum/view.php', array('id' => $cm->id));
         $this->assertEquals($url, $event->get_url());
 
         // Test legacy data.
@@ -2064,7 +2069,7 @@ class core_course_courselib_testcase extends advanced_testcase {
         $eventdata->userid     = $USER->id;
         $this->assertEventLegacyData($eventdata, $event);
 
-        $arr = array($cm->course, "course", "update mod", "../mod/forum/view.php?id=$mod->id", "forum $cm->instance");
+        $arr = array($cm->course, "course", "update mod", "../mod/forum/view.php?id=$cm->id", "forum $cm->instance");
         $this->assertEventLegacyLogData($arr, $event);
         $this->assertEventContextNotUsed($event);
     }
