@@ -796,7 +796,6 @@ $functions = array(
     'core_grading_get_definitions' => array(
         'classname'   => 'core_grading_external',
         'methodname'  => 'get_definitions',
-        'classpath'   => 'grade/externallib.php',
         'description' => 'Get grading definitions',
         'type'        => 'read'
     ),
@@ -812,7 +811,6 @@ $functions = array(
     'core_grading_get_gradingform_instances' => array(
         'classname'   => 'core_grading_external',
         'methodname'  => 'get_gradingform_instances',
-        'classpath'   => 'grade/externallib.php',
         'description' => 'Get grading form instances',
         'type'        => 'read'
     ),
@@ -914,7 +912,21 @@ $services = array(
             'core_notes_create_notes',
             'core_user_get_course_user_profiles',
             'core_enrol_get_enrolled_users',
-            'core_message_send_instant_messages'),
+            'core_message_send_instant_messages',
+            'mod_assign_get_grades',
+            'mod_assign_get_assignments',
+            'mod_assign_get_submissions',
+            'mod_assign_get_user_flags',
+            'mod_assign_set_user_flags',
+            'mod_assign_get_user_mappings',
+            'mod_assign_revert_submissions_to_draft',
+            'mod_assign_lock_submissions',
+            'mod_assign_unlock_submissions',
+            'mod_assign_save_submission',
+            'mod_assign_submit_for_grading',
+            'mod_assign_save_grade',
+            'mod_assign_save_user_extensions',
+            'mod_assign_reveal_identities'),
         'enabled' => 0,
         'restrictedusers' => 0,
         'shortname' => MOODLE_OFFICIAL_MOBILE_SERVICE,

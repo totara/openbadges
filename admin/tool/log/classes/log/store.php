@@ -40,10 +40,4 @@ interface store {
      * @return void
      */
     public function dispose();
-
-    /**
-     * Execute cron actions.
-     * @return void
-     */
-    public function cron();
 }

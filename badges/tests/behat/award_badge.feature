@@ -7,9 +7,7 @@ Feature: Award badges
   @javascript
   Scenario: Award profile badge
     Given I log in as "admin"
-    And I expand "Site administration" node
-    And I expand "Badges" node
-    And I follow "Add a new badge"
+    And I navigate to "Add a new badge" node in "Site administration > Badges"
     And I set the following fields to these values:
       | Name | Profile Badge |
       | Description | Test badge description |
@@ -39,14 +37,12 @@ Feature: Award badges
 
   @javascript
   Scenario: Award site badge
-    Given the following "users" exists:
+    Given the following "users" exist:
       | username | firstname | lastname | email |
       | teacher | teacher | 1 | teacher1@asd.com |
       | student | student | 1 | student1@asd.com |
     And I log in as "admin"
-    And I expand "Site administration" node
-    And I expand "Badges" node
-    And I follow "Add a new badge"
+    And I navigate to "Add a new badge" node in "Site administration > Badges"
     And I set the following fields to these values:
       | Name | Site Badge |
       | Description | Site badge description |
@@ -74,15 +70,15 @@ Feature: Award badges
 
   @javascript
   Scenario: Award course badge
-    Given the following "users" exists:
+    Given the following "users" exist:
       | username | firstname | lastname | email |
       | teacher1 | Teacher | 1 | teacher1@asd.com |
       | student1 | Student | 1 | student1@asd.com |
       | student2 | Student | 2 | student2@asd.com |
-    And the following "courses" exists:
+    And the following "courses" exist:
       | fullname | shortname | category | groupmode |
       | Course 1 | C1 | 0 | 1 |
-    And the following "course enrolments" exists:
+    And the following "course enrolments" exist:
       | user | course | role |
       | teacher1 | C1 | editingteacher |
       | student1 | C1 | student |
@@ -119,14 +115,14 @@ Feature: Award badges
 
   @javascript
   Scenario: Award badge on activity completion
-    Given the following "courses" exists:
+    Given the following "courses" exist:
       | fullname | shortname | category |
       | Course 1 | C1 | 0 |
-    And the following "users" exists:
+    And the following "users" exist:
       | username | firstname | lastname | email |
       | teacher1 | Teacher | Frist | teacher1@asd.com |
       | student1 | Student | First | student1@asd.com |
-    And the following "course enrolments" exists:
+    And the following "course enrolments" exist:
       | user | course | role |
       | teacher1 | C1 | editingteacher |
       | student1 | C1 | student |
@@ -174,14 +170,14 @@ Feature: Award badges
 
   @javascript
   Scenario: Award badge on course completion
-    Given the following "courses" exists:
+    Given the following "courses" exist:
       | fullname | shortname | category |
       | Course 1 | C1 | 0 |
-    And the following "users" exists:
+    And the following "users" exist:
       | username | firstname | lastname | email |
       | teacher1 | Teacher | Frist | teacher1@asd.com |
       | student1 | Student | First | student1@asd.com |
-    And the following "course enrolments" exists:
+    And the following "course enrolments" exist:
       | user | course | role |
       | teacher1 | C1 | editingteacher |
       | student1 | C1 | student |

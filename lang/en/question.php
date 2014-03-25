@@ -270,6 +270,7 @@ $string['questionuse'] = 'Use question in this activity';
 $string['questionvariant'] = 'Question variant';
 $string['reviewresponse'] = 'Review response';
 $string['save'] = 'Save';
+$string['savechangesandcontinueediting'] = 'Save changes and continue editing';
 $string['saveflags'] = 'Save the state of the flags';
 $string['selectacategory'] = 'Select a category:';
 $string['selectaqtypefordescription'] = 'Select a question type to see its description.';

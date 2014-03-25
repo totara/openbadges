@@ -5,18 +5,14 @@ Feature: Add cohorts of users
   I need to create cohorts and add users on them
 
   Background:
-    Given the following "users" exists:
+    Given the following "users" exist:
       | username | firstname | lastname | email |
       | user1 | First | User | first@user.com |
       | user2 | Second | User | second@user.com |
       | user3 | Third | User | third@user.com |
       | user4 | Forth | User | forth@user.com |
     And I log in as "admin"
-    And I collapse "Front page settings" node
-    And I expand "Site administration" node
-    And I expand "Users" node
-    And I expand "Accounts" node
-    And I follow "Cohorts"
+    And I navigate to "Cohorts" node in "Site administration > Users > Accounts"
     And I press "Add"
     And I set the following fields to these values:
       | Name | Test cohort name |

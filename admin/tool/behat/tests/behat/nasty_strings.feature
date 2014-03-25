@@ -6,12 +6,11 @@ Feature: Transform steps arguments
 
   Background:
     Given I am on homepage
-    And the following "courses" exists:
+    And the following "courses" exist:
       | fullname | shortname | category |
       | Course 1 | C1 | 0 |
     And I log in as "admin"
-    And I follow "Admin User"
-    And I follow "Edit profile"
+    And I navigate to "Edit profile" node in "My profile settings"
 
   Scenario: Use nasty strings on steps arguments
     When I set the field "Surname" to "$NASTYSTRING1"
