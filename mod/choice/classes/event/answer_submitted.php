@@ -37,6 +37,7 @@ defined('MOODLE_INTERNAL') || die();
  * }
  *
  * @package    mod_choice
+ * @since      Moodle 2.6
  * @copyright  2013 Adrian Greeve <adrian@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -103,6 +104,7 @@ class answer_submitted extends \core\event\base {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if (!isset($this->other['choiceid'])) {
             throw new \coding_exception('choiceid must be set in $other.');
         }

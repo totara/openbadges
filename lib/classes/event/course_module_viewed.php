@@ -31,6 +31,7 @@ defined('MOODLE_INTERNAL') || die();
  * Class for event to be triggered when a course module is viewed.
  *
  * @package    core
+ * @since      Moodle 2.7
  * @copyright  2013 onwards Ankit Agarwal
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -92,6 +93,7 @@ abstract class course_module_viewed extends base {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         // Make sure this class is never used without proper object details.
         if (empty($this->objectid) || empty($this->objecttable)) {
             throw new \coding_exception('course_module_viewed event must define objectid and object table.');

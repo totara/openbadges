@@ -22,6 +22,7 @@ defined('MOODLE_INTERNAL') || die();
  * Event when course module completion is updated.
  *
  * @package    core
+ * @since      Moodle 2.6
  * @copyright  2013 Rajesh Taneja <rajesh@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -87,6 +88,7 @@ class course_module_completion_updated extends base {
      * @throws \coding_exception in case of a problem.
      */
     protected function validate_data() {
+        parent::validate_data();
         // Make sure the context level is set to module.
         if ($this->contextlevel !== CONTEXT_MODULE) {
             throw new \coding_exception('Context passed must be module context.');

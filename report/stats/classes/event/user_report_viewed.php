@@ -27,6 +27,7 @@ namespace report_stats\event;
  * Event triggered, when user stats report is viewed.
  *
  * @package    report_stats
+ * @since      Moodle 2.7
  * @copyright  2013 Ankit Agarwal
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -76,7 +77,7 @@ class user_report_viewed extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('report/stats/user.php', array('id' => $this->relateduserid, 'course' => $this->courseid));
+        return new \moodle_url('/report/stats/user.php', array('id' => $this->relateduserid, 'course' => $this->courseid));
     }
 
     /**
@@ -86,6 +87,7 @@ class user_report_viewed extends \core\event\base {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if (empty($this->data['relateduserid'])) {
             throw new \coding_exception('The property relateduserid must be set.');
         }

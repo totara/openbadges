@@ -18,6 +18,7 @@
  * mod_lesson essay assessed event.
  *
  * @package    mod_lesson
+ * @since      Moodle 2.7
  * @copyright  2014 Adrian Greeve <adrian@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -99,6 +100,7 @@ class essay_assessed extends \core\event\base {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if (!isset($this->relateduserid)) {
             throw new \coding_exception('relateduserid is a mandatory property.');
         }

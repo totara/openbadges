@@ -304,6 +304,11 @@ if (defined('WEB_CRON_EMULATED_CLI')) {
     }
 }
 
+// All web service requests have WS_SERVER == true.
+if (!defined('WS_SERVER')) {
+    define('WS_SERVER', false);
+}
+
 // Detect CLI maintenance mode - this is useful when you need to mess with database, such as during upgrades
 if (file_exists("$CFG->dataroot/climaintenance.html")) {
     if (!CLI_SCRIPT) {
@@ -745,6 +750,10 @@ if (CLI_SCRIPT) {
     // no sessions in CLI scripts possible
     define('NO_MOODLE_COOKIES', true);
 
+} else if (WS_SERVER) {
+    // No sessions possible in web services.
+    define('NO_MOODLE_COOKIES', true);
+
 } else if (!defined('NO_MOODLE_COOKIES')) {
     if (empty($CFG->version) or $CFG->version < 2009011900) {
         // no session before sessions table gets created
@@ -804,7 +813,7 @@ unset($urlthemename);
 
 // Ensure a valid theme is set.
 if (!isset($CFG->theme)) {
-    $CFG->theme = 'standard';
+    $CFG->theme = 'clean';
 }
 
 // Set language/locale of printed times.  If user has chosen a language that

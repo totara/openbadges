@@ -191,6 +191,11 @@ function quiz_delete_instance($id) {
 function quiz_delete_override($quiz, $overrideid) {
     global $DB;
 
+    if (!isset($quiz->cmid)) {
+        $cm = get_coursemodule_from_instance('quiz', $quiz->id, $quiz->course);
+        $quiz->cmid = $cm->id;
+    }
+
     $override = $DB->get_record('quiz_overrides', array('id' => $overrideid), '*', MUST_EXIST);
 
     // Delete the events.
@@ -203,6 +208,28 @@ function quiz_delete_override($quiz, $overrideid) {
     }
 
     $DB->delete_records('quiz_overrides', array('id' => $overrideid));
+
+    // Set the common parameters for one of the events we will be triggering.
+    $params = array(
+        'objectid' => $override->id,
+        'context' => context_module::instance($quiz->cmid),
+        'other' => array(
+            'quizid' => $override->quiz
+        )
+    );
+    // Determine which override deleted event to fire.
+    if (!empty($override->userid)) {
+        $params['relateduserid'] = $override->userid;
+        $event = \mod_quiz\event\user_override_deleted::create($params);
+    } else {
+        $params['other']['groupid'] = $override->groupid;
+        $event = \mod_quiz\event\group_override_deleted::create($params);
+    }
+
+    // Trigger the override deleted event.
+    $event->add_record_snapshot('quiz_overrides', $override);
+    $event->trigger();
+
     return true;
 }
 
@@ -820,15 +847,10 @@ function quiz_refresh_events($courseid = 0) {
  */
 function quiz_get_recent_mod_activity(&$activities, &$index, $timestart,
         $courseid, $cmid, $userid = 0, $groupid = 0) {
-    global $CFG, $COURSE, $USER, $DB;
+    global $CFG, $USER, $DB;
     require_once($CFG->dirroot . '/mod/quiz/locallib.php');
 
-    if ($COURSE->id == $courseid) {
-        $course = $COURSE;
-    } else {
-        $course = $DB->get_record('course', array('id' => $courseid));
-    }
-
+    $course = get_course($courseid);
     $modinfo = get_fast_modinfo($course);
 
     $cm = $modinfo->cms[$cmid];
@@ -875,11 +897,6 @@ function quiz_get_recent_mod_activity(&$activities, &$index, $timestart,
     $grader          = has_capability('mod/quiz:viewreports', $context);
     $groupmode       = groups_get_activity_groupmode($cm, $course);
 
-    if (is_null($modinfo->groups)) {
-        // Load all my groups and cache it in modinfo.
-        $modinfo->groups = groups_get_user_groups($course->id);
-    }
-
     $usersgroups = null;
     $aname = format_string($cm->name, true);
     foreach ($attempts as $attempt) {
@@ -890,16 +907,10 @@ function quiz_get_recent_mod_activity(&$activities, &$index, $timestart,
             }
 
             if ($groupmode == SEPARATEGROUPS and !$accessallgroups) {
-                if (is_null($usersgroups)) {
-                    $usersgroups = groups_get_all_groups($course->id,
-                            $attempt->userid, $cm->groupingid);
-                    if (is_array($usersgroups)) {
-                        $usersgroups = array_keys($usersgroups);
-                    } else {
-                        $usersgroups = array();
-                    }
-                }
-                if (!array_intersect($usersgroups, $modinfo->groups[$cm->id])) {
+                $usersgroups = groups_get_all_groups($course->id,
+                        $attempt->userid, $cm->groupingid);
+                $usersgroups = array_keys($usersgroups);
+                if (!array_intersect($usersgroups, $modinfo->get_groups($cm->groupingid))) {
                     continue;
                 }
             }
@@ -1261,6 +1272,13 @@ function quiz_update_events($quiz, $override = null) {
 }
 
 /**
+ * List the actions that correspond to a view of this module.
+ * This is used by the participation report.
+ *
+ * Note: This is not used by new logging system. Event with
+ *       crud = 'r' and edulevel = LEVEL_PARTICIPATING will
+ *       be considered as view action.
+ *
  * @return array
  */
 function quiz_get_view_actions() {
@@ -1268,6 +1286,13 @@ function quiz_get_view_actions() {
 }
 
 /**
+ * List the actions that correspond to a post of this module.
+ * This is used by the participation report.
+ *
+ * Note: This is not used by new logging system. Event with
+ *       crud = ('c' || 'u' || 'd') and edulevel = LEVEL_PARTICIPATING
+ *       will be considered as post action.
+ *
  * @return array
  */
 function quiz_get_post_actions() {
@@ -1758,8 +1783,14 @@ function quiz_question_pluginfile($course, $context, $component,
  */
 function quiz_page_type_list($pagetype, $parentcontext, $currentcontext) {
     $module_pagetype = array(
-        'mod-quiz-*'=>get_string('page-mod-quiz-x', 'quiz'),
-        'mod-quiz-edit'=>get_string('page-mod-quiz-edit', 'quiz'));
+        'mod-quiz-*'       => get_string('page-mod-quiz-x', 'quiz'),
+        'mod-quiz-view'    => get_string('page-mod-quiz-view', 'quiz'),
+        'mod-quiz-attempt' => get_string('page-mod-quiz-attempt', 'quiz'),
+        'mod-quiz-summary' => get_string('page-mod-quiz-summary', 'quiz'),
+        'mod-quiz-review'  => get_string('page-mod-quiz-review', 'quiz'),
+        'mod-quiz-edit'    => get_string('page-mod-quiz-edit', 'quiz'),
+        'mod-quiz-report'  => get_string('page-mod-quiz-report', 'quiz'),
+    );
     return $module_pagetype;
 }
 

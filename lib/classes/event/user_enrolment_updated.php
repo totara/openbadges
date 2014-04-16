@@ -35,6 +35,7 @@ defined('MOODLE_INTERNAL') || die();
  * }
  *
  * @package    core
+ * @since      Moodle 2.6
  * @copyright  2013 Rajesh Taneja <rajesh@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -73,7 +74,7 @@ class user_enrolment_updated extends base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/enrol/users.php', array('id' => $this->courseid));
+        return new \moodle_url('/enrol/editenrolment.php', array('ue' => $this->objectid));
     }
 
     /**

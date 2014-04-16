@@ -63,7 +63,13 @@ function page_reset_userdata($data) {
 }
 
 /**
- * List of view style log actions
+ * List the actions that correspond to a view of this module.
+ * This is used by the participation report.
+ *
+ * Note: This is not used by new logging system. Event with
+ *       crud = 'r' and edulevel = LEVEL_PARTICIPATING will
+ *       be considered as view action.
+ *
  * @return array
  */
 function page_get_view_actions() {
@@ -71,7 +77,13 @@ function page_get_view_actions() {
 }
 
 /**
- * List of update style log actions
+ * List the actions that correspond to a post of this module.
+ * This is used by the participation report.
+ *
+ * Note: This is not used by new logging system. Event with
+ *       crud = ('c' || 'u' || 'd') and edulevel = LEVEL_PARTICIPATING
+ *       will be considered as post action.
+ *
  * @return array
  */
 function page_get_post_actions() {
@@ -96,6 +108,7 @@ function page_add_instance($data, $mform = null) {
         $displayoptions['popupwidth']  = $data->popupwidth;
         $displayoptions['popupheight'] = $data->popupheight;
     }
+    $displayoptions['printheading'] = $data->printheading;
     $displayoptions['printintro']   = $data->printintro;
     $data->displayoptions = serialize($displayoptions);
 
@@ -141,6 +154,7 @@ function page_update_instance($data, $mform) {
         $displayoptions['popupwidth']  = $data->popupwidth;
         $displayoptions['popupheight'] = $data->popupheight;
     }
+    $displayoptions['printheading'] = $data->printheading;
     $displayoptions['printintro']   = $data->printintro;
     $data->displayoptions = serialize($displayoptions);
 
@@ -507,6 +521,7 @@ function page_dndupload_handle($uploadinfo) {
     $data->display = $config->display;
     $data->popupheight = $config->popupheight;
     $data->popupwidth = $config->popupwidth;
+    $data->printheading = $config->printheading;
     $data->printintro = $config->printintro;
 
     return page_add_instance($data, null);

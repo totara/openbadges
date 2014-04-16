@@ -1293,6 +1293,10 @@ function get_course_mods($courseid) {
 /**
  * Given an id of a course module, finds the coursemodule description
  *
+ * Please note that this function performs 1-2 DB queries. When possible use cached
+ * course modinfo. For example get_fast_modinfo($courseorid)->get_cm($cmid)
+ * See also {@link cm_info::get_course_module_record()}
+ *
  * @global object
  * @param string $modulename name of module type, eg. resource, assignment,... (optional, slower and less safe if not specified)
  * @param int $cmid course module id (id in course_modules table)
@@ -1346,6 +1350,10 @@ function get_coursemodule_from_id($modulename, $cmid, $courseid=0, $sectionnum=f
 
 /**
  * Given an instance number of a module, finds the coursemodule description
+ *
+ * Please note that this function performs DB query. When possible use cached course
+ * modinfo. For example get_fast_modinfo($courseorid)->instances[$modulename][$instance]
+ * See also {@link cm_info::get_course_module_record()}
  *
  * @global object
  * @param string $modulename name of module type, eg. resource, assignment,...
@@ -1514,6 +1522,11 @@ function get_all_instances_in_course($modulename, $course, $userid=NULL, $includ
  * and the module's type (eg "forum") returns whether the object
  * is visible or not, groupmembersonly visibility not tested
  *
+ * NOTE: This does NOT take into account visibility to a particular user.
+ * To get visibility access for a specific user, use get_fast_modinfo, get a
+ * cm_info object from this, and check the ->uservisible property; or use
+ * the \core_availability\info_module::is_user_visible() static function.
+ *
  * @global object
 
  * @param $moduletype Name of the module eg 'forum'
@@ -1539,46 +1552,6 @@ function instance_is_visible($moduletype, $module) {
     }
     return true;  // visible by default!
 }
-
-/**
- * Determine whether a course module is visible within a course,
- * this is different from instance_is_visible() - faster and visibility for user
- *
- * @global object
- * @global object
- * @uses DEBUG_DEVELOPER
- * @uses CONTEXT_MODULE
- * @uses CONDITION_MISSING_EXTRATABLE
- * @param object $cm object
- * @param int $userid empty means current user
- * @return bool Success
- */
-function coursemodule_visible_for_user($cm, $userid=0) {
-    global $USER,$CFG;
-
-    if (empty($cm->id)) {
-        debugging("Incorrect course module parameter!", DEBUG_DEVELOPER);
-        return false;
-    }
-    if (empty($userid)) {
-        $userid = $USER->id;
-    }
-    if (!$cm->visible and !has_capability('moodle/course:viewhiddenactivities', context_module::instance($cm->id), $userid)) {
-        return false;
-    }
-    if ($CFG->enableavailability) {
-        require_once($CFG->libdir.'/conditionlib.php');
-        $ci=new condition_info($cm,CONDITION_MISSING_EXTRATABLE);
-        if(!$ci->is_available($cm->availableinfo,false,$userid) and
-            !has_capability('moodle/course:viewhiddenactivities',
-                context_module::instance($cm->id), $userid)) {
-            return false;
-        }
-    }
-    return groups_course_module_visible($cm, $userid);
-}
-
-
 
 
 /// LOG FUNCTIONS /////////////////////////////////////////////////////
@@ -1832,43 +1805,6 @@ function get_logs_userday($userid, $courseid, $daystart) {
                                GROUP BY FLOOR((time - $daystart)/". HOURSECS .") ", $params);
 }
 
-/**
- * Returns an object with counts of failed login attempts
- *
- * Returns information about failed login attempts.  If the current user is
- * an admin, then two numbers are returned:  the number of attempts and the
- * number of accounts.  For non-admins, only the attempts on the given user
- * are shown.
- *
- * @global moodle_database $DB
- * @uses CONTEXT_SYSTEM
- * @param string $mode Either 'admin' or 'everybody'
- * @param string $username The username we are searching for
- * @param string $lastlogin The date from which we are searching
- * @return int
- */
-function count_login_failures($mode, $username, $lastlogin) {
-    global $DB;
-
-    $params = array('mode'=>$mode, 'username'=>$username, 'lastlogin'=>$lastlogin);
-    $select = "module='login' AND action='error' AND time > :lastlogin";
-
-    $count = new stdClass();
-
-    if (is_siteadmin()) {
-        if ($count->attempts = $DB->count_records_select('log', $select, $params)) {
-            $count->accounts = $DB->count_records_select('log', $select, $params, 'COUNT(DISTINCT info)');
-            return $count;
-        }
-    } else if ($mode == 'everybody') {
-        if ($count->attempts = $DB->count_records_select('log', "$select AND info = :username", $params)) {
-            return $count;
-        }
-    }
-    return NULL;
-}
-
-
 /// GENERAL HELPFUL THINGS  ///////////////////////////////////
 
 /**
@@ -2036,7 +1972,7 @@ function decompose_update_into_safe_changes(array $newvalues, $unusedvalue) {
             $next = $nontrivialmap[$current];
             unset($nontrivialmap[$current]);
             $current = $next;
-        } while ($current !== $cyclestart);
+        } while ($current != $cyclestart);
 
         // Now convert it to a sequence of safe renames by using a temp.
         $safechanges[] = array($cyclestart, $unusedvalue);

@@ -27,6 +27,7 @@ namespace report_outline\event;
  * Event when activity report is viewed.
  *
  * @package    report_outline
+ * @since      Moodle 2.7
  * @copyright  2014 Rajesh Taneja <rajesh@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -75,6 +76,6 @@ class activity_viewed extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('report/outline/index.php', array('course' => $this->courseid));
+        return new \moodle_url('/report/outline/index.php', array('course' => $this->courseid));
     }
 }

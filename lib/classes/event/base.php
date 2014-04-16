@@ -30,6 +30,7 @@ defined('MOODLE_INTERNAL') || die();
  * All other event classes must extend this class.
  *
  * @package    core
+ * @since      Moodle 2.6
  * @copyright  2013 Petr Skoda {@link http://skodak.org}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  *
@@ -47,6 +48,8 @@ defined('MOODLE_INTERNAL') || die();
  * @property-read int $userid who did this?
  * @property-read int $courseid
  * @property-read int $relateduserid
+ * @property-read int $anonymous 1 means event should not be visible in reports, 0 means normal event,
+ *                    create() argument may be also true/false.
  * @property-read mixed $other array or scalar, can not contain objects
  * @property-read int $timecreated
  */
@@ -102,7 +105,7 @@ abstract class base implements \IteratorAggregate {
     /** @var array list of event properties */
     private static $fields = array(
         'eventname', 'component', 'action', 'target', 'objecttable', 'objectid', 'crud', 'edulevel', 'contextid',
-        'contextlevel', 'contextinstanceid', 'userid', 'courseid', 'relateduserid', 'other',
+        'contextlevel', 'contextinstanceid', 'userid', 'courseid', 'relateduserid', 'anonymous', 'other',
         'timecreated');
 
     /** @var array simple record cache */
@@ -158,6 +161,9 @@ abstract class base implements \IteratorAggregate {
         $event->restored = false;
         $event->dispatched = false;
 
+        // By default all events are visible in logs.
+        $event->data['anonymous'] = 0;
+
         // Set static event data specific for child class.
         $event->init();
 
@@ -178,6 +184,10 @@ abstract class base implements \IteratorAggregate {
         $event->data['userid'] = isset($data['userid']) ? $data['userid'] : $USER->id;
         $event->data['other'] = isset($data['other']) ? $data['other'] : null;
         $event->data['relateduserid'] = isset($data['relateduserid']) ? $data['relateduserid'] : null;
+        if (isset($data['anonymous'])) {
+            $event->data['anonymous'] = $data['anonymous'];
+        }
+        $event->data['anonymous'] = (int)(bool)$event->data['anonymous'];
 
         if (isset($event->context)) {
             if (isset($data['context'])) {
@@ -295,12 +305,18 @@ abstract class base implements \IteratorAggregate {
     }
 
     /**
-     * Define whether a user can view the event or not.
+     * This method was originally intended for granular
+     * access control on the event level, unfortunately
+     * the proper implementation would be too expensive
+     * in many cases.
+     *
+     * @deprecated since 2.7
      *
      * @param int|\stdClass $user_or_id ID of the user.
      * @return bool True if the user can view the event, false otherwise.
      */
     public function can_view($user_or_id = null) {
+        debugging('can_view() method is deprecated, use anonymous flag instead if necessary.', DEBUG_DEVELOPER);
         return is_siteadmin($user_or_id);
     }
 
@@ -323,13 +339,14 @@ abstract class base implements \IteratorAggregate {
         }
 
         if (!class_exists($classname)) {
-            return false;
+            return self::restore_unknown($data, $logextra);
         }
         $event = new $classname();
         if (!($event instanceof \core\event\base)) {
             return false;
         }
 
+        $event->init(); // Init method of events could be setting custom properties.
         $event->restored = true;
         $event->triggered = true;
         $event->dispatched = true;
@@ -350,6 +367,27 @@ abstract class base implements \IteratorAggregate {
             }
         }
         $event->data = $data;
+
+        return $event;
+    }
+
+    /**
+     * Restore unknown event.
+     *
+     * @param array $data
+     * @param array $logextra
+     * @return unknown_logged
+     */
+    protected static final function restore_unknown(array $data, array $logextra) {
+        $classname = '\core\event\unknown_logged';
+
+        /** @var unknown_logged $event */
+        $event = new $classname();
+        $event->restored = true;
+        $event->triggered = true;
+        $event->dispatched = true;
+        $event->data = $data;
+        $event->logextra = $logextra;
 
         return $event;
     }
@@ -599,7 +637,14 @@ abstract class base implements \IteratorAggregate {
             if ($data = $this->get_legacy_logdata()) {
                 $manager = get_log_manager();
                 if (method_exists($manager, 'legacy_add_to_log')) {
-                    call_user_func_array(array($manager, 'legacy_add_to_log'), $data);
+                    if (is_array($data[0])) {
+                        // Some events require several entries in 'log' table.
+                        foreach ($data as $d) {
+                            call_user_func_array(array($manager, 'legacy_add_to_log'), $d);
+                        }
+                    } else {
+                        call_user_func_array(array($manager, 'legacy_add_to_log'), $data);
+                    }
                 }
             }
         }
@@ -664,9 +709,17 @@ abstract class base implements \IteratorAggregate {
             throw new \coding_exception('It is not possible to add snapshots after triggering of events');
         }
 
+        // Special case for course module, allow instance of cm_info to be passed instead of stdClass.
+        if ($tablename === 'course_modules' && $record instanceof \cm_info) {
+            $record = $record->get_course_module_record();
+        }
+
         // NOTE: this might use some kind of MUC cache,
         //       hopefully we will not run out of memory here...
         if ($CFG->debugdeveloper) {
+            if (!($record instanceof \stdClass)) {
+                debugging('Argument $record must be an instance of stdClass.', DEBUG_DEVELOPER);
+            }
             if (!$DB->get_manager()->table_exists($tablename)) {
                 debugging("Invalid table name '$tablename' specified, database table does not exist.", DEBUG_DEVELOPER);
             } else {

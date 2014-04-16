@@ -30,6 +30,7 @@ defined('MOODLE_INTERNAL') || die();
  * mod_assign all submissions downloaded event class.
  *
  * @package    mod_assign
+ * @since      Moodle 2.6
  * @copyright  2013 Frédéric Massart
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -81,7 +82,7 @@ class all_submissions_downloaded extends \core\event\base {
     /**
      * Sets the legacy event log data.
      *
-     * @param stdClass $legacylogdata legacy log data.
+     * @param \stdClass $legacylogdata legacy log data.
      * @return void
      */
     public function set_legacy_logdata($legacylogdata) {

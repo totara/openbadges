@@ -37,6 +37,7 @@ defined('MOODLE_INTERNAL') || die();
  * }
  *
  * @package    assignsubmission_file
+ * @since      Moodle 2.6
  * @copyright  2013 Frédéric Massart
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -61,7 +62,7 @@ class assessable_uploaded extends \core\event\assessable_uploaded {
     /**
      * Legacy event data if get_legacy_eventname() is not empty.
      *
-     * @return stdClass
+     * @return \stdClass
      */
     protected function get_legacy_eventdata() {
         $eventdata = new \stdClass();

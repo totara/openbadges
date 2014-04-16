@@ -45,7 +45,7 @@ M.mod_assign.init_grading_table = function(Y) {
         if (selectall) {
             selectall.on('change', function(e) {
                 if (e.currentTarget.get('checked')) {
-                    checkboxes = Y.all('td.c0 input');
+                    checkboxes = Y.all('td.c0 input[type="checkbox"]');
                     checkboxes.each(function(node) {
                         rowelement = node.get('parentNode').get('parentNode');
                         node.set('checked', true);
@@ -53,7 +53,7 @@ M.mod_assign.init_grading_table = function(Y) {
                         rowelement.addClass('selectedrow');
                     });
                 } else {
-                    checkboxes = Y.all('td.c0 input');
+                    checkboxes = Y.all('td.c0 input[type="checkbox"]');
                     checkboxes.each(function(node) {
                         rowelement = node.get('parentNode').get('parentNode');
                         node.set('checked', false);
@@ -99,19 +99,6 @@ M.mod_assign.init_grading_table = function(Y) {
             });
         }
 
-        Y.use('node-menunav', function(Y) {
-            var menus = Y.all('.gradingtable .actionmenu');
-
-            menus.each(function(menu) {
-                Y.on("contentready", function() {
-                    this.plug(Y.Plugin.NodeMenuNav, {autoSubmenuDisplay: true});
-                    var submenus = this.all('.yui3-loading');
-                    submenus.each(function (n) {
-                        n.removeClass('yui3-loading');
-                    });
-                }, "#" + menu.getAttribute('id'));
-            });
-        });
         var quickgrade = Y.all('.gradingtable .quickgrade');
         quickgrade.each(function(quick) {
             quick.on('change', function(e) {

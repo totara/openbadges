@@ -36,6 +36,7 @@ defined('MOODLE_INTERNAL') || die();
  * }
  *
  * @package    mod_assign
+ * @since      Moodle 2.6
  * @copyright  2013 Frédéric Massart
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -60,7 +61,7 @@ class assessable_submitted extends \core\event\assessable_submitted {
     /**
      * Legacy event data if get_legacy_eventname() is not empty.
      *
-     * @return stdClass
+     * @return \stdClass
      */
     protected function get_legacy_eventdata() {
         $eventdata = new \stdClass();
@@ -112,7 +113,7 @@ class assessable_submitted extends \core\event\assessable_submitted {
     /**
      * Sets the legacy event log data.
      *
-     * @param stdClass $legacylogdata legacy log data.
+     * @param \stdClass $legacylogdata legacy log data.
      * @return void
      */
     public function set_legacy_logdata($legacylogdata) {

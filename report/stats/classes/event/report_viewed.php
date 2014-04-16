@@ -32,6 +32,7 @@ namespace report_stats\event;
  *     -int mode: (optional) Report mode.
  *
  * @package    report_stats
+ * @since      Moodle 2.7
  * @copyright  2013 Ankit Agarwal
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -80,7 +81,7 @@ class report_viewed extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('report/stats/index.php', array('id' => $this->courseid, 'mode' => $this->data['other']['mode'],
+        return new \moodle_url('/report/stats/index.php', array('id' => $this->courseid, 'mode' => $this->data['other']['mode'],
                 'report' => $this->data['other']['report']));
     }
 
@@ -91,6 +92,7 @@ class report_viewed extends \core\event\base {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if (!isset($this->data['other']['report'])) {
             throw new \coding_exception('The property report must be set in other.');
         }

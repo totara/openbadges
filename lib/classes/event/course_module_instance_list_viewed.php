@@ -37,13 +37,14 @@ defined('MOODLE_INTERNAL') || die();
  *     \mod_chat\event\course_module_instance_list_viewed extends \core\event\course_module_instance_list_viewed
  *
  * @package    core
+ * @since      Moodle 2.7
  * @copyright  2013 onwards Ankit Agarwal
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 abstract class course_module_instance_list_viewed extends base{
 
-    /** @var string private var to store mod name */
-    private $modname;
+    /** @var string protected var to store mod name */
+    protected $modname;
 
     /**
      * Init method.
@@ -105,6 +106,7 @@ abstract class course_module_instance_list_viewed extends base{
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if ($this->contextlevel != CONTEXT_COURSE) {
             throw new \coding_exception('Context passed must be course context.');
         }

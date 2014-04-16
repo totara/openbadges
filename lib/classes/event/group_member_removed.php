@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * core_group member removed event.
+ * Group member removed event.
  *
- * @package    core_group
+ * @package    core
  * @copyright  2013 Frédéric Massart
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -26,9 +26,10 @@ namespace core\event;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * core_group member removed event class.
+ * Group member removed event class.
  *
- * @package    core_group
+ * @package    core
+ * @since      Moodle 2.6
  * @copyright  2013 Frédéric Massart
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -46,7 +47,7 @@ class group_member_removed extends \core\event\base {
     /**
      * Legacy event data if get_legacy_eventname() is not empty.
      *
-     * @return stdClass
+     * @return \stdClass
      */
     protected function get_legacy_eventdata() {
         $eventdata = new \stdClass();
@@ -79,7 +80,7 @@ class group_member_removed extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/group/index.php', array('id' => $this->courseid));
+        return new \moodle_url('/group/members.php', array('group' => $this->objectid));
     }
 
     /**

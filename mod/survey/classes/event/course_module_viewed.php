@@ -18,6 +18,7 @@
  * Course module viewed event.
  *
  * @package    mod_survey
+ * @since      Moodle 2.7
  * @copyright  2014 Rajesh Taneja <rajesh@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -54,6 +55,7 @@ class course_module_viewed extends \core\event\course_module_viewed {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if (empty($this->other['viewed'])) {
             throw new \coding_exception('Other must contain the key viewed.');
         }

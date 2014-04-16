@@ -30,11 +30,12 @@ defined('MOODLE_INTERNAL') || die();
  * mod_workshop submission assessments reset event class.
  *
  * @package    mod_workshop
+ * @since      Moodle 2.7
  * @category   event
  * @copyright  2013 Adrian Greeve
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class submission_assessments_reset extends \core\event\base {
+class assessments_reset extends \core\event\base {
 
     /**
      * Init method.

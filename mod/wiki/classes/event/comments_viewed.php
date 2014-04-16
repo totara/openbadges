@@ -29,6 +29,7 @@ defined('MOODLE_INTERNAL') || die();
  * mod_wiki comments viewed event.
  *
  * @package    mod_wiki
+ * @since      Moodle 2.7
  * @copyright  2013 Rajesh Taneja <rajesh@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -80,6 +81,7 @@ class comments_viewed extends \core\event\comments_viewed {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if (empty($this->objectid) || empty($this->objecttable)) {
             throw new \coding_exception('The objectid and objecttable need to be set in $other');
         }

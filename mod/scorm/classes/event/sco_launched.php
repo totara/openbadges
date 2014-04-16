@@ -36,6 +36,7 @@ defined('MOODLE_INTERNAL') || die();
  * }
  *
  * @package    mod_scorm
+ * @since      Moodle 2.7
  * @copyright  2013 onwards Ankit Agarwal
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -94,6 +95,7 @@ class sco_launched extends \core\event\base {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if (empty($this->other['loadedcontent'])) {
             throw new \coding_exception('The event mod_scorm\\event\\sco_launched must specify loadedcontent.');
         }

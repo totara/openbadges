@@ -35,6 +35,7 @@ defined('MOODLE_INTERNAL') || die();
  *      @type int instanceid Instance id of the scorm activity.
  * }
  * @package    mod_scorm
+ * @since      Moodle 2.7
  * @copyright  2013 onwards Ankit Agarwal
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -98,6 +99,7 @@ class user_report_viewed extends \core\event\base {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if (empty($this->other['attemptid'])) {
             throw new \coding_exception('The \\mod_scorm\\event\\user_report_viewed must specify attemptid.');
         }

@@ -35,6 +35,7 @@ defined('MOODLE_INTERNAL') || die();
  * }
  *
  * @package    mod_wiki
+ * @since      Moodle 2.7
  * @copyright  2013 Rajesh Taneja <rajesh@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -97,6 +98,7 @@ class page_version_viewed extends \core\event\base {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if (!isset($this->other['versionid'])) {
             throw new \coding_exception('The versionid need to be set in $other');
         }

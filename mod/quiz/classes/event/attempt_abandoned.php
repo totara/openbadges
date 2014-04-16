@@ -34,6 +34,7 @@ defined('MOODLE_INTERNAL') || die();
  * }
  *
  * @package    mod_quiz
+ * @since      Moodle 2.6
  * @copyright  2013 Adrian Greeve <adrian@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -88,7 +89,7 @@ class attempt_abandoned extends \core\event\base {
     /**
      * Legacy event data if get_legacy_eventname() is not empty.
      *
-     * @return stdClass
+     * @return \stdClass
      */
     protected function get_legacy_eventdata() {
         $attempt = $this->get_record_snapshot('quiz_attempts', $this->objectid);
@@ -111,6 +112,7 @@ class attempt_abandoned extends \core\event\base {
      * Custom validation.
      */
     protected function validate_data() {
+        parent::validate_data();
         if (!array_key_exists('submitterid', $this->other)) {
             throw new \coding_exception('Other must contain the key submitterid');
         } else if (!isset($this->relateduserid)) {

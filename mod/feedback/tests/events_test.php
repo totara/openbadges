@@ -135,8 +135,10 @@ class mod_feedback_events_testcase extends advanced_testcase {
         // Test can_view() .
         $this->setUser($this->eventuser);
         $this->assertFalse($event->can_view());
+        $this->assertDebuggingCalled();
         $this->setAdminUser();
         $this->assertTrue($event->can_view());
+        $this->assertDebuggingCalled();
 
         // Create a response, with anonymous set to no and test can_view().
         $response = new stdClass();
@@ -162,8 +164,10 @@ class mod_feedback_events_testcase extends advanced_testcase {
         // Test can_view() .
         $this->setUser($this->eventuser);
         $this->assertTrue($event->can_view());
+        $this->assertDebuggingCalled();
         $this->setAdminUser();
         $this->assertTrue($event->can_view());
+        $this->assertDebuggingCalled();
         $this->assertEventContextNotUsed($event);
     }
 
@@ -224,11 +228,14 @@ class mod_feedback_events_testcase extends advanced_testcase {
         $this->assertEquals($USER->id, $event->userid);
         $this->assertEquals($USER->id, $event->relateduserid);
         $this->assertEquals('feedback_completed', $event->objecttable);
+        $this->assertEquals(1, $event->anonymous);
         $this->assertEquals(FEEDBACK_ANONYMOUS_YES, $event->other['anonymous']);
         $this->setUser($this->eventuser);
         $this->assertFalse($event->can_view());
+        $this->assertDebuggingCalled();
         $this->setAdminUser();
         $this->assertTrue($event->can_view());
+        $this->assertDebuggingCalled();
 
         // Test legacy data.
         $this->assertEventLegacyLogData(null, $event);
@@ -261,13 +268,15 @@ class mod_feedback_events_testcase extends advanced_testcase {
 
         // Test can_view().
         $this->assertTrue($event->can_view());
+        $this->assertDebuggingCalled();
         $this->setAdminUser();
         $this->assertTrue($event->can_view());
+        $this->assertDebuggingCalled();
         $this->assertEventContextNotUsed($event);
     }
 
     /**
-     * Tests for event validations related to feedback response submittion.
+     * Tests for event validations related to feedback response submission.
      */
     public function test_response_submitted_event_exceptions() {
 
@@ -280,6 +289,7 @@ class mod_feedback_events_testcase extends advanced_testcase {
             \mod_feedback\event\response_submitted::create(array(
                 'context'  => $context,
                 'objectid' => $this->eventfeedbackcompleted->id,
+                'anonymous' => 0,
                 'other'    => array('cmid' => $this->eventcm->id, 'anonymous' => 2)
             ));
             $this->fail("Event validation should not allow \\mod_feedback\\event\\response_deleted to be triggered without
@@ -293,6 +303,7 @@ class mod_feedback_events_testcase extends advanced_testcase {
             \mod_feedback\event\response_submitted::create(array(
                 'context'  => $context,
                 'objectid' => $this->eventfeedbackcompleted->id,
+                'anonymous' => 0,
                 'other'    => array('instanceid' => $this->eventfeedback->id, 'anonymous' => 2)
             ));
             $this->fail("Event validation should not allow \\mod_feedback\\event\\response_deleted to be triggered without

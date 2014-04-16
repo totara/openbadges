@@ -37,6 +37,7 @@ defined('MOODLE_INTERNAL') || die();
  * }
  *
  * @package    core
+ * @since      Moodle 2.7
  * @copyright  2014 Rajesh Taneja <rajesh@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -99,6 +100,7 @@ class user_login_failed extends \core\event\base {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if (!isset($this->other['reason'])) {
             throw new \coding_exception("other['reason'] has to be specified.");
         } else if (!isset($this->other['username'])) {

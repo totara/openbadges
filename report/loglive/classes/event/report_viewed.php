@@ -27,6 +27,7 @@ namespace report_loglive\event;
  * Event triggered, when loglive report is viewed.
  *
  * @package    report_loglive
+ * @since      Moodle 2.7
  * @copyright  2013 Ankit Agarwal
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -75,7 +76,7 @@ class report_viewed extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('report/loglive/index.php', array('id' => $this->courseid));
+        return new \moodle_url('/report/loglive/index.php', array('id' => $this->courseid));
     }
 }
 

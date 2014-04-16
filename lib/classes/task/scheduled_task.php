@@ -52,6 +52,9 @@ abstract class scheduled_task extends task_base {
     /** @var boolean $customised - Has this task been changed from it's default schedule? */
     private $customised = false;
 
+    /** @var int $disabled - Is this task disabled in cron? */
+    private $disabled = false;
+
     /**
      * Get the last run time for this scheduled task.
      * @return int
@@ -62,7 +65,7 @@ abstract class scheduled_task extends task_base {
 
     /**
      * Set the last run time for this scheduled task.
-     * @return int
+     * @param int $lastruntime
      */
     public function set_last_run_time($lastruntime) {
         $this->lastruntime = $lastruntime;
@@ -165,6 +168,22 @@ abstract class scheduled_task extends task_base {
     }
 
     /**
+     * Setter for $disabled.
+     * @param bool $disabled
+     */
+    public function set_disabled($disabled) {
+        $this->disabled = (bool)$disabled;
+    }
+
+    /**
+     * Getter for $disabled.
+     * @return bool
+     */
+    public function get_disabled() {
+        return $this->disabled;
+    }
+
+    /**
      * Take a cron field definition and return an array of valid numbers with the range min-max.
      *
      * @param string $field - The field definition.
@@ -251,7 +270,7 @@ abstract class scheduled_task extends task_base {
      * If list is empty, this function will return 0.
      *
      * @param int $current The current value
-     * @param array(int) $list The list of valid items.
+     * @param int[] $list The list of valid items.
      * @return int $next.
      */
     private function next_in_list($current, $list) {

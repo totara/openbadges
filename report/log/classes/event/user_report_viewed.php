@@ -30,6 +30,7 @@ namespace report_log\event;
  *     -string mode: display mode.
  *
  * @package    report_log
+ * @since      Moodle 2.7
  * @copyright  2013 Ankit Agarwal
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -79,7 +80,7 @@ class user_report_viewed extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('report/log/user.php', array('course' => $this->courseid, 'id' => $this->relateduserid,
+        return new \moodle_url('/report/log/user.php', array('course' => $this->courseid, 'id' => $this->relateduserid,
                 'mode' => $this->other['mode']));
     }
 
@@ -90,6 +91,7 @@ class user_report_viewed extends \core\event\base {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if (empty($this->data['other']['mode'])) {
             throw new \coding_exception('The property mode must be set in other.');
         }

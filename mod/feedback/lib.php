@@ -385,7 +385,7 @@ function feedback_get_recent_mod_activity(&$activities, &$index,
 
     $sqlargs = array();
 
-    $userfields = user_picture::fields('u', null, 'userid');
+    $userfields = user_picture::fields('u', null, 'useridagain');
     $sql = " SELECT fk . * , fc . * , $userfields
                 FROM {feedback_completed} fc
                     JOIN {feedback} fk ON fk.id = fc.feedback
@@ -423,11 +423,6 @@ function feedback_get_recent_mod_activity(&$activities, &$index,
     $viewfullnames   = has_capability('moodle/site:viewfullnames', $cm_context);
     $groupmode       = groups_get_activity_groupmode($cm, $course);
 
-    if (is_null($modinfo->groups)) {
-        // load all my groups and cache it in modinfo
-        $modinfo->groups = groups_get_user_groups($course->id);
-    }
-
     $aname = format_string($cm->name, true);
     foreach ($feedbackitems as $feedbackitem) {
         if ($feedbackitem->userid != $USER->id) {
@@ -440,7 +435,7 @@ function feedback_get_recent_mod_activity(&$activities, &$index,
                     continue;
                 }
                 $usersgroups = array_keys($usersgroups);
-                $intersect = array_intersect($usersgroups, $modinfo->groups[$cm->id]);
+                $intersect = array_intersect($usersgroups, $modinfo->get_groups($cm->groupingid));
                 if (empty($intersect)) {
                     continue;
                 }
@@ -459,19 +454,7 @@ function feedback_get_recent_mod_activity(&$activities, &$index,
         $tmpactivity->content->feedbackid = $feedbackitem->id;
         $tmpactivity->content->feedbackuserid = $feedbackitem->userid;
 
-        $userfields = explode(',', user_picture::fields());
-        $tmpactivity->user = new stdClass();
-        foreach ($userfields as $userfield) {
-            if ($userfield == 'id') {
-                $tmpactivity->user->{$userfield} = $feedbackitem->userid; // aliased in SQL above
-            } else {
-                if (!empty($feedbackitem->{$userfield})) {
-                    $tmpactivity->user->{$userfield} = $feedbackitem->{$userfield};
-                } else {
-                    $tmpactivity->user->{$userfield} = null;
-                }
-            }
-        }
+        $tmpactivity->user = user_picture::unalias($feedbackitem, null, 'useridagain');
         $tmpactivity->user->fullname = fullname($feedbackitem, $viewfullnames);
 
         $activities[$index++] = $tmpactivity;
@@ -589,6 +572,13 @@ function feedback_scale_used_anywhere($scaleid) {
 }
 
 /**
+ * List the actions that correspond to a view of this module.
+ * This is used by the participation report.
+ *
+ * Note: This is not used by new logging system. Event with
+ *       crud = 'r' and edulevel = LEVEL_PARTICIPATING will
+ *       be considered as view action.
+ *
  * @return array
  */
 function feedback_get_view_actions() {
@@ -596,6 +586,13 @@ function feedback_get_view_actions() {
 }
 
 /**
+ * List the actions that correspond to a post of this module.
+ * This is used by the participation report.
+ *
+ * Note: This is not used by new logging system. Event with
+ *       crud = ('c' || 'u' || 'd') and edulevel = LEVEL_PARTICIPATING
+ *       will be considered as post action.
+ *
  * @return array
  */
 function feedback_get_post_actions() {
@@ -1915,10 +1912,11 @@ function feedback_save_tmp_values($feedbackcompletedtmp, $feedbackcompleted, $us
         'relateduserid' => $userid,
         'objectid' => $feedbackcompleted->id,
         'context' => context_module::instance($cm->id),
+        'anonymous' => ($feedbackcompleted->anonymous_response == FEEDBACK_ANONYMOUS_YES),
         'other' => array(
             'cmid' => $cm->id,
             'instanceid' => $feedbackcompleted->feedback,
-            'anonymous' => $feedbackcompleted->anonymous_response
+            'anonymous' => $feedbackcompleted->anonymous_response // Deprecated.
         )
     ));
 
@@ -2695,7 +2693,11 @@ function feedback_delete_completed($completedid) {
         'objectid' => $completedid,
         'courseid' => $course->id,
         'context' => context_module::instance($cm->id),
-        'other' => array('cmid' => $cm->id, 'instanceid' => $feedback->id, 'anonymous' => $completed->anonymous_response)
+        'anonymous' => ($completed->anonymous_response == FEEDBACK_ANONYMOUS_YES),
+        'other' => array(
+            'cmid' => $cm->id,
+            'instanceid' => $feedback->id,
+            'anonymous' => $completed->anonymous_response) // Deprecated.
     ));
 
     $event->add_record_snapshot('feedback_completed', $completed);

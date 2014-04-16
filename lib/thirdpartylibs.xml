@@ -36,6 +36,13 @@
     <licenseversion></licenseversion>
   </library>
   <library>
+    <location>lessphp</location>
+    <name>less.php</name>
+    <license>Apache</license>
+    <version>1.7.0.1</version>
+    <licenseversion>2.0</licenseversion>
+  </library>
+  <library>
     <location>phpexcel</location>
     <name>PHPExcel</name>
     <license>LGPL</license>
@@ -193,7 +200,7 @@
     <location>jquery</location>
     <name>jQuery</name>
     <license>MIT</license>
-    <version>1.10.2</version>
+    <version>1.11.0</version>
     <licenseversion></licenseversion>
   </library>
   <library>
@@ -207,7 +214,7 @@
     <location>jquery</location>
     <name>jQuery UI</name>
     <license>MIT</license>
-    <version>1.10.3</version>
+    <version>1.10.4</version>
     <licenseversion></licenseversion>
   </library>
   <library>

@@ -22,6 +22,7 @@ defined('MOODLE_INTERNAL') || die();
  * Email failed event.
  *
  * @package    core
+ * @since      Moodle 2.7
  * @copyright  2013 Mark Nelson <markn@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -69,6 +70,7 @@ class email_failed extends base {
      * @throws \coding_exception
      */
     protected function validate_data() {
+        parent::validate_data();
         if (!isset($this->other['subject'])) {
             throw new \coding_exception('The subject needs to be set in $other');
         }

@@ -18,6 +18,7 @@
  * User login event.
  *
  * @package    core
+ * @since      Moodle 2.6
  * @copyright  2013 Frédéric Massart
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -106,11 +107,11 @@ class user_loggedin extends \core\event\base {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if (!isset($this->data['objectid'])) {
             throw new \coding_exception("objectid has to be specified.");
         } else if (!isset($this->data['other']['username'])) {
             throw new \coding_exception("other['username'] has to be specified.");
         }
     }
-
 }

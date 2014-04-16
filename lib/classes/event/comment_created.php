@@ -38,6 +38,7 @@ defined('MOODLE_INTERNAL') || die();
  * }
  *
  * @package    core
+ * @since      Moodle 2.7
  * @copyright  2013 Rajesh Taneja <rajesh@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -94,6 +95,7 @@ abstract class comment_created extends \core\event\base {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if (!isset($this->other['itemid'])) {
             throw new \coding_exception('The itemid needs to be set in $other');
         }

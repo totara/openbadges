@@ -29,6 +29,7 @@ defined('MOODLE_INTERNAL') || die();
  * mod_wiki page viewed event class.
  *
  * @package    mod_wiki
+ * @since      Moodle 2.7
  * @copyright  2013 Rajesh Taneja <rajesh@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -87,7 +88,7 @@ class page_viewed extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        if (!empty($this->data->other['wid'])) {
+        if (!empty($this->data['other']['wid'])) {
             return new \moodle_url('/mod/wiki/view.php', array('wid' => $this->data['other']['wid'],
                     'title' => $this->data['other']['title'],
                     'uid' => $this->relateduserid,

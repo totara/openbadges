@@ -24,6 +24,7 @@
  * }
  *
  * @package    mod_data
+ * @since      Moodle 2.7
  * @copyright  2014 Mark Nelson <markn@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -70,6 +71,15 @@ class template_updated extends \core\event\base {
     public function get_legacy_logdata() {
         return array($this->courseid, 'data', 'templates saved', 'templates.php?id=' . $this->contextinstanceid .
             '&amp;d=' . $this->other['dataid'], $this->other['dataid'], $this->contextinstanceid);
+    }
+
+    /**
+     * Get URL related to the action.
+     *
+     * @return \moodle_url
+     */
+    public function get_url() {
+        return new \moodle_url('/mod/data/templates.php', array('d' => $this->other['dataid']));
     }
 
     /**

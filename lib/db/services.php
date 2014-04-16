@@ -99,6 +99,23 @@ $functions = array(
         'type'        => 'read',
         'capabilities'=> 'moodle/cohort:view',
     ),
+    // Grade related functions.
+
+    'core_grades_get_grades' => array(
+        'classname'     => 'core_grades_external',
+        'methodname'    => 'get_grades',
+        'description'   => 'Returns grade item details and optionally student grades.',
+        'type'          => 'read',
+        'capabilities'  => 'moodle/grade:view, moodle/grade:viewall',
+    ),
+
+    'core_grades_update_grades' => array(
+        'classname'     => 'core_grades_external',
+        'methodname'    => 'update_grades',
+        'description'   => 'Update a grade item and associated student grades.',
+        'type'          => 'write',
+        'capabilities'  => '',
+    ),
 
     // === group related functions ===
 
@@ -926,7 +943,9 @@ $services = array(
             'mod_assign_submit_for_grading',
             'mod_assign_save_grade',
             'mod_assign_save_user_extensions',
-            'mod_assign_reveal_identities'),
+            'mod_assign_reveal_identities',
+            'message_airnotifier_is_system_configured',
+            'message_airnotifier_are_notification_preferences_configured'),
         'enabled' => 0,
         'restrictedusers' => 0,
         'shortname' => MOODLE_OFFICIAL_MOBILE_SERVICE,

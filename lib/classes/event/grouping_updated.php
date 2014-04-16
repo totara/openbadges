@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * core_group grouping updated event.
+ * Grouping updated event.
  *
- * @package    core_group
+ * @package    core
  * @copyright  2013 Frédéric Massart
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -26,9 +26,10 @@ namespace core\event;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * core_group grouping updated event class.
+ * Grouping updated event class.
  *
- * @package    core_group
+ * @package    core
+ * @since      Moodle 2.6
  * @copyright  2013 Frédéric Massart
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -76,7 +77,7 @@ class grouping_updated extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/group/groupings/index.php', array('id' => $this->courseid));
+        return new \moodle_url('/group/grouping.php', array('id' => $this->objectid));
     }
 
     /**

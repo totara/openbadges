@@ -33,8 +33,12 @@ define('ASSIGN_SUBMISSION_STATUS_SUBMITTED', 'submitted');
 
 // Search filters for grading page.
 define('ASSIGN_FILTER_SUBMITTED', 'submitted');
+define('ASSIGN_FILTER_NOT_SUBMITTED', 'notsubmitted');
 define('ASSIGN_FILTER_SINGLE_USER', 'singleuser');
 define('ASSIGN_FILTER_REQUIRE_GRADING', 'require_grading');
+
+// Marker filter for grading page.
+define('ASSIGN_MARKER_FILTER_NO_MARKER', -1);
 
 // Reopen attempt methods.
 define('ASSIGN_ATTEMPT_REOPEN_METHOD_NONE', 'none');
@@ -3044,6 +3048,7 @@ class assign {
         if ($markingallocation) {
             $markers = get_users_by_capability($this->context, 'mod/assign:grade');
             $markingallocationoptions[''] = get_string('filternone', 'assign');
+            $markingallocationoptions[ASSIGN_MARKER_FILTER_NO_MARKER] = get_string('markerfilternomarker', 'assign');
             foreach ($markers as $marker) {
                 $markingallocationoptions[$marker->id] = fullname($marker);
             }
@@ -3231,9 +3236,9 @@ class assign {
      * @param stdClass $user The user record as required by fullname()
      * @return string The name.
      */
-    protected function fullname($user) {
+    public function fullname($user) {
         if ($this->is_blind_marking()) {
-            $uniqueid = $this->get_uniqueid_for_user($userid);
+            $uniqueid = $this->get_uniqueid_for_user($user->id);
             return get_string('participant', 'assign') . ' ' . $uniqueid;
         } else {
             return fullname($user);
@@ -4066,7 +4071,9 @@ class assign {
      * @return bool
      */
     protected function gradebook_item_update($submission=null, $grade=null) {
+        global $CFG;
 
+        require_once($CFG->dirroot.'/mod/assign/lib.php');
         // Do not push grade to gradebook if blind marking is active as
         // the gradebook would reveal the students.
         if ($this->is_blind_marking()) {
@@ -4181,7 +4188,6 @@ class assign {
         return $result;
     }
 
-
     /**
      * Update grades in the gradebook based on submission time.
      *
@@ -4217,9 +4223,17 @@ class assign {
      * is the assignment locked?
      *
      * @param int $userid - Optional userid so we can see if a different user can submit
+     * @param bool $skipenrolled - Skip enrollment checks (because they have been done already)
+     * @param stdClass $submission - Pre-fetched submission record (or false to fetch it)
+     * @param stdClass $flags - Pre-fetched user flags record (or false to fetch it)
+     * @param stdClass $gradinginfo - Pre-fetched user gradinginfo record (or false to fetch it)
      * @return bool
      */
-    public function submissions_open($userid = 0) {
+    public function submissions_open($userid = 0,
+                                     $skipenrolled = false,
+                                     $submission = false,
+                                     $flags = false,
+                                     $gradinginfo = false) {
         global $USER;
 
         if (!$userid) {
@@ -4233,7 +4247,9 @@ class assign {
             $finaldate = $this->get_instance()->cutoffdate;
         }
 
-        $flags = $this->get_user_flags($userid, false);
+        if ($flags === false) {
+            $flags = $this->get_user_flags($userid, false);
+        }
         if ($flags && $flags->locked) {
             return false;
         }
@@ -4259,14 +4275,16 @@ class assign {
         }
 
         // Now check if this user has already submitted etc.
-        if (!is_enrolled($this->get_course_context(), $userid)) {
+        if (!$skipenrolled && !is_enrolled($this->get_course_context(), $userid)) {
             return false;
         }
-        $submission = false;
-        if ($this->get_instance()->teamsubmission) {
-            $submission = $this->get_group_submission($userid, 0, false);
-        } else {
-            $submission = $this->get_user_submission($userid, false);
+        // Note you can pass null for submission and it will not be fetched.
+        if ($submission === false) {
+            if ($this->get_instance()->teamsubmission) {
+                $submission = $this->get_group_submission($userid, 0, false);
+            } else {
+                $submission = $this->get_user_submission($userid, false);
+            }
         }
         if ($submission) {
 
@@ -4277,11 +4295,13 @@ class assign {
         }
 
         // See if this user grade is locked in the gradebook.
-        $gradinginfo = grade_get_grades($this->get_course()->id,
-                                        'mod',
-                                        'assign',
-                                        $this->get_instance()->id,
-                                        array($userid));
+        if ($gradinginfo === false) {
+            $gradinginfo = grade_get_grades($this->get_course()->id,
+                                            'mod',
+                                            'assign',
+                                            $this->get_instance()->id,
+                                            array($userid));
+        }
         if ($gradinginfo &&
                 isset($gradinginfo->items[0]->grades[$userid]) &&
                 $gradinginfo->items[0]->grades[$userid]->locked) {
@@ -5233,6 +5253,7 @@ class assign {
         $markingallocationoptions = array();
         if ($markingallocation) {
             $markingallocationoptions[''] = get_string('filternone', 'assign');
+            $markingallocationoptions[ASSIGN_MARKER_FILTER_NO_MARKER] = get_string('markerfilternomarker', 'assign');
             $markers = get_users_by_capability($this->context, 'mod/assign:grade');
             foreach ($markers as $marker) {
                 $markingallocationoptions[$marker->id] = fullname($marker);
@@ -6745,31 +6766,40 @@ class assign {
         }
 
         if ($this->get_instance()->teamsubmission) {
-            $submission = $this->get_group_submission($userid, 0, false);
+            $oldsubmission = $this->get_group_submission($userid, 0, false);
         } else {
-            $submission = $this->get_user_submission($userid, false);
+            $oldsubmission = $this->get_user_submission($userid, false);
         }
 
-        if (!$submission) {
+        if (!$oldsubmission) {
             return false;
         }
 
         // No more than max attempts allowed.
         if ($this->get_instance()->maxattempts != ASSIGN_UNLIMITED_ATTEMPTS &&
-            $submission->attemptnumber >= ($this->get_instance()->maxattempts - 1)) {
+            $oldsubmission->attemptnumber >= ($this->get_instance()->maxattempts - 1)) {
             return false;
         }
 
         // Create the new submission record for the group/user.
         if ($this->get_instance()->teamsubmission) {
-            $submission = $this->get_group_submission($userid, 0, true, $submission->attemptnumber+1);
+            $newsubmission = $this->get_group_submission($userid, 0, true, $oldsubmission->attemptnumber + 1);
         } else {
-            $submission = $this->get_user_submission($userid, true, $submission->attemptnumber+1);
+            $newsubmission = $this->get_user_submission($userid, true, $oldsubmission->attemptnumber + 1);
         }
 
         // Set the status of the new attempt to reopened.
-        $submission->status = ASSIGN_SUBMISSION_STATUS_REOPENED;
-        $this->update_submission($submission, $userid, false, $this->get_instance()->teamsubmission);
+        $newsubmission->status = ASSIGN_SUBMISSION_STATUS_REOPENED;
+
+        // Give each submission plugin a chance to process the add_attempt.
+        $plugins = $this->get_submission_plugins();
+        foreach ($plugins as $plugin) {
+            if ($plugin->is_enabled() && $plugin->is_visible()) {
+                $plugin->add_attempt($oldsubmission, $newsubmission);
+            }
+        }
+
+        $this->update_submission($newsubmission, $userid, false, $this->get_instance()->teamsubmission);
         return true;
     }
 

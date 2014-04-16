@@ -18,6 +18,7 @@
  * Message contact added event class.
  *
  * @package    core
+ * @since      Moodle 2.7
  * @copyright  2014 Mark Nelson <markn@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -51,7 +52,7 @@ class message_contact_added extends base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('message/index.php', array('user1' => $this->relateduserid, 'user2' => $this->userid));
+        return new \moodle_url('/message/index.php', array('user1' => $this->userid, 'user2' => $this->relateduserid));
     }
 
     /**

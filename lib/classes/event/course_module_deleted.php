@@ -38,6 +38,7 @@ defined('MOODLE_INTERNAL') || die();
  * }
  *
  * @package    core
+ * @since      Moodle 2.6
  * @copyright  2013 Ankit Agarwal
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later.
  */
@@ -110,6 +111,7 @@ class course_module_deleted extends base {
      * Throw \coding_exception notice in case of any problems.
      */
     protected function validate_data() {
+        parent::validate_data();
         if (!isset($this->other['modulename'])) {
             throw new \coding_exception("Field other['modulename'] cannot be empty");
         }

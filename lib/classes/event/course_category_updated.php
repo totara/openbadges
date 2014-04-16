@@ -22,6 +22,7 @@ defined('MOODLE_INTERNAL') || die();
  * Course category updated event.
  *
  * @package    core
+ * @since      Moodle 2.7
  * @copyright  2014 Mark Nelson <markn@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -46,6 +47,15 @@ class course_category_updated extends base {
      */
     public static function get_name() {
         return get_string('eventcoursecategoryupdated');
+    }
+
+    /**
+     * Returns relevant URL.
+     *
+     * @return \moodle_url
+     */
+    public function get_url() {
+        return new \moodle_url('/course/editcategory.php', array('id' => $this->objectid));
     }
 
     /**

@@ -24,6 +24,7 @@
  * }
  *
  * @package    mod_data
+ * @since      Moodle 2.7
  * @copyright  2014 Mark Nelson <markn@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -61,6 +62,15 @@ class template_viewed extends \core\event\base {
     public function get_description() {
         return 'The template for the database activity with the id ' . $this->other['dataid'] . ' was viewed by the ' .
             'user with the id ' . $this->userid;
+    }
+
+    /**
+     * Get URL related to the action.
+     *
+     * @return \moodle_url
+     */
+    public function get_url() {
+        return new \moodle_url('/mod/data/templates.php', array('d' => $this->other['dataid']));
     }
 
     /**

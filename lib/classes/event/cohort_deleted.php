@@ -29,6 +29,7 @@ defined('MOODLE_INTERNAL') || die();
  * Cohort deleted event class.
  *
  * @package    core
+ * @since      Moodle 2.6
  * @copyright  2013 Dan Poltawski <dan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -51,7 +52,7 @@ class cohort_deleted extends base {
      * @return string
      */
     public static function get_name() {
-        return get_string('event_core_deleted', 'core_cohort');
+        return get_string('event_cohort_deleted', 'core_cohort');
     }
 
     /**

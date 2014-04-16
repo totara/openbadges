@@ -30,6 +30,7 @@ defined('MOODLE_INTERNAL') || die();
  * mod_assign extension granted event class.
  *
  * @package    mod_assign
+ * @since      Moodle 2.6
  * @copyright  2013 Frédéric Massart
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -92,7 +93,7 @@ class extension_granted extends \core\event\base {
     /**
      * Sets the legacy event log data.
      *
-     * @param stdClass $legacylogdata legacy log data.
+     * @param \stdClass $legacylogdata legacy log data.
      * @return void
      */
     public function set_legacy_logdata($legacylogdata) {
@@ -106,6 +107,7 @@ class extension_granted extends \core\event\base {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if (!isset($this->relateduserid)) {
             throw new \coding_exception('relateduserid is a mandatory property.');
         }

@@ -39,6 +39,7 @@ defined('MOODLE_INTERNAL') || die();
  * }
  *
  * @package    core
+ * @since      Moodle 2.7
  * @copyright  2013 onwards Ankit Agarwal
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -78,7 +79,7 @@ class blog_association_created extends \core\event\base {
      * @return \moodle_url
      */
     public function get_url() {
-        return new \moodle_url('/blog/index.php', array('entryid' => $this->objectid, 'userid' => $this->userid));
+        return new \moodle_url('/blog/index.php', array('entryid' => $this->other['blogid']));
     }
 
     /**
@@ -103,6 +104,7 @@ class blog_association_created extends \core\event\base {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if (empty($this->other['associatetype']) || ($this->other['associatetype'] !== 'course'
                 && $this->other['associatetype'] !== 'coursemodule')) {
             throw new \coding_exception('Invalid associatetype in event blog_association_created.');

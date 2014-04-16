@@ -44,6 +44,7 @@ defined('MOODLE_INTERNAL') || die();
  * }
  *
  * @package    core
+ * @since      Moodle 2.6
  * @copyright  2013 Frédéric Massart
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -66,6 +67,7 @@ abstract class assessable_uploaded extends \core\event\base {
      * @return void
      */
     protected function validate_data() {
+        parent::validate_data();
         if ($this->contextlevel != CONTEXT_MODULE) {
             throw new \coding_exception('Context passed must be module context.');
         } else if (!isset($this->other['pathnamehashes']) || !is_array($this->other['pathnamehashes'])) {

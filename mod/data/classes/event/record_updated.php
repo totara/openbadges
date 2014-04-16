@@ -24,6 +24,7 @@
  * }
  *
  * @package    mod_data
+ * @since      Moodle 2.7
  * @copyright  2014 Mark Nelson <markn@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -42,7 +43,7 @@ class record_updated extends \core\event\base {
     protected function init() {
         $this->data['objecttable'] = 'data_records';
         $this->data['crud'] = 'u';
-        $this->data['edulevel'] = self::LEVEL_TEACHING;
+        $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
     }
 
     /**
@@ -62,6 +63,15 @@ class record_updated extends \core\event\base {
     public function get_description() {
         return 'The data record ' . $this->objectid . ' belonging to the database activity ' . $this->other['dataid'] .
             ' was updated by the user ' . $this->userid;
+    }
+
+    /**
+     * Get URL related to the action.
+     *
+     * @return \moodle_url
+     */
+    public function get_url() {
+        return new \moodle_url('/mod/data/view.php', array('d' => $this->other['dataid'], 'rid' => $this->objectid));
     }
 
     /**
