@@ -80,6 +80,11 @@ $output = $PAGE->get_renderer('core', 'badges');
 
 $badge = new external_badge($badge, $userid);
 
+if (isloggedin()) {
+    $url = new moodle_url('/badges/mybadges.php');
+    navigation_node::override_active_url($url);
+}
+
 $PAGE->set_pagelayout('base');
 $PAGE->set_title(get_string('issuedbadge', 'badges'));
 

@@ -1856,32 +1856,6 @@ a.criteria-action {
     padding: 0px 3px;
     float: right;
 }
-table.issuedbadgebox {
-    width: 750px;
-    background-color: @wellBackground;
-}
-table.badgeissuedimage {
-    width: 150px;
-    text-align: center;
-}
-table.badgeissuedinfo {
-    width: 600px;
-}
-table.badgeissuedinfo .bvalue {
-    text-align: left;
-    vertical-align: middle;
-}
-table.badgeissuedinfo .bfield {
-    width: 125px;
-    text-align: left;
-    font-style: italic;
-}
-.dir-rtl {
-    table.badgeissuedinfo .bvalue,
-    table.badgeissuedinfo .bfield {
-        text-align: right;
-    }
-}
 ul.badges {
     margin: 0;
     list-style: none;
@@ -1902,8 +1876,8 @@ ul.badges {
     position: absolute;
 }
 .badges li .badge-image {
-    width: 90px;
-    height: 90px;
+    width: 100px;
+    height: 100px;
     left: 10px;
     top: 0px;
     z-index: 1;
@@ -1911,23 +1885,37 @@ ul.badges {
 .badges li .badge-actions {
     position: relative;
 }
-div.badge {
-    position: relative;
-    display: block;
-}
-div.badge .expireimage {
+.badges li .expireimage {
     width: 100px;
     height: 100px;
-    left: 20px;
-    top: 0px;
-}
-.expireimage {
-    .opacity(85);
-    width: 90px; height: 90px;
-    left: 30px;
+    left: 25px;
     top: 0px;
     position: absolute;
-    z-index:10;
+    z-index: 10;
+    opacity: 0.85;
+}
+div.badge {
+    background-color: transparent;
+    padding: 0;
+    position: relative;
+    display: block;
+
+    .expireimage {
+        width: 100px;
+        height: 100px;
+        left: 0px;
+        top: 0px;
+        .opacity(85);
+        position: absolute;
+        z-index:10;
+    }
+}
+.dir-rtl div.badge {
+    float: right;
+
+    .expireimage {
+        left: 41px;
+    }
 }
 .badge-profile {
     vertical-align: top;
@@ -1954,14 +1942,25 @@ div.badge .expireimage {
     width: 42%;
 }
 
-.statustable {
-    margin-bottom: 0px;
+#issued-badge-table .activatebadge {
+    display: inline-block;
 }
 .statusbox.active {
     background-color: @successBackground;
 }
 .statusbox.inactive {
     background-color: @warningBackground;
+}
+.statusbox {
+    text-align: center;
+    margin-bottom: 5px;
+    padding: 5px;
+}
+.statusbox .activatebadge {
+    display: inline-block;
+}
+.statusbox .activatebadge input[type=submit]{
+    margin: 3px;
 }
 .activatebadge {
     margin: 0px;
