@@ -59,11 +59,9 @@ M.gradereport_grader.scrollview = {
             node = Y.one('.topscroll');
         }
 
-        var _this = this;
         Y.on('domready', function () {
-            var width = Y.one(_this.SELECTORS.GRADETABLE).get('offsetWidth');
-            Y.one('.topscrollcontent').setStyle('width', width + 'px');
-        });
+            this.resize();
+        }, this);
 
         Y.one(src).on('scroll', function() {
             node.set('scrollLeft', Y.one(src).get('scrollLeft'));
@@ -73,6 +71,11 @@ M.gradereport_grader.scrollview = {
             Y.one(src).set('scrollLeft', node.get('scrollLeft'));
         });
 
+    },
+
+    resize: function() {
+        var width = Y.one(this.SELECTORS.GRADETABLE).get('offsetWidth');
+        Y.one('.topscrollcontent').setStyle('width', width + 'px');
     }
 };
 

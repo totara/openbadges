@@ -372,6 +372,11 @@ function quiz_delete_attempt($attempt, $quiz) {
         return;
     }
 
+    if (!isset($quiz->cmid)) {
+        $cm = get_coursemodule_from_instance('quiz', $quiz->id, $quiz->course);
+        $quiz->cmid = $cm->id;
+    }
+
     question_engine::delete_questions_usage_by_activity($attempt->uniqueid);
     $DB->delete_records('quiz_attempts', array('id' => $attempt->id));
 
@@ -1121,8 +1126,21 @@ function quiz_get_overdue_handling_options() {
 }
 
 /**
- * @param string $state one of the state constants like IN_PROGRESS.
- * @return string the human-readable state name.
+ * Get the choices for what size user picture to show.
+ * @return array string => lang string the options for whether to display the user's picture.
+ */
+function quiz_get_user_image_options() {
+    return array(
+        QUIZ_SHOWIMAGE_NONE  => get_string('shownoimage', 'quiz'),
+        QUIZ_SHOWIMAGE_SMALL => get_string('showsmallimage', 'quiz'),
+        QUIZ_SHOWIMAGE_LARGE => get_string('showlargeimage', 'quiz'),
+    );
+}
+
+/**
+ * Get the human-readable name for a quiz attempt state.
+ * @param string $state one of the state constants like {@link quiz_attempt::IN_PROGRESS}.
+ * @return string The lang string to describe that state.
  */
 function quiz_attempt_state_name($state) {
     switch ($state) {

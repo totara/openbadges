@@ -166,8 +166,23 @@ function quiz_delete_instance($id) {
     quiz_delete_all_attempts($quiz);
     quiz_delete_all_overrides($quiz);
 
+    // Look for random questions that may no longer be used when this quiz is gone.
+    $sql = "SELECT q.id
+              FROM {quiz_slots} slot
+              JOIN {question} q ON q.id = slot.questionid
+             WHERE slot.quizid = ? AND q.qtype = ?";
+    $questionids = $DB->get_fieldset_sql($sql, array($quiz->id, 'random'));
+
+    // We need to do this before we try and delete randoms, otherwise they would still be 'in use'.
     $DB->delete_records('quiz_slots', array('quizid' => $quiz->id));
+
+    foreach ($questionids as $questionid) {
+        question_delete_question($questionid);
+    }
+
     $DB->delete_records('quiz_feedback', array('quizid' => $quiz->id));
+
+    quiz_access_manager::delete_settings($quiz);
 
     $events = $DB->get_records('event', array('modulename' => 'quiz', 'instance' => $quiz->id));
     foreach ($events as $event) {
@@ -663,34 +678,6 @@ function quiz_update_grades($quiz, $userid = 0, $nullifnone = true) {
     } else {
         quiz_grade_item_update($quiz);
     }
-}
-
-/**
- * Update all grades in gradebook.
- */
-function quiz_upgrade_grades() {
-    global $DB;
-
-    $sql = "SELECT COUNT('x')
-              FROM {quiz} a, {course_modules} cm, {modules} m
-             WHERE m.name='quiz' AND m.id=cm.module AND cm.instance=a.id";
-    $count = $DB->count_records_sql($sql);
-
-    $sql = "SELECT a.*, cm.idnumber AS cmidnumber, a.course AS courseid
-              FROM {quiz} a, {course_modules} cm, {modules} m
-             WHERE m.name='quiz' AND m.id=cm.module AND cm.instance=a.id";
-    $rs = $DB->get_recordset_sql($sql);
-    if ($rs->valid()) {
-        $pbar = new progress_bar('quizupgradegrades', 500, true);
-        $i=0;
-        foreach ($rs as $quiz) {
-            $i++;
-            upgrade_set_timeout(60*5); // Set up timeout, may also abort execution.
-            quiz_update_grades($quiz, 0, false);
-            $pbar->update($i, $count, "Updating Quiz grades ($i/$count).");
-        }
-    }
-    $rs->close();
 }
 
 /**

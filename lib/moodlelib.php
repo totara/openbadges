@@ -2174,7 +2174,7 @@ function userdate($date, $format = '', $timezone = 99, $fixday = true, $fixhour 
  * @param string $format strftime format.
  * @param int|float $tz the numerical timezone, typically returned by {@link get_user_timezone_offset()}.
  * @return string the formatted date/time.
- * @since 2.3.3
+ * @since Moodle 2.3.3
  */
 function date_format_string($date, $format, $tz = 99) {
     global $CFG;
@@ -4138,9 +4138,9 @@ function truncate_userinfo(array $info) {
         'icq'         =>  15,
         'phone1'      =>  20,
         'phone2'      =>  20,
-        'institution' =>  40,
-        'department'  =>  30,
-        'address'     =>  70,
+        'institution' => 255,
+        'department'  => 255,
+        'address'     => 255,
         'city'        => 120,
         'country'     =>   2,
         'url'         => 255,
@@ -4283,6 +4283,7 @@ function delete_user(stdClass $user) {
     $event = \core\event\user_deleted::create(
             array(
                 'objectid' => $user->id,
+                'relateduserid' => $user->id,
                 'context' => $usercontext,
                 'other' => array(
                     'username' => $user->username,
@@ -4733,8 +4734,9 @@ function update_internal_user_password($user, $password) {
 
         // Trigger event.
         $event = \core\event\user_updated::create(array(
-             'objectid' => $user->id,
-             'context' => context_user::instance($user->id)
+            'objectid' => $user->id,
+            'relateduserid' => $user->id,
+            'context' => context_user::instance($user->id)
         ));
         $event->add_record_snapshot('user', $user);
         $event->trigger();
@@ -4932,6 +4934,11 @@ function delete_course($courseorid, $showfeedback = true) {
 
     $DB->delete_records("course", array("id" => $courseid));
     $DB->delete_records("course_format_options", array("courseid" => $courseid));
+
+    // Reset all course related caches here.
+    if (class_exists('format_base', false)) {
+        format_base::reset_course_cache($courseid);
+    }
 
     // Trigger a course deleted event.
     $event = \core\event\course_deleted::create(array(
@@ -5789,6 +5796,14 @@ function email_to_user($user, $from, $subject, $messagetext, $messagehtml = '', 
         $mail->Sender = $supportuser->email;
     }
 
+    if (!empty($CFG->emailonlyfromnoreplyaddress)) {
+        $usetrueaddress = false;
+        if (empty($replyto) && $from->maildisplay) {
+            $replyto = $from->email;
+            $replytoname = fullname($from);
+        }
+    }
+
     if (is_string($from)) { // So we can pass whatever we want if there is need.
         $mail->From     = $CFG->noreplyaddress;
         $mail->FromName = $from;
@@ -5967,6 +5982,7 @@ function setnew_password_and_mail($user, $fasthash = false) {
     // Trigger event.
     $event = \core\event\user_updated::create(array(
         'objectid' => $user->id,
+        'relateduserid' => $user->id,
         'context' => context_user::instance($user->id)
     ));
     $event->add_record_snapshot('user', $user);
@@ -7688,7 +7704,16 @@ function moodle_setlocale($locale='') {
  */
 function count_words($string) {
     $string = strip_tags($string);
-    return count(preg_split("/\w\b/", $string)) - 1;
+    // Decode HTML entities.
+    $string = html_entity_decode($string);
+    // Replace underscores (which are classed as word characters) with spaces.
+    $string = preg_replace('/_/u', ' ', $string);
+    // Remove any characters that shouldn't be treated as word boundaries.
+    $string = preg_replace('/[\'’-]/u', '', $string);
+    // Remove dots and commas from within numbers only.
+    $string = preg_replace('/([0-9])[.,]([0-9])/u', '$1$2', $string);
+
+    return count(preg_split('/\w\b/u', $string)) - 1;
 }
 
 /**

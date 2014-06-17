@@ -205,7 +205,14 @@ class stored_file {
      */
     public function rename($filepath, $filename) {
         if ($this->fs->file_exists($this->get_contextid(), $this->get_component(), $this->get_filearea(), $this->get_itemid(), $filepath, $filename)) {
-            throw new file_exception('storedfilenotcreated', '', 'file exists, cannot rename');
+            $a = new stdClass();
+            $a->contextid = $this->get_contextid();
+            $a->component = $this->get_component();
+            $a->filearea  = $this->get_filearea();
+            $a->itemid    = $this->get_itemid();
+            $a->filepath  = $filepath;
+            $a->filename  = $filename;
+            throw new file_exception('storedfilenotcreated', $a, 'file exists, cannot rename');
         }
         $filerecord = new stdClass;
         $filerecord->filepath = $filepath;
@@ -401,7 +408,13 @@ class stored_file {
     * @return void
     */
     public function add_to_curl_request(&$curlrequest, $key) {
-        $curlrequest->_tmp_file_post_params[$key] = '@' . $this->get_content_file_location();
+        if (function_exists('curl_file_create')) {
+            // As of PHP 5.5, the usage of the @filename API for file uploading is deprecated.
+            $value = curl_file_create($this->get_content_file_location());
+        } else {
+            $value = '@' . $this->get_content_file_location();
+        }
+        $curlrequest->_tmp_file_post_params[$key] = $value;
     }
 
     /**

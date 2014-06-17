@@ -1269,7 +1269,7 @@ function reload_all_capabilities() {
  * Useful for the "temporary guest" access we grant to logged-in users.
  * This is useful for enrol plugins only.
  *
- * @since 2.2
+ * @since Moodle 2.2
  * @param context_course $coursecontext
  * @param int $roleid
  * @return void
@@ -1309,7 +1309,7 @@ function load_temp_course_role(context_course $coursecontext, $roleid) {
  * Removes any extra guest roles from current USER->access array.
  * This is useful for enrol plugins only.
  *
- * @since 2.2
+ * @since Moodle 2.2
  * @param context_course $coursecontext
  * @return void
  */
@@ -1756,9 +1756,16 @@ function role_assign($roleid, $userid, $contextid, $component = '', $itemid = 0,
         reload_all_capabilities();
     }
 
-    $event = \core\event\role_assigned::create(
-        array('context'=>$context, 'objectid'=>$ra->roleid, 'relateduserid'=>$ra->userid,
-            'other'=>array('id'=>$ra->id, 'component'=>$ra->component, 'itemid'=>$ra->itemid)));
+    $event = \core\event\role_assigned::create(array(
+        'context' => $context,
+        'objectid' => $ra->roleid,
+        'relateduserid' => $ra->userid,
+        'other' => array(
+            'id' => $ra->id,
+            'component' => $ra->component,
+            'itemid' => $ra->itemid
+        )
+    ));
     $event->add_record_snapshot('role_assignments', $ra);
     $event->trigger();
 
@@ -1844,9 +1851,16 @@ function role_unassign_all(array $params, $subcontexts = false, $includemanual =
             if (!empty($USER->id) && $USER->id == $ra->userid) {
                 reload_all_capabilities();
             }
-            $event = \core\event\role_unassigned::create(
-                array('context'=>$context, 'objectid'=>$ra->roleid, 'relateduserid'=>$ra->userid,
-                    'other'=>array('id'=>$ra->id, 'component'=>$ra->component, 'itemid'=>$ra->itemid)));
+            $event = \core\event\role_unassigned::create(array(
+                'context' => $context,
+                'objectid' => $ra->roleid,
+                'relateduserid' => $ra->userid,
+                'other' => array(
+                    'id' => $ra->id,
+                    'component' => $ra->component,
+                    'itemid' => $ra->itemid
+                )
+            ));
             $event->add_record_snapshot('role_assignments', $ra);
             $event->trigger();
         }
@@ -4961,7 +4975,7 @@ function role_change_permission($roleid, $context, $capname, $permission) {
  * @category  access
  * @copyright Petr Skoda {@link http://skodak.org}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @since     2.2
+ * @since     Moodle 2.2
  *
  * @property-read int $id context id
  * @property-read int $contextlevel CONTEXT_SYSTEM, CONTEXT_COURSE, etc.
@@ -5652,7 +5666,7 @@ abstract class context extends stdClass implements IteratorAggregate {
      * Is this context part of any course? If yes return course context.
      *
      * @param bool $strict true means throw exception if not found, false means return false if not found
-     * @return course_context context of the enclosing course, null if not found or exception
+     * @return context_course context of the enclosing course, null if not found or exception
      */
     public function get_course_context($strict = true) {
         if ($strict) {
@@ -5772,7 +5786,7 @@ abstract class context extends stdClass implements IteratorAggregate {
  * @category  access
  * @copyright Petr Skoda {@link http://skodak.org}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @since     2.2
+ * @since     Moodle 2.2
  */
 class context_helper extends context {
 
@@ -6048,7 +6062,7 @@ class context_helper extends context {
  * @category  access
  * @copyright Petr Skoda {@link http://skodak.org}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @since     2.2
+ * @since     Moodle 2.2
  */
 class context_system extends context {
     /**
@@ -6289,7 +6303,7 @@ class context_system extends context {
  * @category  access
  * @copyright Petr Skoda {@link http://skodak.org}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @since     2.2
+ * @since     Moodle 2.2
  */
 class context_user extends context {
     /**
@@ -6473,7 +6487,7 @@ class context_user extends context {
  * @category  access
  * @copyright Petr Skoda {@link http://skodak.org}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @since     2.2
+ * @since     Moodle 2.2
  */
 class context_coursecat extends context {
     /**
@@ -6702,7 +6716,7 @@ class context_coursecat extends context {
  * @category  access
  * @copyright Petr Skoda {@link http://skodak.org}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @since     2.2
+ * @since     Moodle 2.2
  */
 class context_course extends context {
     /**
@@ -6791,7 +6805,7 @@ class context_course extends context {
      * Is this context part of any course? If yes return course context.
      *
      * @param bool $strict true means throw exception if not found, false means return false if not found
-     * @return course_context context of the enclosing course, null if not found or exception
+     * @return context_course context of the enclosing course, null if not found or exception
      */
     public function get_course_context($strict = true) {
         return $this;
@@ -6921,7 +6935,7 @@ class context_course extends context {
  * @category  access
  * @copyright Petr Skoda {@link http://skodak.org}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @since     2.2
+ * @since     Moodle 2.2
  */
 class context_module extends context {
     /**
@@ -7160,7 +7174,7 @@ class context_module extends context {
  * @category  access
  * @copyright Petr Skoda {@link http://skodak.org}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @since     2.2
+ * @since     Moodle 2.2
  */
 class context_block extends context {
     /**
@@ -7257,7 +7271,7 @@ class context_block extends context {
      * Is this context part of any course? If yes return course context.
      *
      * @param bool $strict true means throw exception if not found, false means return false if not found
-     * @return course_context context of the enclosing course, null if not found or exception
+     * @return context_course context of the enclosing course, null if not found or exception
      */
     public function get_course_context($strict = true) {
         $parentcontext = $this->get_parent_context();

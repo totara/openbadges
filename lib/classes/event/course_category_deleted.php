@@ -14,17 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+/**
+ * Category deleted event.
+ *
+ * @package    core
+ * @copyright  2013 Mark Nelson <markn@moodle.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 namespace core\event;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Category deleted event.
+ * Category deleted event class.
  *
  * @property-read array $other {
  *      Extra information about event.
  *
- *      @type string name category name.
+ *      - string name: category name.
  * }
  *
  * @package    core
@@ -63,7 +71,7 @@ class course_category_deleted extends base {
      * @return string
      */
     public function get_description() {
-        return "Category {$this->objectid} was deleted by user {$this->userid}";
+        return "The user with id '$this->userid' deleted the course category with id '$this->objectid'.";
     }
 
     /**
@@ -78,7 +86,7 @@ class course_category_deleted extends base {
     /**
      * Returns the legacy event data.
      *
-     * @return coursecat the category that was deleted
+     * @return \coursecat the category that was deleted
      */
     protected function get_legacy_eventdata() {
         return $this->coursecat;
@@ -96,6 +104,7 @@ class course_category_deleted extends base {
     /**
      * Returns deleted coursecat for event observers.
      *
+     * @throws \coding_exception
      * @return \coursecat
      */
     public function get_coursecat() {

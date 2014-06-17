@@ -4,6 +4,17 @@ Feature: edit_availability
   As a teacher
   I need to set up availability options for activities and sections
 
+  # PURPOSE OF THIS TEST FEATURE:
+  #
+  # This test covers the user interface around editing availability conditions,
+  # especially the JavaScript code which is not tested elsewhere (e.g. does the
+  # 'Add restriction' dialog work). It tests both forms and also the admin
+  # setting interface.
+  #
+  # This test does not check the detailed behaviour of the availability system,
+  # which is mainly covered in PHPUnit (and, from the user interface
+  # perspective, in the other Behat tests for each type of condition).
+
   Background:
     Given the following "courses" exist:
       | fullname | shortname | format |
@@ -122,6 +133,22 @@ Feature: edit_availability
     # Now delete one of the dates and check the connector goes away.
     When I click on ".availability-item .availability-delete img" "css_element"
     Then I should not see "or" in the "Restrict access" "fieldset"
+
+    # Add a nested restriction set with two dates so there will be inner connector.
+    When I click on "Add restriction..." "button"
+    And I click on "Restriction set" "button" in the "Add restriction..." "dialogue"
+    And I click on "Add restriction..." "button" in the ".availability-children .availability-list" "css_element"
+    And I click on "Date" "button" in the "Add restriction..." "dialogue"
+    And I click on "Add restriction..." "button" in the ".availability-children .availability-list" "css_element"
+    And I click on "Date" "button" in the "Add restriction..." "dialogue"
+    Then I should see "and" in the ".availability-children .availability-list .availability-connector" "css_element"
+
+    # Check changing the outer one does not affect the inner one.
+    When I set the field "Required restrictions" to "all"
+    Then I should not see "or" in the "Restrict access" "fieldset"
+    When I set the field "Required restrictions" to "any"
+    Then I should see "or" in the "Restrict access" "fieldset"
+    And I should not see "or" in the ".availability-children .availability-list .availability-connector" "css_element"
 
   @javascript
   Scenario: Edit availability using settings in section form

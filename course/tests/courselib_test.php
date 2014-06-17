@@ -144,7 +144,8 @@ class core_course_courselib_testcase extends advanced_testcase {
         // The goal not being to fully test assign_add_instance() we'll stop here for the assign tests - to avoid too many DB queries.
 
         // Advanced grading.
-        $contextmodule = context_module::instance($dbmodinstance->id);
+        $cm = get_coursemodule_from_instance('assign', $dbmodinstance->id);
+        $contextmodule = context_module::instance($cm->id);
         $advancedgradingmethod = $DB->get_record('grading_areas',
             array('contextid' => $contextmodule->id,
                 'activemethod' => $moduleinfo->advancedgradingmethod_submissions));
@@ -955,12 +956,40 @@ class core_course_courselib_testcase extends advanced_testcase {
         }
     }
 
+    public function test_section_visibility_events() {
+        $this->setAdminUser();
+        $this->resetAfterTest(true);
+
+        $course = $this->getDataGenerator()->create_course(array('numsections' => 1), array('createsections' => true));
+        $sectionnumber = 1;
+        $forum = $this->getDataGenerator()->create_module('forum', array('course' => $course->id),
+            array('section' => $sectionnumber));
+        $assign = $this->getDataGenerator()->create_module('assign', array('duedate' => time(),
+            'course' => $course->id), array('section' => $sectionnumber));
+        $sink = $this->redirectEvents();
+        set_section_visible($course->id, $sectionnumber, 0);
+        $events = $sink->get_events();
+
+        // Extract the number of events related to what we are testing, other events
+        // such as course_section_updated could have been triggered.
+        $count = 0;
+        foreach ($events as $event) {
+            if ($event instanceof \core\event\course_module_updated) {
+                $count++;
+            }
+        }
+        $this->assertSame(2, $count);
+        $sink->close();
+    }
+
     public function test_section_visibility() {
         $this->setAdminUser();
         $this->resetAfterTest(true);
 
         // Create course.
         $course = $this->getDataGenerator()->create_course(array('numsections' => 3), array('createsections' => true));
+
+        $sink = $this->redirectEvents();
 
         // Testing an empty section.
         $sectionnumber = 1;
@@ -970,6 +999,11 @@ class core_course_courselib_testcase extends advanced_testcase {
         set_section_visible($course->id, $sectionnumber, 1);
         $section_info = get_fast_modinfo($course->id)->get_section_info($sectionnumber);
         $this->assertEquals($section_info->visible, 1);
+
+        // Checking that an event was fired.
+        $events = $sink->get_events();
+        $this->assertInstanceOf('\core\event\course_section_updated', $events[0]);
+        $sink->close();
 
         // Testing a section with visible modules.
         $sectionnumber = 2;
@@ -1759,7 +1793,10 @@ class core_course_courselib_testcase extends advanced_testcase {
                 array(
                     'objectid' => $section->id,
                     'courseid' => $course->id,
-                    'context' => context_course::instance($course->id)
+                    'context' => context_course::instance($course->id),
+                    'other' => array(
+                        'sectionnum' => $section->section
+                    )
                 )
             );
         $event->add_record_snapshot('course_sections', $section);
@@ -1776,7 +1813,8 @@ class core_course_courselib_testcase extends advanced_testcase {
         $this->assertEquals($section->id, $event->objectid);
         $this->assertEquals($course->id, $event->courseid);
         $this->assertEquals($coursecontext->id, $event->contextid);
-        $expecteddesc = 'Course ' . $event->courseid . ' section ' . $event->other['sectionnum'] . ' updated by user ' . $event->userid;
+        $this->assertEquals($section->section, $event->other['sectionnum']);
+        $expecteddesc = "The user with id '{$event->userid}' updated section number '{$event->other['sectionnum']}' for the course with id '{$event->courseid}'";
         $this->assertEquals($expecteddesc, $event->get_description());
         $url = new moodle_url('/course/editsection.php', array('id' => $event->objectid));
         $this->assertEquals($url, $event->get_url());
@@ -1977,7 +2015,7 @@ class core_course_courselib_testcase extends advanced_testcase {
             $this->fail("Event validation should not allow \\core\\event\\course_module_created to be triggered without
                     other['instanceid']");
         } catch (coding_exception $e) {
-            $this->assertContains("Field other['instanceid'] cannot be empty", $e->getMessage());
+            $this->assertContains("The 'instanceid' value must be set in other.", $e->getMessage());
         }
 
         // Test not setting modulename.
@@ -1994,7 +2032,7 @@ class core_course_courselib_testcase extends advanced_testcase {
             $this->fail("Event validation should not allow \\core\\event\\course_module_created to be triggered without
                     other['modulename']");
         } catch (coding_exception $e) {
-            $this->assertContains("Field other['modulename'] cannot be empty", $e->getMessage());
+            $this->assertContains("The 'modulename' value must be set in other.", $e->getMessage());
         }
 
         // Test not setting name.
@@ -2012,7 +2050,7 @@ class core_course_courselib_testcase extends advanced_testcase {
             $this->fail("Event validation should not allow \\core\\event\\course_module_created to be triggered without
                     other['name']");
         } catch (coding_exception $e) {
-            $this->assertContains("Field other['name'] cannot be empty", $e->getMessage());
+            $this->assertContains("The 'name' value must be set in other.", $e->getMessage());
         }
 
     }
@@ -2061,6 +2099,50 @@ class core_course_courselib_testcase extends advanced_testcase {
     }
 
     /**
+     * Tests for create_from_cm method.
+     */
+    public function test_course_module_create_from_cm() {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        // Create course and modules.
+        $course = $this->getDataGenerator()->create_course(array('numsections' => 5));
+
+        // Generate an assignment.
+        $assign = $this->getDataGenerator()->create_module('assign', array('course' => $course->id));
+
+        // Get the module context.
+        $modcontext = context_module::instance($assign->cmid);
+
+        // Get course module.
+        $cm = get_coursemodule_from_id(null, $assign->cmid, $course->id, false, MUST_EXIST);
+
+        // Create an event from course module.
+        $event = \core\event\course_module_updated::create_from_cm($cm, $modcontext);
+
+        // Trigger the events.
+        $sink = $this->redirectEvents();
+        $event->trigger();
+        $events = $sink->get_events();
+        $event2 = array_pop($events);
+
+        // Test event data.
+        $this->assertInstanceOf('\core\event\course_module_updated', $event);
+        $this->assertEquals($cm->id, $event2->objectid);
+        $this->assertEquals($modcontext, $event2->get_context());
+        $this->assertEquals($cm->modname, $event2->other['modulename']);
+        $this->assertEquals($cm->instance, $event2->other['instanceid']);
+        $this->assertEquals($cm->name, $event2->other['name']);
+        $this->assertEventContextNotUsed($event2);
+        $this->assertSame('mod_updated', $event2->get_legacy_eventname());
+        $arr = array(
+            array($cm->course, "course", "update mod", "../mod/assign/view.php?id=$cm->id", "assign $cm->instance"),
+            array($cm->course, "assign", "update", "view.php?id=$cm->id", $cm->instance, $cm->id)
+        );
+        $this->assertEventLegacyLogData($arr, $event);
+    }
+
+    /**
      * Tests for event validations related to course module update.
      */
     public function test_course_module_updated_event_exceptions() {
@@ -2085,7 +2167,7 @@ class core_course_courselib_testcase extends advanced_testcase {
             $this->fail("Event validation should not allow \\core\\event\\course_module_updated to be triggered without
                     other['instanceid']");
         } catch (coding_exception $e) {
-            $this->assertContains("Field other['instanceid'] cannot be empty", $e->getMessage());
+            $this->assertContains("The 'instanceid' value must be set in other.", $e->getMessage());
         }
 
         // Test not setting modulename.
@@ -2102,7 +2184,7 @@ class core_course_courselib_testcase extends advanced_testcase {
             $this->fail("Event validation should not allow \\core\\event\\course_module_updated to be triggered without
                     other['modulename']");
         } catch (coding_exception $e) {
-            $this->assertContains("Field other['modulename'] cannot be empty", $e->getMessage());
+            $this->assertContains("The 'modulename' value must be set in other.", $e->getMessage());
         }
 
         // Test not setting name.
@@ -2120,7 +2202,7 @@ class core_course_courselib_testcase extends advanced_testcase {
             $this->fail("Event validation should not allow \\core\\event\\course_module_updated to be triggered without
                     other['name']");
         } catch (coding_exception $e) {
-            $this->assertContains("Field other['name'] cannot be empty", $e->getMessage());
+            $this->assertContains("The 'name' value must be set in other.", $e->getMessage());
         }
 
     }
@@ -2188,7 +2270,7 @@ class core_course_courselib_testcase extends advanced_testcase {
             $this->fail("Event validation should not allow \\core\\event\\course_module_deleted to be triggered without
                     other['instanceid']");
         } catch (coding_exception $e) {
-            $this->assertContains("Field other['instanceid'] cannot be empty", $e->getMessage());
+            $this->assertContains("The 'instanceid' value must be set in other.", $e->getMessage());
         }
 
         // Test not setting modulename.
@@ -2205,7 +2287,7 @@ class core_course_courselib_testcase extends advanced_testcase {
             $this->fail("Event validation should not allow \\core\\event\\course_module_deleted to be triggered without
                     other['modulename']");
         } catch (coding_exception $e) {
-            $this->assertContains("Field other['modulename'] cannot be empty", $e->getMessage());
+            $this->assertContains("The 'modulename' value must be set in other.", $e->getMessage());
         }
     }
 
@@ -2387,8 +2469,6 @@ class core_course_courselib_testcase extends advanced_testcase {
         $this->assertEquals(null, $event->objectid);
         $this->assertEquals($course->id, $event->courseid);
         $this->assertEquals($coursecontext->id, $event->contextid);
-        $expecteddesc = "User with id '$event->userid' viewed list of resources in course with id '$event->courseid'";
-        $this->assertEquals($expecteddesc, $event->get_description());
         $expectedlegacydata = array(
             array($course->id, "book", "view all", 'index.php?id=' . $course->id, ''),
             array($course->id, "page", "view all", 'index.php?id=' . $course->id, ''),

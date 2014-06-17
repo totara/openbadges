@@ -14,17 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+/**
+ * Course content deleted event.
+ *
+ * @package    core
+ * @copyright  2013 Mark Nelson <markn@moodle.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 namespace core\event;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Course content_deleted event.
+ * Course content deleted event class.
  *
  * @property-read array $other {
  *      Extra information about event.
  *
- *      @type array options list of options which were skipped while deleting course content.
+ *      - array options: list of options which were skipped while deleting course content.
  * }
  *
  * @package    core
@@ -58,7 +66,7 @@ class course_content_deleted extends base {
      * @return string
      */
     public function get_description() {
-        return "Course content was deleted by user {$this->userid}";
+        return "The user with id '$this->userid' deleted content from course with id '$this->courseid'.";
     }
 
     /**

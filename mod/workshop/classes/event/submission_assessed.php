@@ -15,10 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * mod_workshop submission_assessed event.
+ * The mod_workshop submission assessed event.
  *
  * @package    mod_workshop
- * @category   event
  * @copyright  2013 Adrian Greeve
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -27,18 +26,17 @@ namespace mod_workshop\event;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * mod_workshop submission_assessed event class.
+ * The mod_workshop submission assessed event class.
  *
  * @property-read array $other {
  *     Extra information about the event.
  *
- *     @type int workshopid Workshop ID.
- *     @type int submissionid Submission ID.
+ *     - int workshopid: Workshop ID.
+ *     - int submissionid: Submission ID.
  * }
  *
  * @package    mod_workshop
  * @since      Moodle 2.7
- * @category   event
  * @copyright  2013 Adrian Greeve
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -61,7 +59,8 @@ class submission_assessed extends \core\event\base {
      * @return string
      */
     public function get_description() {
-        return 'A submission has been assessed in the workshop ' . $this->other['workshopid'] . '.';
+        return "The user with id '$this->userid' assessed the submission with id '$this->objectid' for the user with " .
+            "id '$this->relateduserid' in the workshop with course module id '$this->contextinstanceid'.";
     }
 
     /**

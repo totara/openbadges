@@ -328,10 +328,39 @@ class report_log_table_log extends table_sql {
                 $sql = $DB->sql_like('action', ':action', false);
                 $params['action'] = '%'.$action.'%';
             }
-        } else {
+        } else if (!empty($this->filterparams->action)) {
             $sql = "crud = :crud";
             $params['crud'] = $this->filterparams->action;
+        } else {
+            // Add condition for all possible values of crud (to use db index).
+            list($sql, $params) = $DB->get_in_or_equal(array('c', 'r', 'u', 'd'),
+                    SQL_PARAMS_NAMED, 'crud');
+            $sql = "crud ".$sql;
         }
+        return array($sql, $params);
+    }
+
+    /**
+     * Helper function which is used by build logs to get course module sql and param.
+     *
+     * @return array sql and param for action.
+     */
+    public function get_cm_sql() {
+        $joins = array();
+        $params = array();
+
+        if ($this->filterparams->logreader instanceof logstore_legacy\log\store) {
+            // The legacy store doesn't support context level.
+            $joins[] = "cmid = :cmid";
+            $params['cmid'] = $this->filterparams->modid;
+        } else {
+            $joins[] = "contextinstanceid = :contextinstanceid";
+            $joins[] = "contextlevel = :contextmodule";
+            $params['contextinstanceid'] = $this->filterparams->modid;
+            $params['contextmodule'] = CONTEXT_MODULE;
+        }
+
+        $sql = implode(' AND ', $joins);
         return array($sql, $params);
     }
 
@@ -342,9 +371,14 @@ class report_log_table_log extends table_sql {
      * @param bool $useinitialsbar do you want to use the initials bar.
      */
     public function query_db($pagesize, $useinitialsbar = true) {
+        global $DB;
 
         $joins = array();
         $params = array();
+
+        // If we filter by userid and module id we also need to filter by crud and edulevel to ensure DB index is engaged.
+        $useextendeddbindex = !($this->filterparams->logreader instanceof logstore_legacy\log\store)
+                && !empty($this->filterparams->userid) && !empty($this->filterparams->modid);
 
         $groupid = 0;
         if (!empty($this->filterparams->courseid)) {
@@ -361,11 +395,12 @@ class report_log_table_log extends table_sql {
         }
 
         if (!empty($this->filterparams->modid)) {
-            $joins[] = "contextinstanceid = :contextinstanceid";
-            $params['contextinstanceid'] = $this->filterparams->modid;
+            list($actionsql, $actionparams) = $this->get_cm_sql();
+            $joins[] = $actionsql;
+            $params = array_merge($params, $actionparams);
         }
 
-        if (!empty($this->filterparams->action)) {
+        if (!empty($this->filterparams->action) || $useextendeddbindex) {
             list($actionsql, $actionparams) = $this->get_action_sql();
             $joins[] = $actionsql;
             $params = array_merge($params, $actionparams);
@@ -385,13 +420,24 @@ class report_log_table_log extends table_sql {
         }
 
         if (!empty($this->filterparams->date)) {
-            $joins[] = "timecreated > :date";
+            $joins[] = "timecreated > :date AND timecreated < :enddate";
             $params['date'] = $this->filterparams->date;
+            $params['enddate'] = $this->filterparams->date + DAYSECS; // Show logs only for the selected date.
         }
 
         if (isset($this->filterparams->edulevel) && ($this->filterparams->edulevel >= 0)) {
             $joins[] = "edulevel = :edulevel";
             $params['edulevel'] = $this->filterparams->edulevel;
+        } else if ($useextendeddbindex) {
+            list($edulevelsql, $edulevelparams) = $DB->get_in_or_equal(array(\core\event\base::LEVEL_OTHER,
+                \core\event\base::LEVEL_PARTICIPATING, \core\event\base::LEVEL_TEACHING), SQL_PARAMS_NAMED, 'edulevel');
+            $joins[] = "edulevel ".$edulevelsql;
+            $params = array_merge($params, $edulevelparams);
+        }
+
+        if (!($this->filterparams->logreader instanceof logstore_legacy\log\store)) {
+            // Filter out anonymous actions, this is N/A for legacy log because it never stores them.
+            $joins[] = "anonymous = 0";
         }
 
         $selector = implode(' AND ', $joins);
@@ -459,7 +505,7 @@ class report_log_table_log extends table_sql {
             $ccselect = ', ' . context_helper::get_preload_record_columns_sql('ctx');
             $ccjoin = "LEFT JOIN {context} ctx ON (ctx.instanceid = c.id AND ctx.contextlevel = :contextlevel)";
             $courseparams['contextlevel'] = CONTEXT_COURSE;
-            $sql = "SELECT c.id,c.shortname $ccselect FROM {course} as c
+            $sql = "SELECT c.id,c.shortname $ccselect FROM {course} c
                    $ccjoin
                      WHERE c.id " . $coursesql;
 

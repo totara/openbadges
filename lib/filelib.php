@@ -541,7 +541,7 @@ function file_get_draft_area_info($draftitemid, $filepath = '/') {
  * @param int $newfilesize the size that would be added to the current area.
  * @param bool $includereferences true to include the size of the references in the area size.
  * @return bool true if the area will/has exceeded its limit.
- * @since 2.4
+ * @since Moodle 2.4
  */
 function file_is_draft_area_limit_reached($draftitemid, $areamaxbytes, $newfilesize = 0, $includereferences = false) {
     if ($areamaxbytes != FILE_AREA_MAX_BYTES_UNLIMITED) {
@@ -1410,6 +1410,9 @@ function &get_mimetypes_array() {
         'dmg'  => array ('type'=>'application/octet-stream', 'icon'=>'unknown'),
 
         'doc'  => array ('type'=>'application/msword', 'icon'=>'document', 'groups'=>array('document')),
+        'bdoc' => array ('type'=>'application/x-digidoc', 'icon'=>'document', 'groups'=>array('archive')),
+        'cdoc' => array ('type'=>'application/x-digidoc', 'icon'=>'document', 'groups'=>array('archive')),
+        'ddoc' => array ('type'=>'application/x-digidoc', 'icon'=>'document', 'groups'=>array('archive')),
         'docx' => array ('type'=>'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'icon'=>'document', 'groups'=>array('document')),
         'docm' => array ('type'=>'application/vnd.ms-word.document.macroEnabled.12', 'icon'=>'document'),
         'dotx' => array ('type'=>'application/vnd.openxmlformats-officedocument.wordprocessingml.template', 'icon'=>'document'),
@@ -1504,7 +1507,6 @@ function &get_mimetypes_array() {
         'pic'  => array ('type'=>'image/pict', 'icon'=>'image', 'groups'=>array('image'), 'string'=>'image'),
         'pict' => array ('type'=>'image/pict', 'icon'=>'image', 'groups'=>array('image'), 'string'=>'image'),
         'png'  => array ('type'=>'image/png', 'icon'=>'png', 'groups'=>array('image', 'web_image'), 'string'=>'image'),
-
         'pps'  => array ('type'=>'application/vnd.ms-powerpoint', 'icon'=>'powerpoint', 'groups'=>array('presentation')),
         'ppt'  => array ('type'=>'application/vnd.ms-powerpoint', 'icon'=>'powerpoint', 'groups'=>array('presentation')),
         'pptx' => array ('type'=>'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'icon'=>'powerpoint'),
@@ -1514,8 +1516,9 @@ function &get_mimetypes_array() {
         'ppam' => array ('type'=>'application/vnd.ms-powerpoint.addin.macroEnabled.12', 'icon'=>'powerpoint'),
         'ppsx' => array ('type'=>'application/vnd.openxmlformats-officedocument.presentationml.slideshow', 'icon'=>'powerpoint'),
         'ppsm' => array ('type'=>'application/vnd.ms-powerpoint.slideshow.macroEnabled.12', 'icon'=>'powerpoint'),
-
         'ps'   => array ('type'=>'application/postscript', 'icon'=>'pdf'),
+        'pub'  => array ('type'=>'application/x-mspublisher', 'icon'=>'publisher', 'groups'=>array('presentation')),
+
         'qt'   => array ('type'=>'video/quicktime', 'icon'=>'quicktime', 'groups'=>array('video','web_video'), 'string'=>'video'),
         'ra'   => array ('type'=>'audio/x-realaudio-plugin', 'icon'=>'audio', 'groups'=>array('audio','web_audio'), 'string'=>'audio'),
         'ram'  => array ('type'=>'audio/x-pn-realaudio-plugin', 'icon'=>'audio', 'groups'=>array('audio'), 'string'=>'audio'),
@@ -1559,6 +1562,7 @@ function &get_mimetypes_array() {
         'webm'  => array ('type'=>'video/webm', 'icon'=>'video', 'groups'=>array('video'), 'string'=>'video'),
         'wmv'  => array ('type'=>'video/x-ms-wmv', 'icon'=>'wmv', 'groups'=>array('video'), 'string'=>'video'),
         'asf'  => array ('type'=>'video/x-ms-asf', 'icon'=>'wmv', 'groups'=>array('video'), 'string'=>'video'),
+        'wma'  => array ('type'=>'audio/x-ms-wma', 'icon'=>'audio', 'groups'=>array('audio'), 'string'=>'audio'),
 
         'xbk'  => array ('type'=>'application/x-smarttech-notebook', 'icon'=>'archive'),
         'xdp'  => array ('type'=>'application/pdf', 'icon'=>'pdf'),

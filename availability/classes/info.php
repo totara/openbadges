@@ -34,7 +34,7 @@ defined('MOODLE_INTERNAL') || die();
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 abstract class info {
-    /** @var stdClass Course */
+    /** @var \stdClass Course */
     protected $course;
 
     /** @var \course_modinfo Modinfo (available only during some functions) */
@@ -52,10 +52,10 @@ abstract class info {
     /**
      * Constructs with item details.
      *
-     * @param stdClass $course Course object
+     * @param \stdClass $course Course object
      * @param int $visible Value of visible flag (eye icon)
      * @param string $availability Availability definition (JSON format) or null
-     * @throws coding_exception If data is not valid JSON format
+     * @throws \coding_exception If data is not valid JSON format
      */
     public function __construct($course, $visible, $availability) {
         // Set basic values.
@@ -67,7 +67,7 @@ abstract class info {
     /**
      * Obtains the course associated with this availability information.
      *
-     * @return stdClass Moodle course object
+     * @return \stdClass Moodle course object
      */
     public function get_course() {
         return $this->course;
@@ -128,7 +128,7 @@ abstract class info {
      * @param string $availability Availability string in JSON format
      * @param boolean $lax If true, throw exceptions only for invalid structure
      * @return tree Availability tree
-     * @throws coding_exception If data is not valid JSON format
+     * @throws \coding_exception If data is not valid JSON format
      */
     protected function decode_availability($availability, $lax) {
         // Decode JSON data.
@@ -193,12 +193,7 @@ abstract class info {
             $tree = $this->get_availability_tree();
             $result = $tree->check_available(false, $this, $grabthelot, $userid);
         } catch (\coding_exception $e) {
-            // We catch the message because it causes fatal problems in most of
-            // the GUI if this exception gets thrown (you can't edit the
-            // activity to fix it). Obviously it should never happen anyway, but
-            // just in case.
-            debugging('Error processing availability data for &lsquo;' .
-                    $this->get_thing_name() . '&rsquo;: ' . s($e->a), DEBUG_DEVELOPER);
+            $this->warn_about_invalid_availability($e);
             $this->modinfo = null;
             return false;
         }
@@ -237,7 +232,12 @@ abstract class info {
         if (is_null($this->availability)) {
             return true;
         } else {
-            return $this->get_availability_tree()->is_available_for_all();
+            try {
+                return $this->get_availability_tree()->is_available_for_all();
+            } catch (\coding_exception $e) {
+                $this->warn_about_invalid_availability($e);
+                return false;
+            }
         }
     }
 
@@ -273,11 +273,30 @@ abstract class info {
             $this->modinfo = null;
             return $result;
         } catch (\coding_exception $e) {
-            // Again we catch the message to avoid problems in GUI.
-            debugging('Error processing availability data for &lsquo;' .
-                    $this->get_thing_name() . '&rsquo;: ' . s($e->a), DEBUG_DEVELOPER);
+            $this->warn_about_invalid_availability($e);
             return false;
         }
+    }
+
+    /**
+     * In some places we catch coding_exception because if a bug happens, it
+     * would be fatal for the course page GUI; instead we just show a developer
+     * debug message.
+     *
+     * @param \coding_exception $e Exception that occurred
+     */
+    protected function warn_about_invalid_availability(\coding_exception $e) {
+        $name = $this->get_thing_name();
+        // If it occurs while building modinfo based on somebody calling $cm->name,
+        // we can't get $cm->name, and this line will cause a warning.
+        $htmlname = @$this->format_info($name, $this->course);
+        if ($htmlname === '') {
+            // So instead use the numbers (cmid) from the tag.
+            $htmlname = preg_replace('~[^0-9]~', '', $name);
+        }
+        $info = 'Error processing availability data for &lsquo;' . $htmlname
+                 . '&rsquo;: ' . s($e->a);
+        debugging($info, DEBUG_DEVELOPER);
     }
 
     /**
@@ -287,7 +306,7 @@ abstract class info {
      *
      * @param string $restoreid Restore identifier
      * @param int $courseid Target course id
-     * @param base_logger $logger Logger for any warnings
+     * @param \base_logger $logger Logger for any warnings
      */
     public function update_after_restore($restoreid, $courseid, \base_logger $logger) {
         $tree = $this->get_availability_tree();
@@ -323,7 +342,7 @@ abstract class info {
      * function does that for the conditional availability data for all
      * modules and sections on the course.
      *
-     * @param int|stdClass $courseorid Course id or object
+     * @param int|\stdClass $courseorid Course id or object
      * @param string $table Table name e.g. 'course_modules'
      * @param int $oldid Previous ID
      * @param int $newid New ID
@@ -388,7 +407,7 @@ abstract class info {
      * groupmembersonly field for modules. This is off by default because
      * we are not yet moving the groupmembersonly option into this new API.
      *
-     * @param stdClass $rec Object possibly containing legacy fields
+     * @param \stdClass $rec Object possibly containing legacy fields
      * @param bool $section True if this is a section
      * @param bool $modgroupmembersonly True if groupmembersonly is converted for mods
      * @return string|null New availability value or null if none
@@ -449,7 +468,7 @@ abstract class info {
      * that it has an AND tree with one or more conditions.
      *
      * @param string|null $availability Current availability conditions
-     * @param stdClass $rec Object containing information from old table
+     * @param \stdClass $rec Object containing information from old table
      * @param bool $show True if 'show' option should be enabled
      * @return string New availability conditions
      */
@@ -482,7 +501,7 @@ abstract class info {
      * that it has an AND tree with one or more conditions.
      *
      * @param string|null $availability Current availability conditions
-     * @param stdClass $rec Object containing information from old table
+     * @param \stdClass $rec Object containing information from old table
      * @param bool $show True if 'show' option should be enabled
      * @return string New availability conditions
      */
@@ -579,8 +598,8 @@ abstract class info {
      * object.
      *
      * @param string $info Info string
-     * @param int|stdClass $courseorid
-     * @return Correctly formatted info string
+     * @param int|\stdClass $courseorid
+     * @return string Correctly formatted info string
      */
     public static function format_info($info, $courseorid) {
         // Don't waste time if there are no special tags.
@@ -605,7 +624,7 @@ abstract class info {
      * JS (using the non-JS version instead, which causes a page reload) if a
      * completion tickbox value may affect a conditional activity.
      *
-     * @param stdClass $course Moodle course object
+     * @param \stdClass $course Moodle course object
      * @param int $cmid Course-module id
      * @return bool True if this is used in a condition, false otherwise
      */

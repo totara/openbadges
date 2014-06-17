@@ -204,39 +204,6 @@ function chat_delete_instance($id) {
 }
 
 /**
- * Return a small object with summary information about what a
- * user has done with a given particular instance of this module
- * Used for user activity reports.
- * <code>
- * $return->time = the time they did it
- * $return->info = a short text description
- * </code>
- *
- * @param object $course
- * @param object $user
- * @param object $mod
- * @param object $chat
- * @return void
- */
-function chat_user_outline($course, $user, $mod, $chat) {
-    return NULL;
-}
-
-/**
- * Print a detailed representation of what a  user has done with
- * a given particular instance of this module, for user activity reports.
- *
- * @param object $course
- * @param object $user
- * @param object $mod
- * @param object $chat
- * @return bool
- */
-function chat_user_complete($course, $user, $mod, $chat) {
-    return true;
-}
-
-/**
  * Given a course and a date, prints a summary of all chat rooms past and present
  * This function is called from block_recent_activity
  *
@@ -323,7 +290,7 @@ function chat_print_recent_activity($course, $viewfullnames, $timestart) {
     $strftimerecent = get_string('strftimerecent');
 
     if ($past) {
-        echo $OUTPUT->heading(get_string("pastchats", 'chat').':');
+        echo $OUTPUT->heading(get_string("pastchats", 'chat').':', 3);
 
         foreach ($past as $cm) {
             $link = $CFG->wwwroot.'/mod/chat/view.php?id='.$cm->id;
@@ -334,7 +301,7 @@ function chat_print_recent_activity($course, $viewfullnames, $timestart) {
     }
 
     if ($current) {
-        echo $OUTPUT->heading(get_string("currentchats", 'chat').':');
+        echo $OUTPUT->heading(get_string("currentchats", 'chat').':', 3);
 
         $oldest = floor((time()-$CFG->chat_old_ping)/10)*10;  // better db caching
 
@@ -696,7 +663,7 @@ function chat_update_chat_times($chatid=0) {
  * @param bool $system False for non-system messages, true for system messages.
  * @param object $cm The course module object, pass it to save a database query when we trigger the event.
  * @return int The message ID.
- * @since 2.6
+ * @since Moodle 2.6
  */
 function chat_send_chatmessage($chatuser, $messagetext, $system = false, $cm = null) {
     global $DB;

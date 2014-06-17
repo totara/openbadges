@@ -3205,13 +3205,6 @@ function xmldb_main_upgrade($oldversion) {
 
         // Check we actually have themes to remove.
         if (count($themes) > 0) {
-            list($insql, $inparams) = $DB->get_in_or_equal($themes, SQL_PARAMS_NAMED);
-
-            // Replace the theme usage.
-            $DB->set_field_select('course', 'theme', 'clean', "theme $insql", $inparams);
-            $DB->set_field_select('course_categories', 'theme', 'clean', "theme $insql", $inparams);
-            $DB->set_field_select('user', 'theme', 'clean', "theme $insql", $inparams);
-            $DB->set_field_select('mnet_host', 'theme', 'clean', "theme $insql", $inparams);
 
             // Replace the theme configs.
             if (in_array(get_config('core', 'theme'), $themes)) {
@@ -3225,11 +3218,6 @@ function xmldb_main_upgrade($oldversion) {
             }
             if (in_array(get_config('core', 'themetablet'), $themes)) {
                 set_config('themetablet', 'clean');
-            }
-
-            // Hacky emulation of plugin uninstallation.
-            foreach ($themes as $theme) {
-                unset_all_config_for_plugin('theme_' . $theme);
             }
         }
 
@@ -3590,6 +3578,102 @@ function xmldb_main_upgrade($oldversion) {
 
         // Main savepoint reached.
         upgrade_main_savepoint(true, 2014040800.00);
+    }
+
+    if ($oldversion < 2014041500.01) {
+
+        $table = new xmldb_table('user_info_data');
+
+        $sql = 'SELECT DISTINCT info.id
+                  FROM {user_info_data} info
+            INNER JOIN {user_info_data} older
+                    ON info.fieldid = older.fieldid
+                   AND info.userid = older.userid
+                   AND older.id < info.id';
+        $transaction = $DB->start_delegated_transaction();
+        $rs = $DB->get_recordset_sql($sql);
+        foreach ($rs as $rec) {
+            $DB->delete_records('user_info_data', array('id' => $rec->id));
+        }
+        $transaction->allow_commit();
+
+        $oldindex = new xmldb_index('userid_fieldid', XMLDB_INDEX_NOTUNIQUE, array('userid', 'fieldid'));
+        if ($dbman->index_exists($table, $oldindex)) {
+            $dbman->drop_index($table, $oldindex);
+        }
+
+        $newindex = new xmldb_index('userid_fieldid', XMLDB_INDEX_UNIQUE, array('userid', 'fieldid'));
+
+        if (!$dbman->index_exists($table, $newindex)) {
+            $dbman->add_index($table, $newindex);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2014041500.01);
+    }
+
+    if ($oldversion < 2014050100.00) {
+        // Fixing possible wrong MIME type for DigiDoc files.
+        $extensions = array('%.bdoc', '%.cdoc', '%.ddoc');
+        $select = $DB->sql_like('filename', '?', false);
+        foreach ($extensions as $extension) {
+            $DB->set_field_select(
+                'files',
+                'mimetype',
+                'application/x-digidoc',
+                $select,
+                array($extension)
+            );
+        }
+        upgrade_main_savepoint(true, 2014050100.00);
+    }
+
+    // Moodle v2.7.0 release upgrade line.
+    // Put any upgrade step following this.
+
+    // MDL-32543 Make sure that the log table has correct length for action and url fields.
+    if ($oldversion < 2014051200.02) {
+
+        $table = new xmldb_table('log');
+
+        $columns = $DB->get_columns('log');
+        if ($columns['action']->max_length < 40) {
+            $index1 = new xmldb_index('course-module-action', XMLDB_INDEX_NOTUNIQUE, array('course', 'module', 'action'));
+            if ($dbman->index_exists($table, $index1)) {
+                $dbman->drop_index($table, $index1);
+            }
+            $index2 = new xmldb_index('action', XMLDB_INDEX_NOTUNIQUE, array('action'));
+            if ($dbman->index_exists($table, $index2)) {
+                $dbman->drop_index($table, $index2);
+            }
+            $field = new xmldb_field('action', XMLDB_TYPE_CHAR, '40', null, XMLDB_NOTNULL, null, null, 'cmid');
+            $dbman->change_field_precision($table, $field);
+            $dbman->add_index($table, $index1);
+            $dbman->add_index($table, $index2);
+        }
+
+        if ($columns['url']->max_length < 100) {
+            $field = new xmldb_field('url', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null, 'action');
+            $dbman->change_field_precision($table, $field);
+        }
+
+        upgrade_main_savepoint(true, 2014051200.02);
+    }
+
+    if ($oldversion < 2014060300.00) {
+        $gspath = get_config('assignfeedback_editpdf', 'gspath');
+        if ($gspath !== false) {
+            set_config('pathtogs', $gspath);
+            unset_config('gspath', 'assignfeedback_editpdf');
+        }
+        upgrade_main_savepoint(true, 2014060300.00);
+    }
+
+    if ($oldversion < 2014061000.00) {
+        // Fixing possible wrong MIME type for Publisher files.
+        $filetypes = array('%.pub'=>'application/x-mspublisher');
+        upgrade_mimetypes($filetypes);
+        upgrade_main_savepoint(true, 2014061000.00);
     }
 
     return true;

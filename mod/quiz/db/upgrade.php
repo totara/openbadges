@@ -576,7 +576,7 @@ function xmldb_quiz_upgrade($oldversion) {
                 }
 
                 $questionidtoslotrowid = $DB->get_records_menu('quiz_slots',
-                        array('quizid' => $quiz->id), '', 'questionid, id');
+                        array('quizid' => $quiz->id), '', 'id, questionid');
 
                 $problemfound = false;
                 $currentpage = 1;
@@ -588,16 +588,25 @@ function xmldb_quiz_upgrade($oldversion) {
                         continue;
                     }
 
-                    if (array_key_exists($questionid, $questionidtoslotrowid)) {
+                    if ($questionid === '') {
+                        // This can happen as the result of old restore bugs.
+                        // There can be a missing number in the list of ids.
+                        // All we can do about this is ignore it, which is what
+                        // the quiz system used to do. See MDL-45321.
+                        continue;
+                    }
+
+                    $key = array_search($questionid, $questionidtoslotrowid);
+                    if ($key !== false) {
                         // Normal case. quiz_slots entry is present.
                         // Just need to add slot and page.
                         $quizslot = new stdClass();
-                        $quizslot->id   = $questionidtoslotrowid[$questionid];
+                        $quizslot->id   = $key;
                         $quizslot->slot = $slot;
                         $quizslot->page = $currentpage;
                         $DB->update_record('quiz_slots', $quizslot);
 
-                        unset($questionidtoslotrowid[$questionid]); // So we can do a sanity check later.
+                        unset($questionidtoslotrowid[$key]); // So we can do a sanity check later.
                         $slot++;
                         continue;
 
@@ -642,11 +651,11 @@ function xmldb_quiz_upgrade($oldversion) {
                 // quiz_slots rows linked to this quiz.
                 if (!empty($questionidtoslotrowid)) {
                     debugging('During upgrade, detected that questions ' .
-                            implode(', ', array_keys($questionidtoslotrowid)) .
+                            implode(', ', array_values($questionidtoslotrowid)) .
                             ' had instances in quiz ' . $quiz->id . ' but were not actually used. ' .
                             'The instances have been removed.', DEBUG_NORMAL);
 
-                    $DB->delete_records_list('quiz_slots', 'id', array_values($questionidtoslotrowid));
+                    $DB->delete_records_list('quiz_slots', 'id', array_keys($questionidtoslotrowid));
                     $problemfound = true;
                 }
 
@@ -660,6 +669,9 @@ function xmldb_quiz_upgrade($oldversion) {
                                FROM {quiz_slots}
                               WHERE quizid = ?",
                             array($quiz->id));
+                    if (!$newsumgrades) {
+                        $newsumgrades = 0;
+                    }
                     if (abs($newsumgrades - $quiz->sumgrades) > 0.000005) {
                         debugging('Because of the previously mentioned problems, ' .
                                 'sumgrades for quiz ' . $quiz->id .
@@ -760,6 +772,9 @@ function xmldb_quiz_upgrade($oldversion) {
         // Quiz savepoint reached.
         upgrade_mod_savepoint(true, 2014022008, 'quiz');
     }
+
+    // Moodle v2.7.0 release upgrade line.
+    // Put any upgrade step following this.
 
     return true;
 }

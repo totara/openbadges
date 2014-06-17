@@ -86,6 +86,8 @@ class store implements \tool_log\log\store, \core\log\sql_select_reader {
     public function get_events_select($selectwhere, array $params, $sort, $limitfrom, $limitnum) {
         global $DB;
 
+        $sort = self::tweak_sort_by_id($sort);
+
         // Replace the query with hardcoded mappings required for core.
         list($selectwhere, $params, $sort) = self::replace_sql_legacy($selectwhere, $params, $sort);
 
@@ -183,6 +185,11 @@ class store implements \tool_log\log\store, \core\log\sql_select_reader {
         // database so that it doesn't cause a DB error. Log a warning so that
         // developers can avoid doing things which are likely to cause this on a
         // routine basis.
+        if (\core_text::strlen($action) > 40) {
+            $action = \core_text::substr($action, 0, 37) . '...';
+            debugging('Warning: logged very long action', DEBUG_DEVELOPER);
+        }
+
         if (!empty($info) && \core_text::strlen($info) > 255) {
             $info = \core_text::substr($info, 0, 252) . '...';
             debugging('Warning: logged very long info', DEBUG_DEVELOPER);

@@ -21,6 +21,7 @@
  * @copyright  2013 Rajesh Taneja <rajesh@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 namespace core\event;
 
 defined('MOODLE_INTERNAL') || die();
@@ -59,7 +60,7 @@ class user_created extends base {
      * @return string
      */
     public function get_description() {
-        return 'Profile created for user '.$this->objectid;
+        return "The user with id '$this->userid' created the user with id '$this->objectid'.";
     }
 
     /**
@@ -96,5 +97,20 @@ class user_created extends base {
      */
     protected function get_legacy_logdata() {
         return array(SITEID, 'user', 'add', '/view.php?id='.$this->objectid, fullname($this->get_legacy_eventdata()));
+    }
+
+    /**
+     * Custom validation.
+     *
+     * @throws \coding_exception
+     * @return void
+     */
+    protected function validate_data() {
+        parent::validate_data();
+
+        if (!isset($this->relateduserid)) {
+            debugging('The \'relateduserid\' value must be specified in the event.', DEBUG_DEVELOPER);
+            $this->relateduserid = $this->objectid;
+        }
     }
 }

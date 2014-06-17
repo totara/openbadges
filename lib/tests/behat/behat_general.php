@@ -283,6 +283,18 @@ class behat_general extends behat_base {
     }
 
     /**
+     * Clicks the specified element and confirms the expected dialogue.
+     *
+     * @When /^I click on "(?P<element_string>(?:[^"]|\\")*)" "(?P<selector_string>[^"]*)" confirming the dialogue$/
+     * @throws ElementNotFoundException Thrown by behat_base::find
+     * @param string $link
+     */
+    public function i_click_on_confirming_the_dialogue($element, $selectortype) {
+        $this->i_click_on($element, $selectortype);
+        $this->accept_currently_displayed_alert_dialog();
+    }
+
+    /**
      * Click on the element of the specified type which is located inside the second element.
      *
      * @When /^I click on "(?P<element_string>(?:[^"]|\\")*)" "(?P<selector_string>[^"]*)" in the "(?P<element_container_string>(?:[^"]|\\")*)" "(?P<text_selector_string>[^"]*)"$/
@@ -810,9 +822,9 @@ class behat_general extends behat_base {
                     return $context->getSession()->getPage()->findAll($args['selector'], $args['locator']);
                 },
                 $params,
-                false,
+                self::REDUCED_TIMEOUT,
                 $exception,
-                self::REDUCED_TIMEOUT
+                false
             );
 
             throw new ExpectationException('The "' . $element . '" "' . $selectortype . '" exists in the current page', $this->getSession());
@@ -925,6 +937,30 @@ class behat_general extends behat_base {
         } else if (strpos($value, $text) === false) {
             throw new ExpectationException('The attribute "' . $attribute .
                     '" does not contain "' . $text . '" (actual value: "' . $value . '")',
+                    $this->getSession());
+        }
+    }
+
+    /**
+     * Checks that the attribute on the given element does not contain the specified text.
+     *
+     * @Then /^the "(?P<attribute_string>[^"]*)" attribute of "(?P<element_string>(?:[^"]|\\")*)" "(?P<selector_string>[^"]*)" should not contain "(?P<text_string>(?:[^"]|\\")*)"$/
+     * @throws ExpectationException
+     * @param string $attribute Name of attribute
+     * @param string $element The locator of the specified selector
+     * @param string $selectortype The selector type
+     * @param string $text Expected substring
+     */
+    public function the_attribute_of_should_not_contain($attribute, $element, $selectortype, $text) {
+        // Get the container node (exception if it doesn't exist).
+        $containernode = $this->get_selected_node($selectortype, $element);
+        $value = $containernode->getAttribute($attribute);
+        if ($value == null) {
+            throw new ExpectationException('The attribute "' . $attribute. '" does not exist',
+                    $this->getSession());
+        } else if (strpos($value, $text) !== false) {
+            throw new ExpectationException('The attribute "' . $attribute .
+                    '" contains "' . $text . '" (value: "' . $value . '")',
                     $this->getSession());
         }
     }

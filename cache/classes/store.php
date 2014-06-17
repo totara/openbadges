@@ -79,6 +79,17 @@ interface cache_store_interface {
      * @return cache_store|false
      */
     public static function initialise_test_instance(cache_definition $definition);
+
+    /**
+     * Initialises a test instance for unit tests.
+     *
+     * This differs from initialise_test_instance in that it doesn't rely on interacting with the config table.
+     *
+     * @since 2.8
+     * @param cache_definition $definition
+     * @return cache_store|false
+     */
+    public static function initialise_unit_test_instance(cache_definition $definition);
 }
 
 /**
@@ -87,7 +98,7 @@ interface cache_store_interface {
  * All cache store plugins must extend this base class.
  * It lays down the foundation for what is required of a cache store plugin.
  *
- * @since 2.4
+ * @since Moodle 2.4
  * @package    core
  * @category   cache
  * @copyright  2012 Sam Hemelryk
@@ -256,7 +267,7 @@ abstract class cache_store implements cache_store_interface {
     /**
      * Performs any necessary operation when the store instance has been created.
      *
-     * @since 2.5
+     * @since Moodle 2.5
      */
     public function instance_created() {
         // By default, do nothing.
@@ -267,7 +278,7 @@ abstract class cache_store implements cache_store_interface {
      *
      * This method may be called before the store has been initialised.
      *
-     * @since 2.5
+     * @since Moodle 2.5
      * @see cleanup()
      */
     public function instance_deleted() {
@@ -339,5 +350,19 @@ abstract class cache_store implements cache_store_interface {
         // By default we just run clone.
         // Any stores that have an issue with this will need to override the create_clone method.
         return clone($this);
+    }
+
+    /**
+     * Initialises a test instance for unit tests.
+     *
+     * This differs from initialise_test_instance in that it doesn't rely on interacting with the config table.
+     * By default however it calls initialise_test_instance to support backwards compatability.
+     *
+     * @since 2.8
+     * @param cache_definition $definition
+     * @return cache_store|false
+     */
+    public static function initialise_unit_test_instance(cache_definition $definition) {
+        return self::initialise_test_instance($definition);
     }
 }

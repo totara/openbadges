@@ -39,13 +39,15 @@ function atto_image_strings_for_js() {
         'alignment_top',
         'browserepositories',
         'constrain',
-        'createimage',
+        'saveimage',
+        'imageproperties',
         'customstyle',
         'enterurl',
         'enteralt',
         'height',
         'presentation',
         'presentationoraltrequired',
+        'size',
         'width',
     );
 

@@ -15,6 +15,18 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Question category created event.
+ *
+ * @package    core
+ * @copyright  2014 Mark Nelson <markn@moodle.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+namespace core\event;
+
+defined('MOODLE_INTERNAL') || die();
+
+/**
  * Question category created event class.
  *
  * @package    core
@@ -22,10 +34,6 @@
  * @copyright  2014 Mark Nelson <markn@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-namespace core\event;
-
-defined('MOODLE_INTERNAL') || die();
-
 class question_category_created extends base {
 
     /**
@@ -52,7 +60,7 @@ class question_category_created extends base {
      * @return string
      */
     public function get_description() {
-        return 'A question category with the id of ' . $this->objectid . ' was created by a user with the id ' . $this->userid;
+        return "The user with id '$this->userid' created the question category with id '$this->objectid'.";
     }
 
     /**
@@ -61,20 +69,31 @@ class question_category_created extends base {
      * @return \moodle_url
      */
     public function get_url() {
-        if ($this->contextlevel == CONTEXT_MODULE) {
-            return new \moodle_url('/question/category.php', array('cmid' => $this->contextinstanceid));
-        } else {
-            return new \moodle_url('/question/category.php', array('courseid' => $this->courseid));
+        if ($this->courseid) {
+            $cat = $this->objectid . ',' . $this->contextid;
+            if ($this->contextlevel == CONTEXT_MODULE) {
+                return new \moodle_url('/question/edit.php', array('cmid' => $this->contextinstanceid, 'cat' => $cat));
+            }
+            return new \moodle_url('/question/edit.php', array('courseid' => $this->courseid, 'cat' => $cat));
         }
+
+        // Bad luck, there does not seem to be any simple intelligent way
+        // to go to specific question category in context above course,
+        // let's try to edit it from frontpage which may surprisingly work.
+        return new \moodle_url('/question/category.php', array('courseid' => SITEID, 'edit' => $this->objectid));
     }
 
     /**
      * Return the legacy event log data.
      *
-     * @return array
+     * @return array|null
      */
     protected function get_legacy_logdata() {
-        return array($this->courseid, 'quiz', 'addcategory', 'view.php?id=' . $this->contextinstanceid,
-            $this->objectid, $this->contextinstanceid);
+        if ($this->contextlevel == CONTEXT_MODULE) {
+            return array($this->courseid, 'quiz', 'addcategory', 'view.php?id=' . $this->contextinstanceid,
+                $this->objectid, $this->contextinstanceid);
+        }
+        // This is not related to individual quiz at all.
+        return null;
     }
 }

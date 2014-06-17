@@ -976,8 +976,9 @@ x#fitem_id_availabilityconditionsjson input[type=text] {
 .mod-indent-12   {width:360px;}
 .mod-indent-13   {width:390px;}
 .mod-indent-14   {width:420px;}
-.mod-indent-15,
-.mod-indent-huge {width:420px;}
+.mod-indent-15   {width:450px;}
+.mod-indent-16,
+.mod-indent-huge {width:480px;}
 
 .dir-rtl .mform .fitem .felement {margin-right: 16%;margin-left:auto;text-align: right;}
 .dir-rtl .mform .fitem .felement input[name=email],
@@ -1436,8 +1437,8 @@ sup {vertical-align: super;}
     padding: 0 0.5em 0 0;
 }
 
-.choosercontainer #chooseform .option span.modicon img.icon,
-.choosercontainer #chooseform .nonoption span.modicon img.icon {
+.chooserdialogue-course-modchooser .choosercontainer #chooseform .option span.modicon img.icon,
+.chooserdialogue-course-modchooser .choosercontainer #chooseform .nonoption span.modicon img.icon {
     height: 24px; width: 24px;
 }
 
@@ -1525,7 +1526,8 @@ form#installform #id_dbpass, form#installform #id_prefix
 
 html[dir=rtl] .breadcrumb,
 html[dir=rtl] .headermain,
-html[dir=rtl] #page-header {float: right;}
+html[dir=rtl] #page-header,
+html[dir=rtl] #page-content {float: right;}
 
 html[dir=rtl] .formrow label.formlabel { float:right; }
 
@@ -2025,6 +2027,24 @@ body.lockscroll {
 }
 
 .editor_atto_menu .moodle-dialogue-content {
-    padding: 0px;
+    padding: 0;
     border: inherit;
+}
+
+.well {
+  min-height: 20px;
+  padding: 19px;
+  background-color: #f5f5f5;
+  border: 1px solid #e3e3e3;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 1px rgba(0,0,0,0.05);
+}
+
+.well-small {
+  padding: 9px;
+}
+
+.progressbar_container {
+    max-width: 500px;
+    margin: 0 auto;
 }

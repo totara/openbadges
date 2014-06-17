@@ -33,7 +33,7 @@ defined('MOODLE_INTERNAL') || die();
  * @copyright  2013 Frédéric Massart
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class grouping_deleted extends \core\event\base {
+class grouping_deleted extends base {
 
     /**
      * Legacy data.
@@ -48,13 +48,13 @@ class grouping_deleted extends \core\event\base {
      * @return string
      */
     public function get_description() {
-        return "User {$this->userid} deleted the grouping {$this->objectid}.";
+        return "The user with id '$this->userid' deleted the grouping with id '$this->objectid'.";
     }
 
     /**
      * Legacy event data if get_legacy_eventname() is not empty.
      *
-     * @return stdClass
+     * @return \stdClass
      */
     protected function get_legacy_eventdata() {
         return $this->get_record_snapshot('groupings', $this->objectid);
@@ -75,7 +75,7 @@ class grouping_deleted extends \core\event\base {
      * @return string
      */
     public static function get_name() {
-        return get_string('event_grouping_deleted', 'group');
+        return get_string('eventgroupingdeleted', 'group');
     }
 
     /**
@@ -97,5 +97,4 @@ class grouping_deleted extends \core\event\base {
         $this->data['edulevel'] = self::LEVEL_OTHER;
         $this->data['objecttable'] = 'groupings';
     }
-
 }
