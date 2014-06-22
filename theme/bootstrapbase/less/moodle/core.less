@@ -1894,11 +1894,16 @@ ul.badges {
     z-index: 10;
     opacity: 0.85;
 }
-div.badge {
+
+#badge-image {
     background-color: transparent;
     padding: 0;
     position: relative;
-    display: block;
+    min-width: 100px;
+    width: 20%;
+    display: inline-block;
+    vertical-align: top;
+    margin-top: 17px;
 
     .expireimage {
         width: 100px;
@@ -1910,13 +1915,37 @@ div.badge {
         z-index:10;
     }
 }
-.dir-rtl div.badge {
+.dir-rtl #badge-image {
     float: right;
 
     .expireimage {
         left: 41px;
     }
 }
+#badge-details {
+    display: inline-block;
+    width: 79%;
+}
+
+#badge-overview dl,
+#badge-details dl {
+    margin: 0;
+
+    dt {
+        clear: both;
+        display: inline-block;
+        vertical-align: top;
+        width: 20%;
+        min-width: 100px;
+    }
+    dd {
+        display: inline-block;
+        vertical-align: top;
+        width: 79%;
+        margin-left: 1%;
+    }
+}
+
 .badge-profile {
     vertical-align: top;
 }

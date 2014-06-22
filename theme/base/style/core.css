@@ -1605,6 +1605,7 @@ body.jsenabled .formlisting {
 /**
  * Badges styles
  */
+#badge-overview h3,
 #badge h3 {
     clear: both;
     text-align: left;
@@ -1613,16 +1614,30 @@ body.jsenabled .formlisting {
 .dir-rtl #badge h3 {
     text-align: right;
 }
-#badge .span2,
-#badge .span10 {
+
+#badge-image,
+#badge-details {
     display: inline-block;
 }
-#badge .span2 {
+#badge-image {
     width: 200px;
     vertical-align: top;
 }
-#badge .row-fluid {
+#badge-overview dl,
+#badge-details dl {
+    margin: 0;
+}
+#badge-overview dt,
+#badge-details dt {
+    font-weight: bold;
     clear: both;
+    float: left;
+    width: 20%;
+}
+#badge-overview dd,
+#badge-details dd {
+    float: left;
+    width: 75%;
 }
 #page-badges-view .collection { width: 90%; margin: 1em auto; }
 #page-badges-index .collection { width: 85%; margin: 1em auto; }
