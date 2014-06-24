@@ -170,7 +170,6 @@ class core_badges_renderer extends plugin_renderer_base {
         } else {
             $display .= get_string('noexpiry', 'badges');
         }
-
         // Criteria details if any.
         $display .= $this->heading(get_string('bcriteria', 'badges'), 3);
         if ($badge->has_criteria()) {
