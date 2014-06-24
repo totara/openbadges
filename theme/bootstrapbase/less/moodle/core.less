@@ -1914,6 +1914,10 @@ ul.badges {
         position: absolute;
         z-index:10;
     }
+    
+    .singlebutton {
+        padding-top: 5px;
+    }
 }
 .dir-rtl #badge-image {
     float: right;
@@ -1931,16 +1935,19 @@ ul.badges {
 #badge-details dl {
     margin: 0;
 
+    dt,
+    dd {
+        vertical-align: top;
+        padding: 3px 0;
+    }
     dt {
         clear: both;
         display: inline-block;
-        vertical-align: top;
         width: 20%;
         min-width: 100px;
     }
     dd {
         display: inline-block;
-        vertical-align: top;
         width: 79%;
         margin-left: 1%;
     }

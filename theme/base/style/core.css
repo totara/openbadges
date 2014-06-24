@@ -1623,6 +1623,9 @@ body.jsenabled .formlisting {
     width: 200px;
     vertical-align: top;
 }
+#badge-image .singlebutton {
+    padding-top: 5px;
+}
 #badge-overview dl,
 #badge-details dl {
     margin: 0;
@@ -1639,6 +1642,13 @@ body.jsenabled .formlisting {
     float: left;
     width: 75%;
 }
+#badge-overview dd,
+#badge-details dd,
+#badge-overview dt,
+#badge-details dt {
+    padding: 3px 0;
+}
+
 #page-badges-view .collection { width: 90%; margin: 1em auto; }
 #page-badges-index .collection { width: 85%; margin: 1em auto; }
 

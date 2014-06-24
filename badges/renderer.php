@@ -153,7 +153,23 @@ class core_badges_renderer extends plugin_renderer_base {
 
         // Issuance details if any.
         $display .= $this->heading(get_string('issuancedetails', 'badges'), 3);
-        $display .= $badge->get_expiry_details();
+        if ($badge->can_expire()) {
+            if ($badge->expiredate) {
+                $display .= get_string('expiredate', 'badges', userdate($badge->expiredate));
+            } else if ($badge->expireperiod) {
+                if ($badge->expireperiod < 60) {
+                    $display .= get_string('expireperiods', 'badges', round($badge->expireperiod, 2));
+                } else if ($badge->expireperiod < 60 * 60) {
+                    $display .= get_string('expireperiodm', 'badges', round($badge->expireperiod / 60, 2));
+                } else if ($badge->expireperiod < 60 * 60 * 24) {
+                    $display .= get_string('expireperiodh', 'badges', round($badge->expireperiod / 60 / 60, 2));
+                } else {
+                    $display .= get_string('expireperiod', 'badges', round($badge->expireperiod / 60 / 60 / 24, 2));
+                }
+            }
+        } else {
+            $display .= get_string('noexpiry', 'badges');
+        }
 
         // Criteria details if any.
         $display .= $this->heading(get_string('bcriteria', 'badges'), 3);
