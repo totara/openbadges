@@ -135,9 +135,9 @@ function forum_add_instance($forum, $mform = null) {
  */
 function forum_instance_created($context, $forum) {
     if ($forum->forcesubscribe == FORUM_INITIALSUBSCRIBE) {
-        $users = forum_get_potential_subscribers($context, 0, 'u.id, u.email');
+        $users = \mod_forum\subscriptions::get_potential_subscribers($context, 0, 'u.id, u.email');
         foreach ($users as $user) {
-            forum_subscribe($user->id, $forum->id, $context);
+            \mod_forum\subscriptions::subscribe_user($user->id, $forum, $context);
         }
     }
 }
@@ -233,9 +233,9 @@ function forum_update_instance($forum, $mform) {
 
     $modcontext = context_module::instance($forum->coursemodule);
     if (($forum->forcesubscribe == FORUM_INITIALSUBSCRIBE) && ($oldforum->forcesubscribe <> $forum->forcesubscribe)) {
-        $users = forum_get_potential_subscribers($modcontext, 0, 'u.id, u.email', '');
+        $users = \mod_forum\subscriptions::get_potential_subscribers($modcontext, 0, 'u.id, u.email', '');
         foreach ($users as $user) {
-            forum_subscribe($user->id, $forum->id, $modcontext);
+            \mod_forum\subscriptions::subscribe_user($user->id, $forum, $modcontext);
         }
     }
 
@@ -275,20 +275,17 @@ function forum_delete_instance($id) {
 
     $result = true;
 
+    // Delete digest and subscription preferences.
+    $DB->delete_records('forum_digests', array('forum' => $forum->id));
+    $DB->delete_records('forum_subscriptions', array('forum'=>$forum->id));
+    $DB->delete_records('forum_discussion_subs', array('forum' => $forum->id));
+
     if ($discussions = $DB->get_records('forum_discussions', array('forum'=>$forum->id))) {
         foreach ($discussions as $discussion) {
             if (!forum_delete_discussion($discussion, true, $course, $cm, $forum)) {
                 $result = false;
             }
         }
-    }
-
-    if (!$DB->delete_records('forum_digests', array('forum' => $forum->id))) {
-        $result = false;
-    }
-
-    if (!$DB->delete_records('forum_subscriptions', array('forum'=>$forum->id))) {
-        $result = false;
     }
 
     forum_tp_delete_read_records(-1, -1, -1, $forum->id);
@@ -461,17 +458,16 @@ function forum_cron() {
     $users = array();
     $userscount = 0; // Cached user counter - count($users) in PHP is horribly slow!!!
 
-    // status arrays
+    // Status arrays.
     $mailcount  = array();
     $errorcount = array();
 
     // caches
-    $discussions     = array();
-    $forums          = array();
-    $courses         = array();
-    $coursemodules   = array();
-    $subscribedusers = array();
-
+    $discussions        = array();
+    $forums             = array();
+    $courses            = array();
+    $coursemodules      = array();
+    $subscribedusers    = array();
 
     // Posts older than 2 days will not be mailed.  This is to avoid the problem where
     // cron has not been running for a long time, and then suddenly people are flooded
@@ -509,8 +505,11 @@ function forum_cron() {
             if (!isset($discussions[$discussionid])) {
                 if ($discussion = $DB->get_record('forum_discussions', array('id'=> $post->discussion))) {
                     $discussions[$discussionid] = $discussion;
+                    \mod_forum\subscriptions::fill_subscription_cache($discussion->forum);
+                    \mod_forum\subscriptions::fill_discussion_subscription_cache($discussion->forum);
+
                 } else {
-                    mtrace('Could not find discussion '.$discussionid);
+                    mtrace('Could not find discussion ' . $discussionid);
                     unset($posts[$pid]);
                     continue;
                 }
@@ -545,11 +544,10 @@ function forum_cron() {
                 }
             }
 
-
-            // caching subscribed users of each forum
+            // Caching subscribed users of each forum.
             if (!isset($subscribedusers[$forumid])) {
                 $modcontext = context_module::instance($coursemodules[$forumid]->id);
-                if ($subusers = forum_subscribed_users($courses[$courseid], $forums[$forumid], 0, $modcontext, "u.*")) {
+                if ($subusers = \mod_forum\subscriptions::fetch_subscribed_users($forums[$forumid], 0, $modcontext, 'u.*', true)) {
                     foreach ($subusers as $postuser) {
                         // this user is subscribed to this forum
                         $subscribedusers[$forumid][$postuser->id] = $postuser->id;
@@ -570,7 +568,6 @@ function forum_cron() {
                     unset($postuser);
                 }
             }
-
             $mailcount[$pid] = 0;
             $errorcount[$pid] = 0;
         }
@@ -582,13 +579,12 @@ function forum_cron() {
         $hostname = $urlinfo['host'];
 
         foreach ($users as $userto) {
+            // Terminate if processing of any account takes longer than 2 minutes.
+            core_php_time_limit::raise(120);
 
-            core_php_time_limit::raise(120); // terminate if processing of any account takes longer than 2 minutes
+            mtrace('Processing user ' . $userto->id);
 
-            mtrace('Processing user '.$userto->id);
-
-            // Init user caches - we keep the cache for one cycle only,
-            // otherwise it could consume too much memory.
+            // Init user caches - we keep the cache for one cycle only, otherwise it could consume too much memory.
             if (isset($userto->username)) {
                 $userto = clone($userto);
             } else {
@@ -599,39 +595,46 @@ function forum_cron() {
             $userto->canpost       = array();
             $userto->markposts     = array();
 
-            // set this so that the capabilities are cached, and environment matches receiving user
+            // Setup this user so that the capabilities are cached, and environment matches receiving user.
             cron_setup_user($userto);
 
-            // reset the caches
-            foreach ($coursemodules as $forumid=>$unused) {
+            // Reset the caches.
+            foreach ($coursemodules as $forumid => $unused) {
                 $coursemodules[$forumid]->cache       = new stdClass();
                 $coursemodules[$forumid]->cache->caps = array();
                 unset($coursemodules[$forumid]->uservisible);
             }
 
             foreach ($posts as $pid => $post) {
-
-                // Set up the environment for the post, discussion, forum, course
                 $discussion = $discussions[$post->discussion];
                 $forum      = $forums[$discussion->forum];
                 $course     = $courses[$forum->course];
                 $cm         =& $coursemodules[$forum->id];
 
-                // Do some checks  to see if we can bail out now
-                // Only active enrolled users are in the list of subscribers
-                if (!isset($subscribedusers[$forum->id][$userto->id])) {
-                    continue; // user does not subscribe to this forum
-                }
+                // Do some checks to see if we can bail out now.
 
-                // Don't send email if the forum is Q&A and the user has not posted
-                // Initial topics are still mailed
-                if ($forum->type == 'qanda' && !forum_get_user_posted_time($discussion->id, $userto->id) && $pid != $discussion->firstpost) {
-                    mtrace('Did not email '.$userto->id.' because user has not posted in discussion');
+                // Only active enrolled users are in the list of subscribers.
+                // This does not necessarily mean that the user is subscribed to the forum or to the discussion though.
+                if (!isset($subscribedusers[$forum->id][$userto->id])) {
+                    // The user does not subscribe to this forum.
                     continue;
                 }
 
-                // Get info about the sending user
-                if (array_key_exists($post->userid, $users)) { // we might know him/her already
+                if (!\mod_forum\subscriptions::is_subscribed($userto->id, $forum, $post->discussion)) {
+                    // The user does not subscribe to this forum, or to this specific discussion.
+                    continue;
+                }
+
+                // Don't send email if the forum is Q&A and the user has not posted.
+                // Initial topics are still mailed.
+                if ($forum->type == 'qanda' && !forum_get_user_posted_time($discussion->id, $userto->id) && $pid != $discussion->firstpost) {
+                    mtrace('Did not email ' . $userto->id.' because user has not posted in discussion');
+                    continue;
+                }
+
+                // Get info about the sending user.
+                if (array_key_exists($post->userid, $users)) {
+                    // We might know the user already.
                     $userfrom = $users[$post->userid];
                     if (!isset($userfrom->idnumber)) {
                         // Minimalised user info, fetch full record.
@@ -646,18 +649,17 @@ function forum_cron() {
                         $userscount++;
                         $users[$userfrom->id] = $userfrom;
                     }
-
                 } else {
-                    mtrace('Could not find user '.$post->userid);
+                    mtrace('Could not find user ' . $post->userid . ', author of post ' . $post->id . '. Unable to send message.');
                     continue;
                 }
 
-                //if we want to check that userto and userfrom are not the same person this is probably the spot to do it
+                // Note: If we want to check that userto and userfrom are not the same person this is probably the spot to do it.
 
-                // setup global $COURSE properly - needed for roles and languages
+                // Setup global $COURSE properly - needed for roles and languages.
                 cron_setup_user($userto, $course);
 
-                // Fill caches
+                // Fill caches.
                 if (!isset($userto->viewfullnames[$forum->id])) {
                     $modcontext = context_module::instance($cm->id);
                     $userto->viewfullnames[$forum->id] = has_capability('moodle/site:viewfullnames', $modcontext);
@@ -679,21 +681,23 @@ function forum_cron() {
                     }
                 }
 
-                // Make sure groups allow this user to see this email
-                if ($discussion->groupid > 0 and $groupmode = groups_get_activity_groupmode($cm, $course)) {   // Groups are being used
-                    if (!groups_group_exists($discussion->groupid)) { // Can't find group
-                        continue;                           // Be safe and don't send it to anyone
+                // Make sure groups allow this user to see this email.
+                if ($discussion->groupid > 0 and $groupmode = groups_get_activity_groupmode($cm, $course)) {
+                    // Groups are being used.
+                    if (!groups_group_exists($discussion->groupid)) {
+                        // Can't find group - be safe and don't this message.
+                        continue;
                     }
 
                     if (!groups_is_member($discussion->groupid) and !has_capability('moodle/site:accessallgroups', $modcontext)) {
-                        // do not send posts from other groups when in SEPARATEGROUPS or VISIBLEGROUPS
+                        // Do not send posts from other groups when in SEPARATEGROUPS or VISIBLEGROUPS.
                         continue;
                     }
                 }
 
-                // Make sure we're allowed to see it...
-                if (!forum_user_can_see_post($forum, $discussion, $post, NULL, $cm)) {
-                    mtrace('user '.$userto->id. ' can not see '.$post->id);
+                // Make sure we're allowed to see the post.
+                if (!forum_user_can_see_post($forum, $discussion, $post, null, $cm)) {
+                    mtrace('User ' . $userto->id .' can not see ' . $post->id . '. Not sending message.');
                     continue;
                 }
 
@@ -703,7 +707,7 @@ function forum_cron() {
                 $maildigest = forum_get_user_maildigest_bulk($digests, $userto, $forum->id);
 
                 if ($maildigest > 0) {
-                    // This user wants the mails to be in digest form
+                    // This user wants the mails to be in digest form.
                     $queue = new stdClass();
                     $queue->userid       = $userto->id;
                     $queue->discussionid = $discussion->id;
@@ -713,23 +717,24 @@ function forum_cron() {
                     continue;
                 }
 
-
-                // Prepare to actually send the post now, and build up the content
+                // Prepare to actually send the post now, and build up the content.
 
                 $cleanforumname = str_replace('"', "'", strip_tags(format_string($forum->name)));
 
-                $userfrom->customheaders = array (  // Headers to make emails easier to track
-                           'Precedence: Bulk',
-                           'List-Id: "'.$cleanforumname.'" <moodleforum'.$forum->id.'@'.$hostname.'>',
-                           'List-Help: '.$CFG->wwwroot.'/mod/forum/view.php?f='.$forum->id,
-                           'Message-ID: '.forum_get_email_message_id($post->id, $userto->id, $hostname),
-                           'X-Course-Id: '.$course->id,
-                           'X-Course-Name: '.format_string($course->fullname, true)
+                $userfrom->customheaders = array (
+                    // Headers to make emails easier to track.
+                    'Precedence: Bulk',
+                    'List-Id: "'        . $cleanforumname . '" <moodleforum' . $forum->id . '@' . $hostname.'>',
+                    'List-Help: '       . $CFG->wwwroot . '/mod/forum/view.php?f=' . $forum->id,
+                    'Message-ID: '      . forum_get_email_message_id($post->id, $userto->id, $hostname),
+                    'X-Course-Id: '     . $course->id,
+                    'X-Course-Name: '   . format_string($course->fullname, true)
                 );
 
-                if ($post->parent) {  // This post is a reply, so add headers for threading (see MDL-22551)
-                    $userfrom->customheaders[] = 'In-Reply-To: '.forum_get_email_message_id($post->parent, $userto->id, $hostname);
-                    $userfrom->customheaders[] = 'References: '.forum_get_email_message_id($post->parent, $userto->id, $hostname);
+                if ($post->parent) {
+                    // This post is a reply, so add headers for threading (see MDL-22551).
+                    $userfrom->customheaders[] = 'In-Reply-To: ' . forum_get_email_message_id($post->parent, $userto->id, $hostname);
+                    $userfrom->customheaders[] = 'References: '  . forum_get_email_message_id($post->parent, $userto->id, $hostname);
                 }
 
                 $shortname = format_string($course->shortname, true, array('context' => context_course::instance($course->id)));
@@ -743,19 +748,18 @@ function forum_cron() {
                 $posthtml = forum_make_mail_html($course, $cm, $forum, $discussion, $post, $userfrom, $userto);
 
                 // Send the post now!
-
                 mtrace('Sending ', '');
 
                 $eventdata = new stdClass();
-                $eventdata->component        = 'mod_forum';
-                $eventdata->name             = 'posts';
-                $eventdata->userfrom         = $userfrom;
-                $eventdata->userto           = $userto;
-                $eventdata->subject          = $postsubject;
-                $eventdata->fullmessage      = $posttext;
-                $eventdata->fullmessageformat = FORMAT_PLAIN;
-                $eventdata->fullmessagehtml  = $posthtml;
-                $eventdata->notification = 1;
+                $eventdata->component           = 'mod_forum';
+                $eventdata->name                = 'posts';
+                $eventdata->userfrom            = $userfrom;
+                $eventdata->userto              = $userto;
+                $eventdata->subject             = $postsubject;
+                $eventdata->fullmessage         = $posttext;
+                $eventdata->fullmessageformat   = FORMAT_PLAIN;
+                $eventdata->fullmessagehtml     = $posthtml;
+                $eventdata->notification        = 1;
 
                 // If forum_replytouser is not set then send mail using the noreplyaddress.
                 if (empty($CFG->forum_replytouser)) {
@@ -766,33 +770,35 @@ function forum_cron() {
                 }
 
                 $smallmessagestrings = new stdClass();
-                $smallmessagestrings->user = fullname($userfrom);
-                $smallmessagestrings->forumname = "$shortname: ".format_string($forum->name,true).": ".$discussion->name;
-                $smallmessagestrings->message = $post->message;
-                //make sure strings are in message recipients language
+                $smallmessagestrings->user          = fullname($userfrom);
+                $smallmessagestrings->forumname     = "$shortname: " . format_string($forum->name, true) . ": " . $discussion->name;
+                $smallmessagestrings->message       = $post->message;
+
+                // Make sure strings are in message recipients language.
                 $eventdata->smallmessage = get_string_manager()->get_string('smallmessage', 'forum', $smallmessagestrings, $userto->lang);
 
-                $eventdata->contexturl = "{$CFG->wwwroot}/mod/forum/discuss.php?d={$discussion->id}#p{$post->id}";
+                $contexturl = new moodle_url('/mod/forum/discuss.php', array('d' => $discussion->id), 'p' . $post->id);
+                $eventdata->contexturl = $contexturl->out();
                 $eventdata->contexturlname = $discussion->name;
 
                 $mailresult = message_send($eventdata);
-                if (!$mailresult){
+                if (!$mailresult) {
                     mtrace("Error: mod/forum/lib.php forum_cron(): Could not send out mail for id $post->id to user $userto->id".
-                         " ($userto->email) .. not trying again.");
+                            " ($userto->email) .. not trying again.");
                     $errorcount[$post->id]++;
                 } else {
                     $mailcount[$post->id]++;
 
-                // Mark post as read if forum_usermarksread is set off
+                    // Mark post as read if forum_usermarksread is set off.
                     if (!$CFG->forum_usermarksread) {
                         $userto->markposts[$post->id] = $post->id;
                     }
                 }
 
-                mtrace('post '.$post->id. ': '.$post->subject);
+                mtrace('post ' . $post->id . ': ' . $post->subject);
             }
 
-            // mark processed posts as read
+            // Mark processed posts as read.
             forum_tp_mark_posts_read($userto, $userto->markposts);
             unset($userto);
         }
@@ -963,7 +969,7 @@ function forum_cron() {
                     }
 
                     $strforums      = get_string('forums', 'forum');
-                    $canunsubscribe = ! forum_is_forcesubscribed($forum);
+                    $canunsubscribe = ! \mod_forum\subscriptions::is_forcesubscribed($forum);
                     $canreply       = $userto->canpost[$discussion->id];
                     $shortname = format_string($course->shortname, true, array('context' => context_course::instance($course->id)));
 
@@ -1109,7 +1115,6 @@ function forum_cron() {
         set_config('forum_lastreadclean', time());
     }
 
-
     return true;
 }
 
@@ -1154,7 +1159,7 @@ function forum_make_mail_text($course, $cm, $forum, $discussion, $post, $userfro
 
     $strforums = get_string('forums', 'forum');
 
-    $canunsubscribe = ! forum_is_forcesubscribed($forum);
+    $canunsubscribe = ! \mod_forum\subscriptions::is_forcesubscribed($forum);
 
     $posttext = '';
 
@@ -1228,7 +1233,7 @@ function forum_make_mail_html($course, $cm, $forum, $discussion, $post, $userfro
     }
 
     $strforums = get_string('forums', 'forum');
-    $canunsubscribe = ! forum_is_forcesubscribed($forum);
+    $canunsubscribe = ! \mod_forum\subscriptions::is_forcesubscribed($forum);
     $shortname = format_string($course->shortname, true, array('context' => context_course::instance($course->id)));
 
     $posthtml = '<head>';
@@ -2731,99 +2736,6 @@ function forum_get_discussions_count($cm) {
 }
 
 
-/**
- * Get the list of potential subscribers to a forum.
- *
- * @param object $forumcontext the forum context.
- * @param integer $groupid the id of a group, or 0 for all groups.
- * @param string $fields the list of fields to return for each user. As for get_users_by_capability.
- * @param string $sort sort order. As for get_users_by_capability.
- * @return array list of users.
- */
-function forum_get_potential_subscribers($forumcontext, $groupid, $fields, $sort = '') {
-    global $DB;
-
-    // only active enrolled users or everybody on the frontpage
-    list($esql, $params) = get_enrolled_sql($forumcontext, 'mod/forum:allowforcesubscribe', $groupid, true);
-    if (!$sort) {
-        list($sort, $sortparams) = users_order_by_sql('u');
-        $params = array_merge($params, $sortparams);
-    }
-
-    $sql = "SELECT $fields
-              FROM {user} u
-              JOIN ($esql) je ON je.id = u.id
-          ORDER BY $sort";
-
-    return $DB->get_records_sql($sql, $params);
-}
-
-/**
- * Returns list of user objects that are subscribed to this forum
- *
- * @global object
- * @global object
- * @param object $course the course
- * @param forum $forum the forum
- * @param integer $groupid group id, or 0 for all.
- * @param object $context the forum context, to save re-fetching it where possible.
- * @param string $fields requested user fields (with "u." table prefix)
- * @return array list of users.
- */
-function forum_subscribed_users($course, $forum, $groupid=0, $context = null, $fields = null) {
-    global $CFG, $DB;
-
-    $allnames = get_all_user_name_fields(true, 'u');
-    if (empty($fields)) {
-        $fields ="u.id,
-                  u.username,
-                  $allnames,
-                  u.maildisplay,
-                  u.mailformat,
-                  u.maildigest,
-                  u.imagealt,
-                  u.email,
-                  u.emailstop,
-                  u.city,
-                  u.country,
-                  u.lastaccess,
-                  u.lastlogin,
-                  u.picture,
-                  u.timezone,
-                  u.theme,
-                  u.lang,
-                  u.trackforums,
-                  u.mnethostid";
-    }
-
-    if (empty($context)) {
-        $cm = get_coursemodule_from_instance('forum', $forum->id, $course->id);
-        $context = context_module::instance($cm->id);
-    }
-
-    if (forum_is_forcesubscribed($forum)) {
-        $results = forum_get_potential_subscribers($context, $groupid, $fields, "u.email ASC");
-
-    } else {
-        // only active enrolled users or everybody on the frontpage
-        list($esql, $params) = get_enrolled_sql($context, '', $groupid, true);
-        $params['forumid'] = $forum->id;
-        $results = $DB->get_records_sql("SELECT $fields
-                                           FROM {user} u
-                                           JOIN ($esql) je ON je.id = u.id
-                                           JOIN {forum_subscriptions} s ON s.userid = u.id
-                                          WHERE s.forum = :forumid
-                                       ORDER BY u.email ASC", $params);
-    }
-
-    // Guest user should never be subscribed to a forum.
-    unset($results[$CFG->siteguest]);
-
-    return $results;
-}
-
-
-
 // OTHER FUNCTIONS ///////////////////////////////////////////////////////////
 
 
@@ -3668,8 +3580,62 @@ function forum_print_discussion_header(&$post, $forum, $group=-1, $datestring=""
           userdate($usedate, $datestring).'</a>';
     echo "</td>\n";
 
+    if (has_capability('mod/forum:viewdiscussion', $modcontext)) {
+        // Discussion subscription.
+        if (\mod_forum\subscriptions::is_subscribable($forum)) {
+            echo '<td class="discussionsubscription">';
+            echo forum_get_discussion_subscription_icon($forum, $post->discussion);
+            echo '</td>';
+        }
+    }
+
     echo "</tr>\n\n";
 
+}
+
+/**
+ * Return the markup for the discussion subscription toggling icon.
+ *
+ * @param stdClass $forum The forum object.
+ * @param int $discussionid The discussion to create an icon for.
+ * @return string The generated markup.
+ */
+function forum_get_discussion_subscription_icon($forum, $discussionid, $returnurl = null) {
+    global $USER, $OUTPUT, $PAGE;
+
+    if ($returnurl === null && $PAGE->url) {
+        $returnurl = $PAGE->url->out();
+    }
+
+    $o = '';
+    $subscriptionstatus = \mod_forum\subscriptions::is_subscribed($USER->id, $forum, $discussionid);
+    $subscriptionlink = new moodle_url('/mod/forum/subscribe.php', array(
+        'sesskey' => sesskey(),
+        'id' => $forum->id,
+        'd' => $discussionid,
+        'returnurl' => $returnurl,
+    ));
+    if ($subscriptionstatus) {
+        $o .= html_writer::link($subscriptionlink,
+            $OUTPUT->pix_icon('t/subscribed', get_string('clicktounsubscribe', 'forum'), 'mod_forum'),
+            array(
+                'title' => get_string('clicktounsubscribe', 'forum'),
+                'class' => 'discussiontoggle iconsmall',
+                'data-forumid' => $forum->id,
+                'data-discussionid' => $discussionid,
+        ));
+    } else {
+        $o .= html_writer::link($subscriptionlink,
+            $OUTPUT->pix_icon('t/unsubscribed', get_string('clicktosubscribe', 'forum'), 'mod_forum'),
+            array(
+                'title' => get_string('clicktosubscribe', 'forum'),
+                'class' => 'discussiontoggle iconsmall',
+                'data-forumid' => $forum->id,
+                'data-discussionid' => $discussionid,
+        ));
+    }
+
+    return $o;
 }
 
 /**
@@ -4342,7 +4308,9 @@ function forum_delete_discussion($discussion, $fulldelete, $course, $cm, $forum)
 
     forum_tp_delete_read_records(-1, -1, $discussion->id);
 
-    if (!$DB->delete_records("forum_discussions", array("id"=>$discussion->id))) {
+    // Discussion subscriptions must be removed before discussions because of key constraints.
+    $DB->delete_records('forum_discussion_subs', array('discussion' => $discussion->id));
+    if (!$DB->delete_records("forum_discussions", array("id" => $discussion->id))) {
         $result = false;
     }
 
@@ -4487,273 +4455,44 @@ function forum_count_replies($post, $children=true) {
     return $count;
 }
 
-
-/**
- * @global object
- * @param int $forumid
- * @param mixed $value
- * @return bool
- */
-function forum_forcesubscribe($forumid, $value=1) {
-    global $DB;
-    return $DB->set_field("forum", "forcesubscribe", $value, array("id" => $forumid));
-}
-
-/**
- * @global object
- * @param object $forum
- * @return bool
- */
-function forum_is_forcesubscribed($forum) {
-    global $DB;
-    if (isset($forum->forcesubscribe)) {    // then we use that
-        return ($forum->forcesubscribe == FORUM_FORCESUBSCRIBE);
-    } else {   // Check the database
-       return ($DB->get_field('forum', 'forcesubscribe', array('id' => $forum)) == FORUM_FORCESUBSCRIBE);
-    }
-}
-
-function forum_get_forcesubscribed($forum) {
-    global $DB;
-    if (isset($forum->forcesubscribe)) {    // then we use that
-        return $forum->forcesubscribe;
-    } else {   // Check the database
-        return $DB->get_field('forum', 'forcesubscribe', array('id' => $forum));
-    }
-}
-
-/**
- * @global object
- * @param int $userid
- * @param object $forum
- * @return bool
- */
-function forum_is_subscribed($userid, $forum) {
-    global $DB;
-    if (is_numeric($forum)) {
-        $forum = $DB->get_record('forum', array('id' => $forum));
-    }
-    // If forum is force subscribed and has allowforcesubscribe, then user is subscribed.
-    $cm = get_coursemodule_from_instance('forum', $forum->id);
-    if (forum_is_forcesubscribed($forum) && $cm &&
-            has_capability('mod/forum:allowforcesubscribe', context_module::instance($cm->id), $userid)) {
-        return true;
-    }
-    return $DB->record_exists("forum_subscriptions", array("userid" => $userid, "forum" => $forum->id));
-}
-
-function forum_get_subscribed_forums($course) {
-    global $USER, $CFG, $DB;
-    $sql = "SELECT f.id
-              FROM {forum} f
-                   LEFT JOIN {forum_subscriptions} fs ON (fs.forum = f.id AND fs.userid = ?)
-             WHERE f.course = ?
-                   AND f.forcesubscribe <> ".FORUM_DISALLOWSUBSCRIBE."
-                   AND (f.forcesubscribe = ".FORUM_FORCESUBSCRIBE." OR fs.id IS NOT NULL)";
-    if ($subscribed = $DB->get_records_sql($sql, array($USER->id, $course->id))) {
-        foreach ($subscribed as $s) {
-            $subscribed[$s->id] = $s->id;
-        }
-        return $subscribed;
-    } else {
-        return array();
-    }
-}
-
-/**
- * Returns an array of forums that the current user is subscribed to and is allowed to unsubscribe from
- *
- * @return array An array of unsubscribable forums
- */
-function forum_get_optional_subscribed_forums() {
-    global $USER, $DB;
-
-    // Get courses that $USER is enrolled in and can see
-    $courses = enrol_get_my_courses();
-    if (empty($courses)) {
-        return array();
-    }
-
-    $courseids = array();
-    foreach($courses as $course) {
-        $courseids[] = $course->id;
-    }
-    list($coursesql, $courseparams) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'c');
-
-    // get all forums from the user's courses that they are subscribed to and which are not set to forced
-    $sql = "SELECT f.id, cm.id as cm, cm.visible
-              FROM {forum} f
-                   JOIN {course_modules} cm ON cm.instance = f.id
-                   JOIN {modules} m ON m.name = :modulename AND m.id = cm.module
-                   LEFT JOIN {forum_subscriptions} fs ON (fs.forum = f.id AND fs.userid = :userid)
-             WHERE f.forcesubscribe <> :forcesubscribe AND fs.id IS NOT NULL
-                   AND cm.course $coursesql";
-    $params = array_merge($courseparams, array('modulename'=>'forum', 'userid'=>$USER->id, 'forcesubscribe'=>FORUM_FORCESUBSCRIBE));
-    if (!$forums = $DB->get_records_sql($sql, $params)) {
-        return array();
-    }
-
-    $unsubscribableforums = array(); // Array to return
-
-    foreach($forums as $forum) {
-
-        if (empty($forum->visible)) {
-            // the forum is hidden
-            $context = context_module::instance($forum->cm);
-            if (!has_capability('moodle/course:viewhiddenactivities', $context)) {
-                // the user can't see the hidden forum
-                continue;
-            }
-        }
-
-        // subscribe.php only requires 'mod/forum:managesubscriptions' when
-        // unsubscribing a user other than yourself so we don't require it here either
-
-        // A check for whether the forum has subscription set to forced is built into the SQL above
-
-        $unsubscribableforums[] = $forum;
-    }
-
-    return $unsubscribableforums;
-}
-
-/**
- * Adds user to the subscriber list
- *
- * @param int $userid
- * @param int $forumid
- * @param context_module|null $context Module context, may be omitted if not known or if called for the current module set in page.
- */
-function forum_subscribe($userid, $forumid, $context = null) {
-    global $DB, $PAGE;
-
-    if ($DB->record_exists("forum_subscriptions", array("userid"=>$userid, "forum"=>$forumid))) {
-        return true;
-    }
-
-    $sub = new stdClass();
-    $sub->userid  = $userid;
-    $sub->forum = $forumid;
-
-    $result = $DB->insert_record("forum_subscriptions", $sub);
-
-    if (!$context) {
-        // Find out forum context. First try to take current page context to save on DB query.
-        if ($PAGE->cm && $PAGE->cm->modname === 'forum' && $PAGE->cm->instance == $forumid
-                && $PAGE->context->contextlevel == CONTEXT_MODULE && $PAGE->context->instanceid == $PAGE->cm->id) {
-            $context = $PAGE->context;
-        } else {
-            $cm = get_coursemodule_from_instance('forum', $forumid);
-            $context = context_module::instance($cm->id);
-        }
-    }
-    $params = array(
-        'context' => $context,
-        'objectid' => $result,
-        'relateduserid' => $userid,
-        'other' => array('forumid' => $forumid),
-
-    );
-    $event  = \mod_forum\event\subscription_created::create($params);
-    $event->trigger();
-
-    return $result;
-}
-
-/**
- * Removes user from the subscriber list
- *
- * @param int $userid
- * @param int $forumid
- * @param context_module|null $context Module context, may be omitted if not known or if called for the current module set in page.
- */
-function forum_unsubscribe($userid, $forumid, $context = null) {
-    global $DB, $PAGE;
-
-    $DB->delete_records('forum_digests', array('userid' => $userid, 'forum' => $forumid));
-
-    if ($forumsubscription = $DB->get_record('forum_subscriptions', array('userid' => $userid, 'forum' => $forumid))) {
-        $DB->delete_records('forum_subscriptions', array('id' => $forumsubscription->id));
-
-        if (!$context) {
-            // Find out forum context. First try to take current page context to save on DB query.
-            if ($PAGE->cm && $PAGE->cm->modname === 'forum' && $PAGE->cm->instance == $forumid
-                    && $PAGE->context->contextlevel == CONTEXT_MODULE && $PAGE->context->instanceid == $PAGE->cm->id) {
-                $context = $PAGE->context;
-            } else {
-                $cm = get_coursemodule_from_instance('forum', $forumid);
-                $context = context_module::instance($cm->id);
-            }
-        }
-        $params = array(
-            'context' => $context,
-            'objectid' => $forumsubscription->id,
-            'relateduserid' => $userid,
-            'other' => array('forumid' => $forumid),
-
-        );
-        $event = \mod_forum\event\subscription_deleted::create($params);
-        $event->add_record_snapshot('forum_subscriptions', $forumsubscription);
-        $event->trigger();
-    }
-
-    return true;
-}
-
 /**
  * Given a new post, subscribes or unsubscribes as appropriate.
  * Returns some text which describes what happened.
  *
- * @global objec
- * @param object $post
- * @param object $forum
+ * @param object $fromform The submitted form
+ * @param stdClass $forum The forum record
+ * @param stdClass $discussion The forum discussion record
+ * @return string
  */
-function forum_post_subscription($post, $forum) {
-
+function forum_post_subscription($fromform, $forum, $discussion) {
     global $USER;
 
-    $action = '';
-    $subscribed = forum_is_subscribed($USER->id, $forum);
-
-    if ($forum->forcesubscribe == FORUM_FORCESUBSCRIBE) { // database ignored
+    if (\mod_forum\subscriptions::is_forcesubscribed($forum)) {
         return "";
-
-    } elseif (($forum->forcesubscribe == FORUM_DISALLOWSUBSCRIBE)
-        && !has_capability('moodle/course:manageactivities', context_course::instance($forum->course), $USER->id)) {
-        if ($subscribed) {
-            $action = 'unsubscribe'; // sanity check, following MDL-14558
-        } else {
-            return "";
+    } else if (\mod_forum\subscriptions::subscription_disabled($forum)) {
+        $subscribed = \mod_forum\subscriptions::is_subscribed($USER->id, $forum);
+        if ($subscribed && !has_capability('moodle/course:manageactivities', context_course::instance($forum->course), $USER->id)) {
+            // This user should not be subscribed to the forum.
+            \mod_forum\subscriptions::unsubscribe_user($USER->id, $forum);
         }
-
-    } else { // go with the user's choice
-        if (isset($post->subscribe)) {
-            // no change
-            if ((!empty($post->subscribe) && $subscribed)
-                || (empty($post->subscribe) && !$subscribed)) {
-                return "";
-
-            } elseif (!empty($post->subscribe) && !$subscribed) {
-                $action = 'subscribe';
-
-            } elseif (empty($post->subscribe) && $subscribed) {
-                $action = 'unsubscribe';
-            }
-        }
+        return "";
     }
 
     $info = new stdClass();
     $info->name  = fullname($USER);
     $info->forum = format_string($forum->name);
 
-    switch ($action) {
-        case 'subscribe':
-            forum_subscribe($USER->id, $post->forum);
-            return "<p>".get_string("nowsubscribed", "forum", $info)."</p>";
-        case 'unsubscribe':
-            forum_unsubscribe($USER->id, $post->forum);
-            return "<p>".get_string("nownotsubscribed", "forum", $info)."</p>";
+    if ($fromform->discussionsubscribe) {
+        if ($result = \mod_forum\subscriptions::subscribe_user_to_discussion($USER->id, $discussion)) {
+            return html_writer::tag('p', get_string('nowsubscribed', 'forum', $info));
+        }
+    } else {
+        if ($result = \mod_forum\subscriptions::unsubscribe_user_from_discussion($USER->id, $discussion)) {
+            return html_writer::tag('p', get_string('nownotsubscribed', 'forum', $info));
+        }
     }
+
+    return '';
 }
 
 /**
@@ -4782,9 +4521,10 @@ function forum_get_subscribe_link($forum, $context, $messages = array(), $cantac
     );
     $messages = $messages + $defaultmessages;
 
-    if (forum_is_forcesubscribed($forum)) {
+    if (\mod_forum\subscriptions::is_forcesubscribed($forum)) {
         return $messages['forcesubscribed'];
-    } else if ($forum->forcesubscribe == FORUM_DISALLOWSUBSCRIBE && !has_capability('mod/forum:managesubscriptions', $context)) {
+    } else if (\mod_forum\subscriptions::subscription_disabled($forum) &&
+            !has_capability('mod/forum:managesubscriptions', $context)) {
         return $messages['cantsubscribe'];
     } else if ($cantaccessagroup) {
         return $messages['cantaccessgroup'];
@@ -4792,11 +4532,8 @@ function forum_get_subscribe_link($forum, $context, $messages = array(), $cantac
         if (!is_enrolled($context, $USER, '', true)) {
             return '';
         }
-        if (is_null($subscribed_forums)) {
-            $subscribed = forum_is_subscribed($USER->id, $forum);
-        } else {
-            $subscribed = !empty($subscribed_forums[$forum->id]);
-        }
+
+        $subscribed = \mod_forum\subscriptions::is_subscribed($USER->id, $forum);
         if ($subscribed) {
             $linktext = $messages['subscribed'];
             $linktitle = get_string('subscribestop', 'forum');
@@ -5273,10 +5010,11 @@ function forum_user_can_see_post($forum, $discussion, $post, $user=NULL, $cm=NUL
  * @param void $unused (originally current group)
  * @param int $page Page mode, page to display (optional).
  * @param int $perpage The maximum number of discussions per page(optional)
+ * @param boolean $subscriptionstatus Whether the user is currently subscribed to the discussion in some fashion.
  *
  */
-function forum_print_latest_discussions($course, $forum, $maxdiscussions=-1, $displayformat='plain', $sort='',
-                                        $currentgroup=-1, $groupmode=-1, $page=-1, $perpage=100, $cm=NULL) {
+function forum_print_latest_discussions($course, $forum, $maxdiscussions = -1, $displayformat = 'plain', $sort = '',
+                                        $currentgroup = -1, $groupmode = -1, $page = -1, $perpage = 100, $cm = null) {
     global $CFG, $USER, $OUTPUT;
 
     if (!$cm) {
@@ -5460,6 +5198,11 @@ function forum_print_latest_discussions($course, $forum, $maxdiscussions=-1, $di
             }
         }
         echo '<th class="header lastpost" scope="col">'.get_string('lastpost', 'forum').'</th>';
+        if (has_capability('mod/forum:viewdiscussion', $context)) {
+            if (\mod_forum\subscriptions::is_subscribable($forum)) {
+                echo '<th class="header discussionsubscription" scope="col">&nbsp;</th>';
+            }
+        }
         echo '</tr>';
         echo '</thead>';
         echo '<tbody>';
@@ -6943,7 +6686,8 @@ function forum_reset_userdata($data) {
     // remove all subscriptions unconditionally - even for users still enrolled in course
     if (!empty($data->reset_forum_subscriptions)) {
         $DB->delete_records_select('forum_subscriptions', "forum IN ($allforumssql)", $params);
-        $status[] = array('component'=>$componentstr, 'item'=>get_string('resetsubscriptions','forum'), 'error'=>false);
+        $DB->delete_records_select('forum_discussion_subs', "forum IN ($allforumssql)", $params);
+        $status[] = array('component' => $componentstr, 'item' => get_string('resetsubscriptions', 'forum'), 'error' => false);
     }
 
     // remove all tracking prefs unconditionally - even for users still enrolled in course
@@ -7065,8 +6809,9 @@ function forum_extend_settings_navigation(settings_navigation $settingsnav, navi
     $activeenrolled = is_enrolled($PAGE->cm->context, $USER, '', true);
 
     $canmanage  = has_capability('mod/forum:managesubscriptions', $PAGE->cm->context);
-    $subscriptionmode = forum_get_forcesubscribed($forumobject);
-    $cansubscribe = ($activeenrolled && $subscriptionmode != FORUM_FORCESUBSCRIBE && ($subscriptionmode != FORUM_DISALLOWSUBSCRIBE || $canmanage));
+    $subscriptionmode = \mod_forum\subscriptions::get_subscription_mode($forumobject);
+    $cansubscribe = $activeenrolled && !\mod_forum\subscriptions::is_forcesubscribed($forumobject) &&
+            (!\mod_forum\subscriptions::subscription_disabled($forumobject) || $canmanage);
 
     if ($canmanage) {
         $mode = $forumnode->add(get_string('subscriptionmode', 'forum'), null, navigation_node::TYPE_CONTAINER);
@@ -7114,7 +6859,7 @@ function forum_extend_settings_navigation(settings_navigation $settingsnav, navi
     }
 
     if ($cansubscribe) {
-        if (forum_is_subscribed($USER->id, $forumobject)) {
+        if (\mod_forum\subscriptions::is_subscribed($USER->id, $forumobject)) {
             $linktext = get_string('unsubscribe', 'forum');
         } else {
             $linktext = get_string('subscribe', 'forum');
@@ -7717,4 +7462,31 @@ function forum_get_user_digest_options($user = null) {
     ksort($digestoptions);
 
     return $digestoptions;
+}
+
+/**
+ * Determine the current context if one was not already specified.
+ *
+ * If a context of type context_module is specified, it is immediately
+ * returned and not checked.
+ *
+ * @param int $forumid The ID of the forum
+ * @param context_module $context The current context.
+ * @return context_module The context determined
+ */
+function forum_get_context($forumid, $context = null) {
+    global $PAGE;
+
+    if (!$context || !($context instanceof context_module)) {
+        // Find out forum context. First try to take current page context to save on DB query.
+        if ($PAGE->cm && $PAGE->cm->modname === 'forum' && $PAGE->cm->instance == $forumid
+                && $PAGE->context->contextlevel == CONTEXT_MODULE && $PAGE->context->instanceid == $PAGE->cm->id) {
+            $context = $PAGE->context;
+        } else {
+            $cm = get_coursemodule_from_instance('forum', $forumid);
+            $context = \context_module::instance($cm->id);
+        }
+    }
+
+    return $context;
 }

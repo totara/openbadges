@@ -3243,8 +3243,13 @@ class assign {
      */
     public function fullname($user) {
         if ($this->is_blind_marking()) {
-            $uniqueid = $this->get_uniqueid_for_user($user->id);
-            return get_string('participant', 'assign') . ' ' . $uniqueid;
+            $hasviewblind = has_capability('mod/assign:viewblinddetails', $this->get_context());
+            if ($hasviewblind) {
+                return fullname($user);
+            } else {
+                $uniqueid = $this->get_uniqueid_for_user($user->id);
+                return get_string('participant', 'assign') . ' ' . $uniqueid;
+            }
         } else {
             return fullname($user);
         }
@@ -4982,6 +4987,10 @@ class assign {
                                                     $this->get_instance()->id,
                                                     array($userid));
             $users[$userid] = $record;
+        }
+
+        if (empty($users)) {
+            return get_string('nousersselected', 'assign');
         }
 
         list($userids, $params) = $DB->get_in_or_equal(array_keys($users), SQL_PARAMS_NAMED);
