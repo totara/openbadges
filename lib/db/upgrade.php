@@ -3676,5 +3676,36 @@ function xmldb_main_upgrade($oldversion) {
         upgrade_main_savepoint(true, 2014061000.00);
     }
 
+    if ($oldversion < 2014062600.01) {
+        // We only want to delete DragMath if the directory no longer exists. If the directory
+        // is present then it means it has been restored, so do not perform the uninstall.
+        if (!check_dir_exists($CFG->libdir . '/editor/tinymce/plugins/dragmath', false)) {
+            // Purge DragMath plugin which is incompatible with GNU GPL license.
+            unset_all_config_for_plugin('tinymce_dragmath');
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2014062600.01);
+    }
+
+    // Switch the order of the fields in the files_reference index, to improve the performance of search_references.
+    if ($oldversion < 2014070100.00) {
+        $table = new xmldb_table('files_reference');
+        $index = new xmldb_index('uq_external_file', XMLDB_INDEX_UNIQUE, array('repositoryid', 'referencehash'));
+        if ($dbman->index_exists($table, $index)) {
+            $dbman->drop_index($table, $index);
+        }
+        upgrade_main_savepoint(true, 2014070100.00);
+    }
+
+    if ($oldversion < 2014070101.00) {
+        $table = new xmldb_table('files_reference');
+        $index = new xmldb_index('uq_external_file', XMLDB_INDEX_UNIQUE, array('referencehash', 'repositoryid'));
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+        upgrade_main_savepoint(true, 2014070101.00);
+    }
+
     return true;
 }
