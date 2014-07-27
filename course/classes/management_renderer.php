@@ -407,8 +407,10 @@ class core_course_management_renderer extends plugin_renderer_base {
             $form .= html_writer::div(
                 html_writer::select(
                     array(
-                        'name' => get_string('sortcategoriesbyname'),
-                        'idnumber' => get_string('sortcategoriesbyidnumber'),
+                        'name' => get_string('sortbyx', 'moodle', get_string('categoryname')),
+                        'namedesc' => get_string('sortbyxreverse', 'moodle', get_string('categoryname')),
+                        'idnumber' => get_string('sortbyx', 'moodle', get_string('idnumbercoursecategory')),
+                        'idnumberdesc' => get_string('sortbyxreverse' , 'moodle' , get_string('idnumbercoursecategory')),
                         'none' => get_string('dontsortcategories')
                     ),
                     'resortcategoriesby',
@@ -420,9 +422,14 @@ class core_course_management_renderer extends plugin_renderer_base {
             $form .= html_writer::div(
                 html_writer::select(
                     array(
-                        'fullname' => get_string('sortcoursesbyfullname'),
-                        'shortname' => get_string('sortcoursesbyshortname'),
-                        'idnumber' => get_string('sortcoursesbyidnumber'),
+                        'fullname' => get_string('sortbyx', 'moodle', get_string('fullnamecourse')),
+                        'fullnamedesc' => get_string('sortbyxreverse', 'moodle', get_string('fullnamecourse')),
+                        'shortname' => get_string('sortbyx', 'moodle', get_string('shortnamecourse')),
+                        'shortnamedesc' => get_string('sortbyxreverse', 'moodle', get_string('shortnamecourse')),
+                        'idnumber' => get_string('sortbyx', 'moodle', get_string('idnumbercourse')),
+                        'idnumberdesc' => get_string('sortbyxreverse', 'moodle', get_string('idnumbercourse')),
+                        'timecreated' => get_string('sortbyx', 'moodle', get_string('timecreatedcourse')),
+                        'timecreateddesc' => get_string('sortbyxreverse', 'moodle', get_string('timecreatedcourse')),
                         'none' => get_string('dontsortcourses')
                     ),
                     'resortcoursesby',
@@ -676,12 +683,38 @@ class core_course_management_renderer extends plugin_renderer_base {
             $params['sesskey'] = sesskey();
             $baseurl = new moodle_url('/course/management.php', $params);
             $fullnameurl = new moodle_url($baseurl, array('resort' => 'fullname'));
+            $fullnameurldesc = new moodle_url($baseurl, array('resort' => 'fullnamedesc'));
             $shortnameurl = new moodle_url($baseurl, array('resort' => 'shortname'));
+            $shortnameurldesc = new moodle_url($baseurl, array('resort' => 'shortnamedesc'));
             $idnumberurl = new moodle_url($baseurl, array('resort' => 'idnumber'));
+            $idnumberdescurl = new moodle_url($baseurl, array('resort' => 'idnumberdesc'));
+            $timecreatedurl = new moodle_url($baseurl, array('resort' => 'timecreated'));
+            $timecreateddescurl = new moodle_url($baseurl, array('resort' => 'timecreateddesc'));
             $menu = new action_menu(array(
-                new action_menu_link_secondary($fullnameurl, null, get_string('resortbyfullname')),
-                new action_menu_link_secondary($shortnameurl, null, get_string('resortbyshortname')),
-                new action_menu_link_secondary($idnumberurl, null, get_string('resortbyidnumber'))
+                new action_menu_link_secondary($fullnameurl,
+                                               null,
+                                               get_string('sortbyx', 'moodle', get_string('fullnamecourse'))),
+                new action_menu_link_secondary($fullnameurldesc,
+                                               null,
+                                               get_string('sortbyxreverse', 'moodle', get_string('fullnamecourse'))),
+                new action_menu_link_secondary($shortnameurl,
+                                               null,
+                                               get_string('sortbyx', 'moodle', get_string('shortnamecourse'))),
+                new action_menu_link_secondary($shortnameurldesc,
+                                               null,
+                                               get_string('sortbyxreverse', 'moodle', get_string('shortnamecourse'))),
+                new action_menu_link_secondary($idnumberurl,
+                                               null,
+                                               get_string('sortbyx', 'moodle', get_string('idnumbercourse'))),
+                new action_menu_link_secondary($idnumberdescurl,
+                                               null,
+                                               get_string('sortbyxreverse', 'moodle', get_string('idnumbercourse'))),
+                new action_menu_link_secondary($timecreatedurl,
+                                               null,
+                                               get_string('sortbyx', 'moodle', get_string('timecreatedcourse'))),
+                new action_menu_link_secondary($timecreateddescurl,
+                                               null,
+                                               get_string('sortbyxreverse', 'moodle', get_string('timecreatedcourse')))
             ));
             $menu->set_menu_trigger(get_string('resortcourses'));
             $actions[] = $this->render($menu);
@@ -1201,6 +1234,51 @@ class core_course_management_renderer extends plugin_renderer_base {
             return '';
         }
         return html_writer::span(join('', $actions), 'course-item-actions item-actions');
+    }
+
+    /**
+     * Renders html to display a course search form
+     *
+     * @param string $value default value to populate the search field
+     * @param string $format display format - 'plain' (default), 'short' or 'navbar'
+     * @return string
+     */
+    public function course_search_form($value = '', $format = 'plain') {
+        static $count = 0;
+        $formid = 'coursesearch';
+        if ((++$count) > 1) {
+            $formid .= $count;
+        }
+
+        switch ($format) {
+            case 'navbar' :
+                $formid = 'coursesearchnavbar';
+                $inputid = 'navsearchbox';
+                $inputsize = 20;
+                break;
+            case 'short' :
+                $inputid = 'shortsearchbox';
+                $inputsize = 12;
+                break;
+            default :
+                $inputid = 'coursesearchbox';
+                $inputsize = 30;
+        }
+
+        $strsearchcourses = get_string("searchcourses");
+        $searchurl = new moodle_url('/course/management.php');
+
+        $output = html_writer::start_tag('form', array('id' => $formid, 'action' => $searchurl, 'method' => 'get'));
+        $output .= html_writer::start_tag('fieldset', array('class' => 'coursesearchbox invisiblefieldset'));
+        $output .= html_writer::tag('label', $strsearchcourses.': ', array('for' => $inputid));
+        $output .= html_writer::empty_tag('input', array('type' => 'text', 'id' => $inputid,
+            'size' => $inputsize, 'name' => 'search', 'value' => s($value)));
+        $output .= html_writer::empty_tag('input', array('type' => 'submit',
+            'value' => get_string('go')));
+        $output .= html_writer::end_tag('fieldset');
+        $output .= html_writer::end_tag('form');
+
+        return $output;
     }
 
     /**

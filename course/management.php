@@ -354,10 +354,14 @@ if ($action !== false && confirm_sesskey()) {
                     // They're not sorting anything.
                     break;
                 }
-                if (!in_array($sortcategoriesby, array('idnumber', 'name'))) {
+                if (!in_array($sortcategoriesby, array('idnumber', 'idnumberdesc',
+                                                       'name', 'namedesc'))) {
                     $sortcategoriesby = false;
                 }
-                if (!in_array($sortcoursesby, array('idnumber', 'fullname', 'shortname'))) {
+                if (!in_array($sortcoursesby, array('timecreated', 'timecreateddesc',
+                                                    'idnumber', 'idnumberdesc',
+                                                    'fullname', 'fullnamedesc',
+                                                    'shortname', 'shortnamedesc'))) {
                     $sortcoursesby = false;
                 }
 
@@ -508,4 +512,6 @@ echo $renderer->grid_end();
 
 // End of the management form.
 echo $renderer->management_form_end();
+echo $renderer->course_search_form($search);
+
 echo $renderer->footer();

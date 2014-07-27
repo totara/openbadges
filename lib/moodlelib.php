@@ -1329,6 +1329,8 @@ function html_is_blank($string) {
  *
  * A NULL value will delete the entry.
  *
+ * NOTE: this function is called from lib/db/upgrade.php
+ *
  * @param string $name the key to set
  * @param string $value the value to set (without magic quotes)
  * @param string $plugin (optional) the plugin scope, default null
@@ -1398,6 +1400,8 @@ function set_config($name, $value, $plugin=null) {
  *
  * If called with 2 parameters it will return a string single
  * value or false if the value is not found.
+ *
+ * NOTE: this function is called from lib/db/upgrade.php
  *
  * @static string|false $siteidentifier The site identifier is not cached. We use this static cache so
  *     that we need only fetch it once per request.
@@ -1484,6 +1488,8 @@ function get_config($plugin, $name = null) {
 
 /**
  * Removes a key from global configuration.
+ *
+ * NOTE: this function is called from lib/db/upgrade.php
  *
  * @param string $name the key to set
  * @param string $plugin (optional) the plugin scope
@@ -4426,20 +4432,6 @@ function authenticate_user_login($username, $password, $ignorelockout=false, &$f
             return false;
         }
 
-        // Do not try to authenticate non-existent accounts when user creation is disabled.
-        if (!empty($CFG->authpreventaccountcreation)) {
-            $failurereason = AUTH_LOGIN_NOUSER;
-
-            // Trigger login failed event.
-            $event = \core\event\user_login_failed::create(array('other' => array('username' => $username,
-                    'reason' => $failurereason)));
-            $event->trigger();
-
-            error_log('[client '.getremoteaddr()."]  $CFG->wwwroot  Unknown user, can not create new accounts:  $username  ".
-                    $_SERVER['HTTP_USER_AGENT']);
-            return false;
-        }
-
         // User does not exist.
         $auths = $authsenabled;
         $user = new stdClass();
@@ -4492,8 +4484,21 @@ function authenticate_user_login($username, $password, $ignorelockout=false, &$f
                 $user = update_user_record_by_id($user->id);
             }
         } else {
-            // Create account, we verified above that user creation is allowed.
-            $user = create_user_record($username, $password, $auth);
+            // The user is authenticated but user creation may be disabled.
+            if (!empty($CFG->authpreventaccountcreation)) {
+                $failurereason = AUTH_LOGIN_UNAUTHORISED;
+
+                // Trigger login failed event.
+                $event = \core\event\user_login_failed::create(array('other' => array('username' => $username,
+                        'reason' => $failurereason)));
+                $event->trigger();
+
+                error_log('[client '.getremoteaddr()."]  $CFG->wwwroot  Unknown user, can not create new accounts:  $username  ".
+                        $_SERVER['HTTP_USER_AGENT']);
+                return false;
+            } else {
+                $user = create_user_record($username, $password, $auth);
+            }
         }
 
         $authplugin->sync_roles($user);
@@ -8752,17 +8757,19 @@ function message_popup_window() {
 
     // A quick query to check whether the user has new messages.
     $messagecount = $DB->count_records('message', array('useridto' => $USER->id));
-    if ($messagecount<1) {
+    if ($messagecount < 1) {
         return;
     }
 
-    // Got unread messages so now do another query that joins with the user table.
+    // There are unread messages so now do a more complex but slower query.
     $namefields = get_all_user_name_fields(true, 'u');
-    $messagesql = "SELECT m.id, m.smallmessage, m.fullmessageformat, m.notification, $namefields
+    $messagesql = "SELECT m.id, m.smallmessage, m.fullmessageformat, m.notification, m.useridto, m.useridfrom, $namefields, c.blocked
                      FROM {message} m
                      JOIN {message_working} mw ON m.id=mw.unreadmessageid
                      JOIN {message_processors} p ON mw.processorid=p.id
                      JOIN {user} u ON m.useridfrom=u.id
+                     LEFT JOIN {message_contacts} c ON c.contactid = m.useridfrom
+                                                   AND c.userid = m.useridto
                     WHERE m.useridto = :userid
                       AND p.name='popup'";
 
@@ -8775,10 +8782,18 @@ function message_popup_window() {
 
     $messageusers = $DB->get_records_sql($messagesql, array('userid' => $USER->id, 'lastpopuptime' => $USER->message_lastpopup));
 
-    // If we have new messages to notify the user about.
-    if (!empty($messageusers)) {
+    $validmessages = 0;
+    foreach($messageusers as $message) {
+        if ($message->blocked) {
+            // Message is from a user who has since been blocked so just mark it read.
+            message_mark_message_read($message, time());
+        } else {
+            $validmessages++;
+        }
+    }
 
-        $strmessages = get_string('unreadnewmessages', 'message', count($messageusers));
+    if ($validmessages > 0) {
+        $strmessages = get_string('unreadnewmessages', 'message', $validmessages);
         $strgomessage = get_string('gotomessages', 'message');
         $strstaymessage = get_string('ignore', 'admin');
 

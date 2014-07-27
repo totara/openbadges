@@ -270,13 +270,16 @@ class enrol_imsenterprise_plugin extends enrol_plugin {
      * @param string $tagcontents The raw contents of the XML element
      */
     protected function process_group_tag($tagcontents) {
-        global $DB;
+        global $DB, $CFG;
 
         // Get configs.
         $truncatecoursecodes    = $this->get_config('truncatecoursecodes');
         $createnewcourses       = $this->get_config('createnewcourses');
         $createnewcategories    = $this->get_config('createnewcategories');
 
+        if ($createnewcourses) {
+            require_once("$CFG->dirroot/course/lib.php");
+        }
         // Process tag contents.
         $group = new stdClass();
         if (preg_match('{<sourcedid>.*?<id>(.+?)</id>.*?</sourcedid>}is', $tagcontents, $matches)) {
@@ -787,5 +790,16 @@ class enrol_imsenterprise_plugin extends enrol_plugin {
         }
 
         return $defaultcategoryid;
+    }
+
+    /**
+     * Is it possible to delete enrol instance via standard UI?
+     *
+     * @param object $instance
+     * @return bool
+     */
+    public function can_delete_instance($instance) {
+        $context = context_course::instance($instance->courseid);
+        return has_capability('enrol/imsenterprise:config', $context);
     }
 }
