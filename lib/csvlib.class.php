@@ -104,7 +104,7 @@ class csv_import_reader {
         // Create a temporary file and store the csv file there,
         // do not try using fgetcsv() because there is nothing
         // to split rows properly - fgetcsv() itself can not do it.
-        $tempfile = tempnam(make_temp_directory('/cvsimport'), 'tmp');
+        $tempfile = tempnam(make_temp_directory('/csvimport'), 'tmp');
         if (!$fp = fopen($tempfile, 'w+b')) {
             $this->_error = get_string('cannotsavedata', 'error');
             @unlink($tempfile);
@@ -471,6 +471,11 @@ class csv_export_writer {
      */
     protected function send_header() {
         global $CFG;
+
+        if (defined('BEHAT_SITE_RUNNING')) {
+            // For text based formats - we cannot test the output with behat if we force a file download.
+            return;
+        }
         if (strpos($CFG->wwwroot, 'https://') === 0) { //https sites - watch out for IE! KB812935 and KB316431
             header('Cache-Control: max-age=10');
             header('Pragma: ');

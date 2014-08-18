@@ -60,7 +60,6 @@ a.dimmed_text:visited,
 .course-content .section li.activity,
 .sitetopic .section li.movehere,
 .course-content .section li.movehere,
-.tabtree li {list-style: none;margin:0;padding:0;}
 
 .course-content .current {background:#E3E3E3;}
 
@@ -2119,4 +2118,9 @@ body.lockscroll {
 .progressbar_container {
     max-width: 500px;
     margin: 0 auto;
+}
+
+/* IE10 only fix for calendar titling */
+.ie10 .yui3-calendar-header-label {
+    display: inline-block;
 }

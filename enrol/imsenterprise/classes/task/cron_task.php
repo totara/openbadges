@@ -15,33 +15,40 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Outcomes report viewed event.
+ * A scheduled task.
  *
- * @package    gradereport_outcomes
- * @copyright  2014 Adrian Greeve <adrian@moodle.com>
+ * @package    enrol_imsenterprise
+ * @copyright  2014 Universite de Montreal
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-namespace gradereport_outcomes\event;
-
-defined('MOODLE_INTERNAL') || die();
+namespace enrol_imsenterprise\task;
 
 /**
- * Outcomes report viewed event class.
+ * Simple task to run the IMS Enterprise enrolment cron.
  *
- * @package    gradereport_outcomes
- * @since      Moodle 2.8
- * @copyright  2014 Adrian Greeve <adrian@moodle.com>
+ * @copyright  2014 Universite de Montreal
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class report_viewed extends \core\event\grade_report_viewed {
+class cron_task extends \core\task\scheduled_task {
 
     /**
-     * Returns localised general event name.
+     * Get a descriptive name for this task (shown to admins).
      *
      * @return string
      */
-    public static function get_name() {
-        return get_string('eventreportviewed', 'gradereport_outcomes');
+    public function get_name() {
+        return get_string('imsenterprisecrontask', 'enrol_imsenterprise');
     }
+
+    /**
+     * Do the job.
+     * Throw exceptions on errors (the job will be retried).
+     */
+    public function execute() {
+        global $CFG;
+        require_once($CFG->dirroot . '/enrol/imsenterprise/lib.php');
+        $ims = new \enrol_imsenterprise_plugin();
+        $ims->cron();
+    }
+
 }
