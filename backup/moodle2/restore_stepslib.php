@@ -1472,11 +1472,14 @@ class restore_course_structure_step extends restore_structure_step {
         $data->fullname = $fullname;
         $data->shortname= $shortname;
 
+        // Only allow the idnumber to be set if the user has permission and the idnumber is not already in use by
+        // another course on this site.
         $context = context::instance_by_id($this->task->get_contextid());
-        if (has_capability('moodle/course:changeidnumber', $context, $this->task->get_userid())) {
-            $data->idnumber = '';
+        if (!empty($data->idnumber) && has_capability('moodle/course:changeidnumber', $context, $this->task->get_userid()) &&
+                $this->task->is_samesite() && !$DB->record_exists('course', array('idnumber' => $data->idnumber))) {
+            // Do not reset idnumber.
         } else {
-            unset($data->idnumber);
+            $data->idnumber = '';
         }
 
         // Any empty value for course->hiddensections will lead to 0 (default, show collapsed).
@@ -3151,13 +3154,16 @@ class restore_module_structure_step extends restore_structure_step {
         }
         $data->instance = 0; // Set to 0 for now, going to create it soon (next step)
 
-        // If there are legacy availablility data fields (and no new format data),
-        // convert the old fields.
         if (empty($data->availability)) {
-            // If groupmembersonly is disabled on this system, convert the
-            // groupmembersonly option into the new API. Otherwise don't.
+            // If there are legacy availablility data fields (and no new format data),
+            // convert the old fields.
             $data->availability = \core_availability\info::convert_legacy_fields(
-                    $data, false, !$CFG->enablegroupmembersonly);
+                    $data, false);
+        } else if (!empty($data->groupmembersonly)) {
+            // There is current availability data, but it still has groupmembersonly
+            // as well (2.7 backups), convert just that part.
+            require_once($CFG->dirroot . '/lib/db/upgradelib.php');
+            $data->availability = upgrade_group_members_only($data->groupingid, $data->availability);
         }
 
         // course_module record ready, insert it

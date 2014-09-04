@@ -403,19 +403,19 @@ abstract class info {
      * Supported fields: availablefrom, availableuntil, showavailability
      * (and groupingid for sections).
      *
-     * If you enable $modgroupmembersonly, then it also supports the
-     * groupmembersonly field for modules. This is off by default because
-     * we are not yet moving the groupmembersonly option into this new API.
+     * It also supports the groupmembersonly field for modules. This part was
+     * optional in 2.7 but now always runs (because groupmembersonly has been
+     * removed).
      *
      * @param \stdClass $rec Object possibly containing legacy fields
      * @param bool $section True if this is a section
-     * @param bool $modgroupmembersonly True if groupmembersonly is converted for mods
+     * @param bool $modgroupmembersonlyignored Ignored option, previously used
      * @return string|null New availability value or null if none
      */
-    public static function convert_legacy_fields($rec, $section, $modgroupmembersonly = false) {
+    public static function convert_legacy_fields($rec, $section, $modgroupmembersonlyignored = false) {
         // Do nothing if the fields are not set.
         if (empty($rec->availablefrom) && empty($rec->availableuntil) &&
-                (!$modgroupmembersonly || empty($rec->groupmembersonly)) &&
+                (empty($rec->groupmembersonly)) &&
                 (!$section || empty($rec->groupingid))) {
             return null;
         }
@@ -426,7 +426,7 @@ abstract class info {
 
         // Groupmembersonly condition (if enabled) for modules, groupingid for
         // sections.
-        if (($modgroupmembersonly && !empty($rec->groupmembersonly)) ||
+        if (!empty($rec->groupmembersonly) ||
                 (!empty($rec->groupingid) && $section)) {
             if (!empty($rec->groupingid)) {
                 $conditions[] = '{"type":"grouping"' .
@@ -588,6 +588,36 @@ abstract class info {
         $result = $tree->filter_user_list($users, false, $this, $checker);
         $this->modinfo = null;
         return $result;
+    }
+
+    /**
+     * Obtains SQL that returns a list of enrolled users that has been filtered
+     * by the conditions applied in the availability API, similar to calling
+     * get_enrolled_users and then filter_user_list. As for filter_user_list,
+     * this ONLY filteres out users with conditions that are marked as applying
+     * to user lists. For example, group conditions are included but date
+     * conditions are not included.
+     *
+     * The returned SQL is a query that returns a list of user IDs. It does not
+     * include brackets, so you neeed to add these to make it into a subquery.
+     * You would normally use it in an SQL phrase like "WHERE u.id IN ($sql)".
+     *
+     * The function returns an array with '' and an empty array, if there are
+     * no restrictions on users from these conditions.
+     *
+     * The SQL will be complex and may be slow. It uses named parameters (sorry,
+     * I know they are annoying, but it was unavoidable here).
+     *
+     * @param bool $onlyactive True if including only active enrolments
+     * @return array Array of SQL code (may be empty) and params
+     */
+    public function get_user_list_sql($onlyactive) {
+        global $CFG;
+        if (is_null($this->availability) || !$CFG->enableavailability) {
+            return array('', array());
+        }
+        $tree = $this->get_availability_tree();
+        return $tree->get_user_list_sql(false, $this, $onlyactive);
     }
 
     /**

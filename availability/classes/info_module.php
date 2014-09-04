@@ -109,12 +109,35 @@ class info_module extends info {
         return parent::filter_user_list($filtered);
     }
 
+    public function get_user_list_sql($onlyactive = true) {
+        global $CFG, $DB;
+        if (!$CFG->enableavailability) {
+            return array('', array());
+        }
+
+        // Get query for section (if any) and module.
+        $section = $this->cm->get_modinfo()->get_section_info(
+                $this->cm->sectionnum, MUST_EXIST);
+        $sectioninfo = new info_section($section);
+        $sectionresult = $sectioninfo->get_user_list_sql($onlyactive);
+        $moduleresult = parent::get_user_list_sql($onlyactive);
+
+        if (!$sectionresult[0]) {
+            return $moduleresult;
+        }
+        if (!$moduleresult[0]) {
+            return $sectionresult;
+        }
+
+        return array($DB->sql_intersect(array($sectionresult[0], $moduleresult[0]), 'id'),
+                array_merge($sectionresult[1], $moduleresult[1]));
+    }
+
     /**
      * Checks if an activity is visible to the given user.
      *
      * Unlike other checks in the availability system, this check includes the
-     * $cm->visible flag and also (if enabled) the groupmembersonly feature.
-     * It is equivalent to $cm->uservisible.
+     * $cm->visible flag. It is equivalent to $cm->uservisible.
      *
      * If you have already checked (or do not care whether) the user has access
      * to the course, you can set $checkcourse to false to save it checking
@@ -158,11 +181,6 @@ class info_module extends info {
                 $cmorid = $cmorid->id;
             }
             $cm = $DB->get_record('course_modules', array('id' => $cmorid), '*', MUST_EXIST);
-        }
-
-        // Check the groupmembersonly feature.
-        if (!groups_course_module_visible($cm, $userid)) {
-            return false;
         }
 
         // If requested, check user can access the course.

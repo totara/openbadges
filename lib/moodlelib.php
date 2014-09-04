@@ -414,7 +414,10 @@ define('FEATURE_IDNUMBER', 'idnumber');
 define('FEATURE_GROUPS', 'groups');
 /** True if module supports groupings */
 define('FEATURE_GROUPINGS', 'groupings');
-/** True if module supports groupmembersonly */
+/**
+ * True if module supports groupmembersonly (which no longer exists)
+ * @deprecated Since Moodle 2.8
+ */
 define('FEATURE_GROUPMEMBERSONLY', 'groupmembersonly');
 
 /** Type of module */
@@ -3134,7 +3137,7 @@ function require_login($courseorid = null, $autologinguest = true, $cm = null, $
         }
     }
 
-    // Check visibility of activity to current user; includes visible flag, groupmembersonly, conditional availability, etc.
+    // Check visibility of activity to current user; includes visible flag, conditional availability, etc.
     if ($cm && !$cm->uservisible) {
         if ($preventredirect) {
             throw new require_login_exception('Activity is hidden');
@@ -3250,37 +3253,28 @@ function require_course_login($courseorid, $autologinguest = true, $cm = null, $
 
     } else if ($issite) {
         // Login for SITE not required.
-        if ($cm and empty($cm->visible)) {
-            // Hidden activities are not accessible without login.
-            require_login($courseorid, $autologinguest, $cm, $setwantsurltome, $preventredirect);
-        } else if ($cm and !empty($CFG->enablegroupmembersonly) and $cm->groupmembersonly) {
-            // Not-logged-in users do not have any group membership.
-            require_login($courseorid, $autologinguest, $cm, $setwantsurltome, $preventredirect);
-        } else {
-            // We still need to instatiate PAGE vars properly so that things that rely on it like navigation function correctly.
-            if (!empty($courseorid)) {
-                if (is_object($courseorid)) {
-                    $course = $courseorid;
-                } else {
-                    $course = clone($SITE);
-                }
-                if ($cm) {
-                    if ($cm->course != $course->id) {
-                        throw new coding_exception('course and cm parameters in require_course_login() call do not match!!');
-                    }
-                    $PAGE->set_cm($cm, $course);
-                    $PAGE->set_pagelayout('incourse');
-                } else {
-                    $PAGE->set_course($course);
-                }
+        // We still need to instatiate PAGE vars properly so that things that rely on it like navigation function correctly.
+        if (!empty($courseorid)) {
+            if (is_object($courseorid)) {
+                $course = $courseorid;
             } else {
-                // If $PAGE->course, and hence $PAGE->context, have not already been set up properly, set them up now.
-                $PAGE->set_course($PAGE->course);
+                $course = clone $SITE;
             }
-            // TODO: verify conditional activities here.
-            user_accesstime_log(SITEID);
-            return;
+            if ($cm) {
+                if ($cm->course != $course->id) {
+                    throw new coding_exception('course and cm parameters in require_course_login() call do not match!!');
+                }
+                $PAGE->set_cm($cm, $course);
+                $PAGE->set_pagelayout('incourse');
+            } else {
+                $PAGE->set_course($course);
+            }
+        } else {
+            // If $PAGE->course, and hence $PAGE->context, have not already been set up properly, set them up now.
+            $PAGE->set_course($PAGE->course);
         }
+        user_accesstime_log(SITEID);
+        return;
 
     } else {
         // Course login always required.
@@ -4754,13 +4748,19 @@ function update_internal_user_password($user, $password, $fasthash = false) {
         $hashedpassword = hash_internal_user_password($password, $fasthash);
     }
 
-    // If verification fails then it means the password has changed.
-    if (isset($user->password)) {
-        // While creating new user, password in unset in $user object, to avoid
-        // saving it with user_create()
+    $algorithmchanged = false;
+
+    if ($hashedpassword === AUTH_PASSWORD_NOT_CACHED) {
+        // Password is not cached, update it if not set to AUTH_PASSWORD_NOT_CACHED.
+        $passwordchanged = ($user->password !== $hashedpassword);
+
+    } else if (isset($user->password)) {
+        // If verification fails then it means the password has changed.
         $passwordchanged = !password_verify($password, $user->password);
         $algorithmchanged = password_needs_rehash($user->password, PASSWORD_DEFAULT);
     } else {
+        // While creating new user, password in unset in $user object, to avoid
+        // saving it with user_create()
         $passwordchanged = true;
     }
 
