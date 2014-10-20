@@ -104,14 +104,18 @@ class subscriptions {
      * @param int $userid The user ID
      * @param \stdClass $forum The record of the forum to test
      * @param int $discussionid The ID of the discussion to check
+     * @param $cm The coursemodule record. If not supplied, this will be calculated using get_fast_modinfo instead.
      * @return boolean
      */
-    public static function is_subscribed($userid, $forum, $discussionid = null) {
+    public static function is_subscribed($userid, $forum, $discussionid = null, $cm = null) {
         // If forum is force subscribed and has allowforcesubscribe, then user is subscribed.
-        $cm = get_coursemodule_from_instance('forum', $forum->id);
-        if ($cm && self::is_forcesubscribed($forum) &&
-                has_capability('mod/forum:allowforcesubscribe', \context_module::instance($cm->id), $userid)) {
-            return true;
+        if (self::is_forcesubscribed($forum)) {
+            if (!$cm) {
+                $cm = get_fast_modinfo($forum->course)->instances['forum'][$forum->id];
+            }
+            if (has_capability('mod/forum:allowforcesubscribe', \context_module::instance($cm->id), $userid)) {
+                return true;
+            }
         }
 
         if ($discussionid === null) {
@@ -459,6 +463,12 @@ class subscriptions {
 
         // Guest user should never be subscribed to a forum.
         unset($results[$CFG->siteguest]);
+
+        // Apply the activity module availability resetrictions.
+        $cm = get_coursemodule_from_instance('forum', $forum->id, $forum->course);
+        $modinfo = get_fast_modinfo($forum->course);
+        $info = new \core_availability\info_module($modinfo->get_cm($cm->id));
+        $results = $info->filter_user_list($results);
 
         return $results;
     }

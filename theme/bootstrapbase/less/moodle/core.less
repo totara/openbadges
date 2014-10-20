@@ -1131,9 +1131,12 @@ body.tag .managelink {
             margin-bottom: 0;
         }
     }
-    .user-enroller-panel .uep-search-results .user .details {
-       width: 237px;
-    }
+  .user-enroller-panel .uep-search-results .user .details {
+    width: 237px;
+  }
+  .user-enroller-panel .uep-search-results .cohort .details {
+    width: 237px;
+  }
 }
 .dir-rtl {
     &#page-enrol-users {
@@ -2250,4 +2253,13 @@ body.lockscroll {
 /* IE10 only fix for calendar titling */
 .ie10 .yui3-calendar-header-label {
     display: inline-block;
+}
+
+dd:before,
+dd:after {
+  display: block;
+  content: " ";
+}
+dd:after {
+  clear: both;
 }

@@ -358,16 +358,6 @@ function xmldb_main_upgrade($oldversion) {
     if ($oldversion < 2012042300.00) {
         // This change makes the course_section index unique.
 
-        // xmldb does not allow changing index uniqueness - instead we must drop
-        // index then add it again
-        $table = new xmldb_table('course_sections');
-        $index = new xmldb_index('course_section', XMLDB_INDEX_NOTUNIQUE, array('course', 'section'));
-
-        // Conditionally launch drop index course_section
-        if ($dbman->index_exists($table, $index)) {
-            $dbman->drop_index($table, $index);
-        }
-
         // Look for any duplicate course_sections entries. There should not be
         // any but on some busy systems we found a few, maybe due to previous
         // bugs.
@@ -388,6 +378,19 @@ function xmldb_main_upgrade($oldversion) {
         }
         $rs->close();
         $transaction->allow_commit();
+
+        // XMLDB does not allow changing index uniqueness - instead we must drop
+        // index then add it again.
+        // MDL-46182: The query to make the index unique uses the index,
+        // so the removal of the non-unique version needs to happen after any
+        // data changes have been made.
+        $table = new xmldb_table('course_sections');
+        $index = new xmldb_index('course_section', XMLDB_INDEX_NOTUNIQUE, array('course', 'section'));
+
+        // Conditionally launch drop index course_section.
+        if ($dbman->index_exists($table, $index)) {
+            $dbman->drop_index($table, $index);
+        }
 
         // Define index course_section (unique) to be added to course_sections
         $index = new xmldb_index('course_section', XMLDB_INDEX_UNIQUE, array('course', 'section'));
@@ -3788,6 +3791,231 @@ function xmldb_main_upgrade($oldversion) {
         $transaction->allow_commit();
 
         upgrade_main_savepoint(true, 2014082900.02);
+    }
+
+    if ($oldversion < 2014100100.00) {
+
+        // Define table messageinbound_handlers to be created.
+        $table = new xmldb_table('messageinbound_handlers');
+
+        // Adding fields to table messageinbound_handlers.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('component', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('classname', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('defaultexpiration', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '86400');
+        $table->add_field('validateaddress', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1');
+        $table->add_field('enabled', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+
+        // Adding keys to table messageinbound_handlers.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_key('classname', XMLDB_KEY_UNIQUE, array('classname'));
+
+        // Conditionally launch create table for messageinbound_handlers.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Define table messageinbound_datakeys to be created.
+        $table = new xmldb_table('messageinbound_datakeys');
+
+        // Adding fields to table messageinbound_datakeys.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('handler', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('datavalue', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('datakey', XMLDB_TYPE_CHAR, '64', null, null, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('expires', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+
+        // Adding keys to table messageinbound_datakeys.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_key('handler_datavalue', XMLDB_KEY_UNIQUE, array('handler', 'datavalue'));
+        $table->add_key('handler', XMLDB_KEY_FOREIGN, array('handler'), 'messageinbound_handlers', array('id'));
+
+        // Conditionally launch create table for messageinbound_datakeys.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2014100100.00);
+    }
+
+    if ($oldversion < 2014100600.01) {
+        // Define field aggregationstatus to be added to grade_grades.
+        $table = new xmldb_table('grade_grades');
+        $field = new xmldb_field('aggregationstatus', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'unknown', 'timemodified');
+
+        // Conditionally launch add field aggregationstatus.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('aggregationweight', XMLDB_TYPE_NUMBER, '10, 5', null, null, null, null, 'aggregationstatus');
+
+        // Conditionally launch add field aggregationweight.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Define field aggregationcoef2 to be added to grade_items.
+        $table = new xmldb_table('grade_items');
+        $field = new xmldb_field('aggregationcoef2', XMLDB_TYPE_NUMBER, '10, 5', null, XMLDB_NOTNULL, null, '0', 'aggregationcoef');
+
+        // Conditionally launch add field aggregationcoef2.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('weightoverride', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'needsupdate');
+
+        // Conditionally launch add field weightoverride.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2014100600.01);
+    }
+
+    if ($oldversion < 2014100600.02) {
+
+        // Define field aggregationcoef2 to be added to grade_items_history.
+        $table = new xmldb_table('grade_items_history');
+        $field = new xmldb_field('aggregationcoef2', XMLDB_TYPE_NUMBER, '10, 5', null, XMLDB_NOTNULL, null, '0', 'aggregationcoef');
+
+        // Conditionally launch add field aggregationcoef2.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2014100600.02);
+    }
+
+    if ($oldversion < 2014100600.03) {
+
+        // Define field weightoverride to be added to grade_items_history.
+        $table = new xmldb_table('grade_items_history');
+        $field = new xmldb_field('weightoverride', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'decimals');
+
+        // Conditionally launch add field weightoverride.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2014100600.03);
+    }
+    if ($oldversion < 2014100600.04) {
+        // Set flags so we can display a notice on all courses that might
+        // be affected by the uprade to natural aggregation.
+        if (!get_config('grades_sumofgrades_upgrade_flagged', 'core')) {
+            // 13 == SUM_OF_GRADES.
+            $sql = 'SELECT DISTINCT courseid
+                      FROM {grade_categories}
+                     WHERE aggregation = ?';
+            $courses = $DB->get_records_sql($sql, array(13));
+
+            foreach ($courses as $course) {
+                set_config('show_sumofgrades_upgrade_' . $course->courseid, 1);
+                // Set each of the grade items to needing an update so that when the user visits the grade reports the
+                // figures will be updated.
+                $DB->set_field('grade_items', 'needsupdate', 1, array('courseid' => $course->courseid));
+            }
+
+            set_config('grades_sumofgrades_upgrade_flagged', 1);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2014100600.04);
+    }
+
+    if ($oldversion < 2014100700.00) {
+
+        // Define table messageinbound_messagelist to be created.
+        $table = new xmldb_table('messageinbound_messagelist');
+
+        // Adding fields to table messageinbound_messagelist.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('messageid', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('address', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
+        // Adding keys to table messageinbound_messagelist.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_key('userid', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
+
+        // Conditionally launch create table for messageinbound_messagelist.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2014100700.00);
+    }
+
+    if ($oldversion < 2014100700.01) {
+
+        // Define field visible to be added to cohort.
+        $table = new xmldb_table('cohort');
+        $field = new xmldb_field('visible', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'descriptionformat');
+
+        // Conditionally launch add field visible.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2014100700.01);
+    }
+
+    if ($oldversion < 2014100800.00) {
+        // Remove qformat_learnwise (unless it has manually been added back).
+        if (!file_exists($CFG->dirroot . '/question/format/learnwise/format.php')) {
+            unset_all_config_for_plugin('qformat_learnwise');
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2014100800.00);
+    }
+
+    if ($oldversion < 2014101001.00) {
+        // Some blocks added themselves to the my/ home page, but they did not declare the
+        // subpage of the default my home page. While the upgrade script has been fixed, this
+        // upgrade script will fix the data that was wrongly added.
+
+        // We only proceed if we can find the right entry from my_pages. Private => 1 refers to
+        // the constant value MY_PAGE_PRIVATE.
+        if ($systempage = $DB->get_record('my_pages', array('userid' => null, 'private' => 1))) {
+
+            // Select the blocks there could have been automatically added. showinsubcontexts is hardcoded to 0
+            // because it is possible for administrators to have forced it on the my/ page by adding it to the
+            // system directly rather than updating the default my/ page.
+            $blocks = array('course_overview', 'private_files', 'online_users', 'badges', 'calendar_month', 'calendar_upcoming');
+            list($blocksql, $blockparams) = $DB->get_in_or_equal($blocks, SQL_PARAMS_NAMED);
+            $select = "parentcontextid = :contextid
+                    AND pagetypepattern = :page
+                    AND showinsubcontexts = 0
+                    AND subpagepattern IS NULL
+                    AND blockname $blocksql";
+            $params = array(
+                'contextid' => context_system::instance()->id,
+                'page' => 'my-index'
+            );
+            $params = array_merge($params, $blockparams);
+
+            $DB->set_field_select(
+                'block_instances',
+                'subpagepattern',
+                $systempage->id,
+                $select,
+                $params
+            );
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2014101001.00);
     }
 
     return true;

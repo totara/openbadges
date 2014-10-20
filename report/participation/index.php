@@ -265,7 +265,7 @@ if (!empty($instanceid) && !empty($roleid)) {
 
     // Get record from sql_internal_reader and merge with records got from legacy log (if needed).
     if (!$onlyuselegacyreader) {
-        $sql = "SELECT ra.userid, $usernamefields, u.idnumber, l.actioncount AS count
+        $sql = "SELECT ra.userid, $usernamefields, u.idnumber, COUNT(l.actioncount) AS count
                   FROM (SELECT DISTINCT userid FROM {role_assignments} WHERE contextid $relatedctxsql AND roleid = :roleid ) ra
                   JOIN {user} u ON u.id = ra.userid
              $groupsql
@@ -278,7 +278,9 @@ if (!empty($instanceid) && !empty($roleid)) {
                        AND anonymous = 0
                        AND contextlevel = :contextlevel
                        AND (origin = 'web' OR origin = 'ws')
-                  GROUP BY userid) l ON (l.userid = ra.userid)";
+                  GROUP BY userid,timecreated) l ON (l.userid = ra.userid)";
+        // We add this after the WHERE statement that may come below.
+        $groupbysql = " GROUP BY ra.userid, $usernamefields, u.idnumber";
 
         $params['edulevel'] = core\event\base::LEVEL_PARTICIPATING;
         $params['contextlevel'] = CONTEXT_MODULE;
@@ -286,7 +288,7 @@ if (!empty($instanceid) && !empty($roleid)) {
         if ($twhere) {
             $sql .= ' WHERE '.$twhere; // Initial bar.
         }
-
+        $sql .= $groupbysql;
         if ($table->get_sql_sort()) {
             $sql .= ' ORDER BY '.$table->get_sql_sort();
         }

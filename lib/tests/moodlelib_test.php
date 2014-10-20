@@ -656,6 +656,8 @@ class core_moodlelib_testcase extends advanced_testcase {
         $this->assertSame('john@doe', clean_param('john@doe', PARAM_USERNAME));
         $this->assertSame('johndoe', clean_param('john~doe', PARAM_USERNAME));
         $this->assertSame('johndoe', clean_param('john´doe', PARAM_USERNAME));
+        $this->assertSame(clean_param('john# $%&()+_^', PARAM_USERNAME), 'john_');
+        $this->assertSame(clean_param(' john# $%&()+_^ ', PARAM_USERNAME), 'john_');
         $this->assertSame(clean_param('john#$%&() ', PARAM_USERNAME), 'john');
         $this->assertSame('johnd', clean_param('JOHNdóé ', PARAM_USERNAME));
         $this->assertSame(clean_param('john.,:;-_/|\ñÑ[]A_X-,D {} ~!@#$%^&*()_+ ?><[] ščřžžý ?ýá?ý??doe ', PARAM_USERNAME), 'john.-_a_x-d@_doe');
@@ -664,7 +666,8 @@ class core_moodlelib_testcase extends advanced_testcase {
         $CFG->extendedusernamechars = true;
         $this->assertSame('john_doe', clean_param('john_doe', PARAM_USERNAME));
         $this->assertSame('john@doe', clean_param('john@doe', PARAM_USERNAME));
-        $this->assertSame(clean_param('john# $%&()+_^', PARAM_USERNAME), 'john#$%&()+_^');
+        $this->assertSame(clean_param('john# $%&()+_^', PARAM_USERNAME), 'john# $%&()+_^');
+        $this->assertSame(clean_param(' john# $%&()+_^ ', PARAM_USERNAME), 'john# $%&()+_^');
         $this->assertSame('john~doe', clean_param('john~doe', PARAM_USERNAME));
         $this->assertSame('john´doe', clean_param('joHN´doe', PARAM_USERNAME));
         $this->assertSame('johndoe', clean_param('johnDOE', PARAM_USERNAME));
@@ -2321,6 +2324,7 @@ class core_moodlelib_testcase extends advanced_testcase {
         // Back up config settings for restore later.
         $originalcfg = new stdClass();
         $originalcfg->fullnamedisplay = $CFG->fullnamedisplay;
+        $originalcfg->alternativefullnameformat = $CFG->alternativefullnameformat;
 
         // Testing existing fullnamedisplay settings.
         $CFG->fullnamedisplay = 'firstname';
@@ -2345,6 +2349,25 @@ class core_moodlelib_testcase extends advanced_testcase {
         // Test override parameter.
         $CFG->fullnamedisplay = 'firstname';
         $expectedname = "$user->firstname $user->lastname";
+        $testname = fullname($user, true);
+        $this->assertSame($expectedname, $testname);
+
+        // Test alternativefullnameformat setting.
+        // Test alternativefullnameformat that has been set to nothing.
+        $CFG->alternativefullnameformat = '';
+        $expectedname = "$user->firstname $user->lastname";
+        $testname = fullname($user, true);
+        $this->assertSame($expectedname, $testname);
+
+        // Test alternativefullnameformat that has been set to 'language'.
+        $CFG->alternativefullnameformat = 'language';
+        $expectedname = "$user->firstname $user->lastname";
+        $testname = fullname($user, true);
+        $this->assertSame($expectedname, $testname);
+
+        // Test customising the alternativefullnameformat setting with all additional name fields.
+        $CFG->alternativefullnameformat = 'firstname lastname firstnamephonetic lastnamephonetic middlename alternatename';
+        $expectedname = "$user->firstname $user->lastname $user->firstnamephonetic $user->lastnamephonetic $user->middlename $user->alternatename";
         $testname = fullname($user, true);
         $this->assertSame($expectedname, $testname);
 
@@ -2428,6 +2451,7 @@ class core_moodlelib_testcase extends advanced_testcase {
 
         // Tidy up after we finish testing.
         $CFG->fullnamedisplay = $originalcfg->fullnamedisplay;
+        $CFG->alternativefullnameformat = $originalcfg->alternativefullnameformat;
     }
 
     public function test_get_all_user_name_fields() {
@@ -2462,6 +2486,21 @@ class core_moodlelib_testcase extends advanced_testcase {
         // Additional name fields with an alias and a title - string.
         $teststring = 'u.firstnamephonetic AS authorfirstnamephonetic,u.lastnamephonetic AS authorlastnamephonetic,u.middlename AS authormiddlename,u.alternatename AS authoralternatename,u.firstname AS authorfirstname,u.lastname AS authorlastname';
         $this->assertEquals($teststring, get_all_user_name_fields(true, 'u', null, 'author'));
+
+        // Test the order parameter of the function.
+        // Returning an array.
+        $testarray = array('firstname' => 'firstname',
+                'lastname' => 'lastname',
+                'firstnamephonetic' => 'firstnamephonetic',
+                'lastnamephonetic' => 'lastnamephonetic',
+                'middlename' => 'middlename',
+                'alternatename' => 'alternatename'
+        );
+        $this->assertEquals($testarray, get_all_user_name_fields(false, null, null, null, true));
+
+        // Returning a string.
+        $teststring = 'firstname,lastname,firstnamephonetic,lastnamephonetic,middlename,alternatename';
+        $this->assertEquals($teststring, get_all_user_name_fields(true, null, null, null, true));
     }
 
     public function test_order_in_string() {
@@ -2777,5 +2816,30 @@ class core_moodlelib_testcase extends advanced_testcase {
 
         $count = count_words('one…two ブルース … カンベッル');
         $this->assertEquals(4, $count);
+    }
+    /**
+     * Tests the getremoteaddr() function.
+     */
+    public function test_getremoteaddr() {
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = '';
+        $noip = getremoteaddr('1.1.1.1');
+        $this->assertEquals('1.1.1.1', $noip);
+
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = '';
+        $noip = getremoteaddr();
+        $this->assertEquals('0.0.0.0', $noip);
+
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = '127.0.0.1';
+        $singleip = getremoteaddr();
+        $this->assertEquals('127.0.0.1', $singleip);
+
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = '127.0.0.1,127.0.0.2';
+        $twoip = getremoteaddr();
+        $this->assertEquals('127.0.0.1', $twoip);
+
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = '127.0.0.1,127.0.0.2, 127.0.0.3';
+        $threeip = getremoteaddr();
+        $this->assertEquals('127.0.0.1', $threeip);
+
     }
 }

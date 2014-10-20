@@ -81,6 +81,24 @@ class mod_forum_external_testcase extends externallib_advanced_testcase {
         $record->course = $course2->id;
         $forum2 = self::getDataGenerator()->create_module('forum', $record);
 
+        // Add discussions to the forums.
+        $record = new stdClass();
+        $record->course = $course1->id;
+        $record->userid = $user->id;
+        $record->forum = $forum1->id;
+        $discussion1 = self::getDataGenerator()->get_plugin_generator('mod_forum')->create_discussion($record);
+        // Expect one discussion.
+        $forum1->numdiscussions = 1;
+
+        $record = new stdClass();
+        $record->course = $course2->id;
+        $record->userid = $user->id;
+        $record->forum = $forum2->id;
+        $discussion2 = self::getDataGenerator()->get_plugin_generator('mod_forum')->create_discussion($record);
+        $discussion3 = self::getDataGenerator()->get_plugin_generator('mod_forum')->create_discussion($record);
+        // Expect two discussions.
+        $forum2->numdiscussions = 2;
+
         // Check the forum was correctly created.
         $this->assertEquals(2, $DB->count_records_select('forum', 'id = :forum1 OR id = :forum2',
                 array('forum1' => $forum1->id, 'forum2' => $forum2->id)));
@@ -464,18 +482,22 @@ class mod_forum_external_testcase extends externallib_advanced_testcase {
             'posts' => array(),
             'warnings' => array(),
         );
+
+        $userpictureurl = moodle_url::make_webservice_pluginfile_url(
+            context_user::instance($discussion1reply2->userid)->id, 'user', 'icon', null, '/', 'f1')->out(false);
+
         $expectedposts['posts'][] = array(
             'id' => $discussion1reply2->id,
             'discussion' => $discussion1reply2->discussion,
             'parent' => $discussion1reply2->parent,
-            'userid' => $discussion1reply2->userid,
+            'userid' => (int) $discussion1reply2->userid,
             'created' => $discussion1reply2->created,
             'modified' => $discussion1reply2->modified,
             'mailed' => $discussion1reply2->mailed,
             'subject' => $discussion1reply2->subject,
             'message' => file_rewrite_pluginfile_urls($discussion1reply2->message, 'pluginfile.php',
                     $forum1context->id, 'mod_forum', 'post', $discussion1reply2->id),
-            'messageformat' => $discussion1reply2->messageformat,
+            'messageformat' => 1,   // This value is usually changed by external_format_text() function.
             'messagetrust' => $discussion1reply2->messagetrust,
             'attachment' => $discussion1reply2->attachment,
             'totalscore' => $discussion1reply2->totalscore,
@@ -483,20 +505,25 @@ class mod_forum_external_testcase extends externallib_advanced_testcase {
             'children' => array(),
             'canreply' => true,
             'postread' => false,
-            'userfullname' => fullname($user3)
+            'userfullname' => fullname($user3),
+            'userpictureurl' => $userpictureurl
         );
+
+        $userpictureurl = moodle_url::make_webservice_pluginfile_url(
+            context_user::instance($discussion1reply1->userid)->id, 'user', 'icon', null, '/', 'f1')->out(false);
+
         $expectedposts['posts'][] = array(
             'id' => $discussion1reply1->id,
             'discussion' => $discussion1reply1->discussion,
             'parent' => $discussion1reply1->parent,
-            'userid' => $discussion1reply1->userid,
+            'userid' => (int) $discussion1reply1->userid,
             'created' => $discussion1reply1->created,
             'modified' => $discussion1reply1->modified,
             'mailed' => $discussion1reply1->mailed,
             'subject' => $discussion1reply1->subject,
             'message' => file_rewrite_pluginfile_urls($discussion1reply1->message, 'pluginfile.php',
                     $forum1context->id, 'mod_forum', 'post', $discussion1reply1->id),
-            'messageformat' => $discussion1reply1->messageformat,
+            'messageformat' => 1,   // This value is usually changed by external_format_text() function.
             'messagetrust' => $discussion1reply1->messagetrust,
             'attachment' => $discussion1reply1->attachment,
             'totalscore' => $discussion1reply1->totalscore,
@@ -504,7 +531,8 @@ class mod_forum_external_testcase extends externallib_advanced_testcase {
             'children' => array($discussion1reply2->id),
             'canreply' => true,
             'postread' => false,
-            'userfullname' => fullname($user2)
+            'userfullname' => fullname($user2),
+            'userpictureurl' => $userpictureurl
         );
 
         // Test a discussion with two additional posts (total 3 posts).
@@ -521,5 +549,147 @@ class mod_forum_external_testcase extends externallib_advanced_testcase {
         $posts = external_api::clean_returnvalue(mod_forum_external::get_forum_discussion_posts_returns(), $posts);
         $this->assertEquals(1, count($posts['posts']));
 
+    }
+
+    /**
+     * Test get forum discussions paginated
+     */
+    public function test_mod_forum_get_forum_discussions_paginated() {
+        global $USER, $CFG, $DB;
+
+        $this->resetAfterTest(true);
+
+        // Set the CFG variable to allow track forums.
+        $CFG->forum_trackreadposts = true;
+
+        // Create a user who can track forums.
+        $record = new stdClass();
+        $record->trackforums = true;
+        $user1 = self::getDataGenerator()->create_user($record);
+        // Create a bunch of other users to post.
+        $user2 = self::getDataGenerator()->create_user();
+        $user3 = self::getDataGenerator()->create_user();
+        $user4 = self::getDataGenerator()->create_user();
+
+        // Set the first created user to the test user.
+        self::setUser($user1);
+
+        // Create courses to add the modules.
+        $course1 = self::getDataGenerator()->create_course();
+
+        // First forum with tracking off.
+        $record = new stdClass();
+        $record->course = $course1->id;
+        $record->trackingtype = FORUM_TRACKING_OFF;
+        $forum1 = self::getDataGenerator()->create_module('forum', $record);
+
+        // Add discussions to the forums.
+        $record = new stdClass();
+        $record->course = $course1->id;
+        $record->userid = $user1->id;
+        $record->forum = $forum1->id;
+        $discussion1 = self::getDataGenerator()->get_plugin_generator('mod_forum')->create_discussion($record);
+
+        // Add three replies to the discussion 1 from different users.
+        $record = new stdClass();
+        $record->discussion = $discussion1->id;
+        $record->parent = $discussion1->firstpost;
+        $record->userid = $user2->id;
+        $discussion1reply1 = self::getDataGenerator()->get_plugin_generator('mod_forum')->create_post($record);
+
+        $record->parent = $discussion1reply1->id;
+        $record->userid = $user3->id;
+        $discussion1reply2 = self::getDataGenerator()->get_plugin_generator('mod_forum')->create_post($record);
+
+        $record->userid = $user4->id;
+        $discussion1reply3 = self::getDataGenerator()->get_plugin_generator('mod_forum')->create_post($record);
+
+        // Enrol the user in the first course.
+        $enrol = enrol_get_plugin('manual');
+
+        // We don't use the dataGenerator as we need to get the $instance2 to unenrol later.
+        $enrolinstances = enrol_get_instances($course1->id, true);
+        foreach ($enrolinstances as $courseenrolinstance) {
+            if ($courseenrolinstance->enrol == "manual") {
+                $instance1 = $courseenrolinstance;
+                break;
+            }
+        }
+        $enrol->enrol_user($instance1, $user1->id);
+
+        // Assign capabilities to view discussions for forum 1.
+        $cm = get_coursemodule_from_id('forum', $forum1->cmid, 0, false, MUST_EXIST);
+        $context = context_module::instance($cm->id);
+        $newrole = create_role('Role 2', 'role2', 'Role 2 description');
+        $this->assignUserCapability('mod/forum:viewdiscussion', $context->id, $newrole);
+
+        // Create what we expect to be returned when querying the forums.
+
+        $post1 = $DB->get_record('forum_posts', array('id' => $discussion1->firstpost), '*', MUST_EXIST);
+        $userpictureurl = moodle_url::make_pluginfile_url(
+                    context_user::instance($user1->id)->id, 'user', 'icon', null, '/', 'f1');
+        $userpictureurl = str_replace("pluginfile.php", "webservice/pluginfile.php", $userpictureurl);
+
+        $usermodifiedpictureurl = moodle_url::make_pluginfile_url(
+                    context_user::instance($user4->id)->id, 'user', 'icon', null, '/', 'f1');
+        $usermodifiedpictureurl = str_replace("pluginfile.php", "webservice/pluginfile.php", $usermodifiedpictureurl);
+
+        $expecteddiscussions = array(
+                'id' => $discussion1->firstpost,
+                'name' => $discussion1->name,
+                'groupid' => $discussion1->groupid,
+                'timemodified' => $discussion1reply3->created,
+                'usermodified' => $discussion1reply3->userid,
+                'timestart' => $discussion1->timestart,
+                'timeend' => $discussion1->timeend,
+                'discussion' => $discussion1->id,
+                'parent' => 0,
+                'userid' => $discussion1->userid,
+                'created' => $post1->created,
+                'modified' => $post1->modified,
+                'mailed' => $post1->mailed,
+                'subject' => $post1->subject,
+                'message' => $post1->message,
+                'messageformat' => $post1->messageformat,
+                'messagetrust' => $post1->messagetrust,
+                'attachment' => $post1->attachment,
+                'totalscore' => $post1->totalscore,
+                'mailnow' => $post1->mailnow,
+                'userfullname' => fullname($user1),
+                'usermodifiedfullname' => fullname($user4),
+                'userpictureurl' => $userpictureurl,
+                'usermodifiedpictureurl' => $usermodifiedpictureurl,
+                'numreplies' => 3,
+                'numunread' => 0
+            );
+
+        // Call the external function passing forum id.
+        $discussions = mod_forum_external::get_forum_discussions_paginated($forum1->id);
+        $discussions = external_api::clean_returnvalue(mod_forum_external::get_forum_discussions_paginated_returns(), $discussions);
+        $expectedreturn = array(
+            'discussions' => array($expecteddiscussions),
+            'warnings' => array()
+        );
+        $this->assertEquals($expectedreturn, $discussions);
+
+        // Call without required view discussion capability.
+        $this->unassignUserCapability('mod/forum:viewdiscussion', $context->id, $newrole);
+        try {
+            mod_forum_external::get_forum_discussions_paginated($forum1->id);
+            $this->fail('Exception expected due to missing capability.');
+        } catch (moodle_exception $e) {
+            $this->assertEquals('noviewdiscussionspermission', $e->errorcode);
+        }
+
+        // Unenrol user from second course.
+        $enrol->unenrol_user($instance1, $user1->id);
+
+        // Call for the second course we unenrolled the user from, make sure exception thrown.
+        try {
+            mod_forum_external::get_forum_discussions_paginated($forum1->id);
+            $this->fail('Exception expected due to being unenrolled from the course.');
+        } catch (moodle_exception $e) {
+            $this->assertEquals('requireloginerror', $e->errorcode);
+        }
     }
 }

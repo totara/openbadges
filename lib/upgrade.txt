@@ -13,6 +13,18 @@ information provided here is intended especially for developers.
 * New function cm_info::create($cm) can be used when you need a cm_info
   object, but have a $cm which might only be a standard database record.
 * $CFG->enablegroupmembersonly no longer exists.
+* Scheduled tasks have gained support for syntax to introduce variability when a
+  task will run across installs. When a when hour or minute are defined as 'R'
+  they will be installed with a random hour/minute value.
+* Several classes grade_edit_tree_column_xxx were removed since grades setup page
+  has been significantly changed. These classes should not be used outside of
+  gradebook or developers can copy them into their plugins from 2.7 branch.
+* Google APIs Client Library (lib/google/) has been upgraded to 1.0.5-beta and
+  API has changed dramatically without backward compatibility. Any code accessing
+  it must be amended. It does not apply to lib/googleapi.php. See MDL-47297
+* Added an extra parameter to the function get_formatted_help_string() (default null) which is used to specify
+  additional string parameters.
+* User settings node and course node in navigation now support callbacks from admin tools.
 
 DEPRECATIONS:
 * completion_info->get_incomplete_criteria() is deprecated and will be removed in Moodle 3.0.
@@ -28,6 +40,12 @@ DEPRECATIONS:
   access the activity.
 * Constant FEATURE_GROUPMEMBERSONLY (used in module _supports functions) is
   deprecated.
+* cohort_get_visible_list() is deprecated. There is a better function cohort_get_available_cohorts()
+  that respects user capabilities to view cohorts.
+* enrol_cohort_get_cohorts() and enrol_cohort_search_cohorts() are deprecated since
+  functionality is removed. Please use cohort_get_available_cohorts()
+* enrol_cohort_enrol_all_users() is deprecated; enrol_manual is now responsible for this action
+* enrol_cohort_can_view_cohort() is deprecated; replace with cohort_can_view_cohort()
 
 === 2.6.4 / 2.7.1 ===
 

@@ -198,7 +198,7 @@ class tree extends tree_node {
 
         // For unit tests, also allow the mock plugin type (even though it
         // isn't configured in the code as a proper plugin).
-        if (defined('PHPUNIT_TEST')) {
+        if (PHPUNIT_TEST) {
             $enabled['mock'] = true;
         }
 
@@ -606,16 +606,28 @@ class tree extends tree_node {
     public function save() {
         $result = new \stdClass();
         $result->op = $this->op;
-        if ($this->op === self::OP_AND || $this->op === self::OP_NOT_OR) {
-            $result->showc = $this->showchildren;
-        } else {
-            $result->show = $this->show;
+        // Only root tree has the 'show' options.
+        if ($this->root) {
+            if ($this->op === self::OP_AND || $this->op === self::OP_NOT_OR) {
+                $result->showc = $this->showchildren;
+            } else {
+                $result->show = $this->show;
+            }
         }
         $result->c = array();
         foreach ($this->children as $child) {
             $result->c[] = $child->save();
         }
         return $result;
+    }
+
+    /**
+     * Checks whether this tree is empty (contains no children).
+     *
+     * @return boolean True if empty
+     */
+    public function is_empty() {
+        return count($this->children) === 0;
     }
 
     /**
