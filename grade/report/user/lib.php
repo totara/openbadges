@@ -236,16 +236,6 @@ class grade_report_user extends grade_report {
         // Grab the grade_tree for this course
         $this->gtree = new grade_tree($this->courseid, false, $this->switch, null, !$CFG->enableoutcomes);
 
-        // Determine the number of rows and indentation
-        $this->maxdepth = 1;
-        $this->inject_rowspans($this->gtree->top_element);
-        $this->maxdepth++; // Need to account for the lead column that spans all children
-        for ($i = 1; $i <= $this->maxdepth; $i++) {
-            $this->evenodd[$i] = 0;
-        }
-
-        $this->tabledata = array();
-
         // Get the user (for full name).
         $this->user = $DB->get_record('user', array('id' => $userid));
 
@@ -258,6 +248,16 @@ class grade_report_user extends grade_report {
             $this->modinfo = $this->gtree->modinfo;
             $this->canviewhidden = has_capability('moodle/grade:viewhidden', $coursecontext);
         }
+
+        // Determine the number of rows and indentation.
+        $this->maxdepth = 1;
+        $this->inject_rowspans($this->gtree->top_element);
+        $this->maxdepth++; // Need to account for the lead column that spans all children.
+        for ($i = 1; $i <= $this->maxdepth; $i++) {
+            $this->evenodd[$i] = 0;
+        }
+
+        $this->tabledata = array();
 
         // base url for sorting by first/last name
         $this->baseurl = $CFG->wwwroot.'/grade/report?id='.$courseid.'&amp;userid='.$userid;
@@ -287,7 +287,15 @@ class grade_report_user extends grade_report {
         $count = 1;
 
         foreach ($element['children'] as $key=>$child) {
-            $count += $this->inject_rowspans($element['children'][$key]);
+            // If category is hidden then do not include it in the rowspan.
+            if ($child['type'] == 'category' && $child['object']->is_hidden() && !$this->canviewhidden
+                    && ($this->showhiddenitems == GRADE_REPORT_USER_HIDE_HIDDEN
+                    || ($this->showhiddenitems == GRADE_REPORT_USER_HIDE_UNTIL && !$child['object']->is_hiddenuntil()))) {
+                // Just calculate the rowspans for children of this category, don't add them to the count.
+                $this->inject_rowspans($element['children'][$key]);
+            } else {
+                $count += $this->inject_rowspans($element['children'][$key]);
+            }
         }
 
         $element['rowspan'] = $count;
@@ -377,7 +385,7 @@ class grade_report_user extends grade_report {
         $grade_object = $element['object'];
         $eid = $grade_object->id;
         $element['userid'] = $this->user->id;
-        $fullname = $this->gtree->get_element_header($element, true, true, true, true);
+        $fullname = $this->gtree->get_element_header($element, true, true, true, true, true);
         $data = array();
         $hidden = '';
         $excluded = '';
@@ -438,6 +446,32 @@ class grade_report_user extends grade_report {
                 }
             }
 
+            // Actual Grade - We need to calculate this whether the row is hidden or not.
+            $gradeval = $grade_grade->finalgrade;
+            $hint = $grade_grade->get_aggregation_hint();
+            if (!$this->canviewhidden) {
+                /// Virtual Grade (may be calculated excluding hidden items etc).
+                $adjustedgrade = $this->blank_hidden_total_and_adjust_bounds($this->courseid,
+                                                                             $grade_grade->grade_item,
+                                                                             $gradeval);
+
+                $gradeval = $adjustedgrade['grade'];
+
+                // We temporarily adjust the view of this grade item - because the min and
+                // max are affected by the hidden values in the aggregation.
+                $grade_grade->grade_item->grademax = $adjustedgrade['grademax'];
+                $grade_grade->grade_item->grademin = $adjustedgrade['grademin'];
+                $hint['status'] = $adjustedgrade['aggregationstatus'];
+                $hint['weight'] = $adjustedgrade['aggregationweight'];
+            } else {
+                // The max and min for an aggregation may be different to the grade_item.
+                if (!is_null($gradeval)) {
+                    $grade_grade->grade_item->grademax = $grade_grade->rawgrademax;
+                    $grade_grade->grade_item->grademin = $grade_grade->rawgrademin;
+                }
+            }
+
+
             if (!$hide) {
                 /// Excluded Item
                 /**
@@ -464,31 +498,6 @@ class grade_report_user extends grade_report {
                 $data['itemname']['colspan'] = ($this->maxdepth - $depth);
                 $data['itemname']['celltype'] = 'th';
                 $data['itemname']['id'] = $header_row;
-
-                /// Actual Grade
-                $gradeval = $grade_grade->finalgrade;
-                $hint = $grade_grade->get_aggregation_hint();
-                if (!$this->canviewhidden) {
-                    /// Virtual Grade (may be calculated excluding hidden items etc).
-                    $adjustedgrade = $this->blank_hidden_total_and_adjust_bounds($this->courseid,
-                                                                                 $grade_grade->grade_item,
-                                                                                 $gradeval);
-
-                    $gradeval = $adjustedgrade['grade'];
-
-                    // We temporarily adjust the view of this grade item - because the min and
-                    // max are affected by the hidden values in the aggregation.
-                    $grade_grade->grade_item->grademax = $adjustedgrade['grademax'];
-                    $grade_grade->grade_item->grademin = $adjustedgrade['grademin'];
-                    $hint['status'] = $adjustedgrade['aggregationstatus'];
-                    $hint['weight'] = $adjustedgrade['aggregationweight'];
-                } else {
-                    // The max and min for an aggregation may be different to the grade_item.
-                    if (!is_null($gradeval)) {
-                        $grade_grade->grade_item->grademax = $grade_grade->rawgrademax;
-                        $grade_grade->grade_item->grademin = $grade_grade->rawgrademin;
-                    }
-                }
 
                 if ($this->showfeedback) {
                     // Copy $class before appending itemcenter as feedback should not be centered
@@ -641,16 +650,19 @@ class grade_report_user extends grade_report {
                     $data['contributiontocoursetotal']['content'] = '-';
                     $data['contributiontocoursetotal']['headers'] = "$header_cat $header_row contributiontocoursetotal";
 
-                    $hint['grademax'] = $grade_grade->grade_item->grademax;
-                    $hint['grademin'] = $grade_grade->grade_item->grademin;
-                    $hint['grade'] = $gradeval;
-                    $parent = $grade_object->load_parent_category();
-                    if ($grade_object->is_category_item()) {
-                        $parent = $parent->load_parent_category();
-                    }
-                    $hint['parent'] = $parent->load_grade_item()->id;
-                    $this->aggregationhints[$grade_grade->itemid] = $hint;
                 }
+            }
+            // We collect the aggregation hints whether they are hidden or not.
+            if ($this->showcontributiontocoursetotal) {
+                $hint['grademax'] = $grade_grade->grade_item->grademax;
+                $hint['grademin'] = $grade_grade->grade_item->grademin;
+                $hint['grade'] = $gradeval;
+                $parent = $grade_object->load_parent_category();
+                if ($grade_object->is_category_item()) {
+                    $parent = $parent->load_parent_category();
+                }
+                $hint['parent'] = $parent->load_grade_item()->id;
+                $this->aggregationhints[$grade_grade->itemid] = $hint;
             }
         }
 
@@ -727,9 +739,14 @@ class grade_report_user extends grade_report {
 
                 // Multiply the normalised value by the weight
                 // of all the categories higher in the tree.
+                $parent = null;
                 do {
                     if (!is_null($this->aggregationhints[$itemid]['weight'])) {
                         $gradeval *= $this->aggregationhints[$itemid]['weight'];
+                    } else if (empty($parent)) {
+                        // If we are in the first loop, and the weight is null, then we cannot calculate the contribution.
+                        $gradeval = null;
+                        break;
                     }
 
                     // The second part of this if is to prevent infinite loops
@@ -743,8 +760,12 @@ class grade_report_user extends grade_report {
                         $parent = false;
                     }
                 } while ($parent);
+
                 // Finally multiply by the course grademax.
-                $gradeval *= $this->aggregationhints[$itemid]['grademax'];
+                if (!is_null($gradeval)) {
+                    // Convert to percent.
+                    $gradeval *= 100;
+                }
 
                 // Now we need to loop through the "built" table data and update the
                 // contributions column for the current row.
@@ -752,8 +773,12 @@ class grade_report_user extends grade_report {
                 foreach ($this->tabledata as $key => $row) {
                     if (isset($row['itemname']) && ($row['itemname']['id'] == $header_row)) {
                         // Found it - update the column.
-                        $decimals = $grade_object->get_decimals();
-                        $this->tabledata[$key]['contributiontocoursetotal']['content'] = format_float($gradeval, $decimals, true);
+                        $content = '-';
+                        if (!is_null($gradeval)) {
+                            $decimals = $grade_object->get_decimals();
+                            $content = format_float($gradeval, $decimals, true) . ' %';
+                        }
+                        $this->tabledata[$key]['contributiontocoursetotal']['content'] = $content;
                         break;
                     }
                 }

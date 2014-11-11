@@ -109,11 +109,11 @@ class grade_edit_tree {
      * @return string HTML
      */
     public function build_html_tree($element, $totals, $parents, $level, &$row_count) {
-        global $CFG, $COURSE, $USER, $OUTPUT;
+        global $CFG, $COURSE, $PAGE, $OUTPUT;
 
         $object = $element['object'];
         $eid    = $element['eid'];
-        $object->name = $this->gtree->get_element_header($element, true, true, true, true);
+        $object->name = $this->gtree->get_element_header($element, true, true, true, true, true);
         $object->stripped_name = $this->gtree->get_element_header($element, false, false, false);
 
         $is_category_item = false;
@@ -126,30 +126,41 @@ class grade_edit_tree {
             $rowclasses[] = $parent_eid;
         }
 
-        $actions = '';
         $moveaction = '';
+        $actionsmenu = new action_menu();
+        $actionsmenu->initialise_js($PAGE);
+        $actionsmenu->set_menu_trigger(get_string('edit'));
+        $actionsmenu->set_owner_selector('grade-item-' . $eid);
+        $actionsmenu->set_alignment(action_menu::TL, action_menu::BL);
 
-        if (!$is_category_item) {
-            $actions .= $this->gtree->get_edit_icon($element, $this->gpr);
+        if (!$is_category_item && ($icon = $this->gtree->get_edit_icon($element, $this->gpr, true))) {
+            $actionsmenu->add($icon);
         }
 
-        if ($this->show_calculations) {
-            $actions .= $this->gtree->get_calculation_icon($element, $this->gpr);
+        if ($this->show_calculations && ($icon = $this->gtree->get_calculation_icon($element, $this->gpr, true))) {
+            $actionsmenu->add($icon);
         }
 
         if ($element['type'] == 'item' or ($element['type'] == 'category' and $element['depth'] > 1)) {
             if ($this->element_deletable($element)) {
                 $aurl = new moodle_url('index.php', array('id' => $COURSE->id, 'action' => 'delete', 'eid' => $eid, 'sesskey' => sesskey()));
-                $actions .= $OUTPUT->action_icon($aurl, new pix_icon('t/delete', get_string('delete')));
+                $icon = new action_menu_link_secondary($aurl, new pix_icon('t/delete', get_string('delete')), get_string('delete'));
+                $actionsmenu->add($icon);
             }
 
             $aurl = new moodle_url('index.php', array('id' => $COURSE->id, 'action' => 'moveselect', 'eid' => $eid, 'sesskey' => sesskey()));
             $moveaction .= $OUTPUT->action_icon($aurl, new pix_icon('t/move', get_string('move')));
         }
 
-        $actions .= $this->gtree->get_hiding_icon($element, $this->gpr);
+        if ($icon = $this->gtree->get_hiding_icon($element, $this->gpr, true)) {
+            $actionsmenu->add($icon);
+        }
 
-        $actions .= $this->gtree->get_reset_icon($element, $this->gpr);
+        if ($icon = $this->gtree->get_reset_icon($element, $this->gpr, true)) {
+            $actionsmenu->add($icon);
+        }
+
+        $actions = $OUTPUT->render($actionsmenu);
 
         $returnrows = array();
         $root = false;
@@ -177,7 +188,7 @@ class grade_edit_tree {
             $item = $category->get_grade_item();
 
             // Add aggregation coef input if not a course item and if parent category has correct aggregation type
-            $dimmed = ($item->is_hidden()) ? 'dimmed' : '';
+            $dimmed = ($item->is_hidden()) ? 'dimmed_text' : '';
 
             // Before we print the category's row, we must find out how many rows will appear below it (for the filler cell's rowspan)
             $aggregation_position = grade_get_setting($COURSE->id, 'aggregationposition', $CFG->grade_aggregationposition);
@@ -279,6 +290,7 @@ class grade_edit_tree {
             }
 
             $row = new html_table_row();
+            $row->id = 'grade-item-' . $eid;
             $row->attributes['class'] = $courseclass . ' category ' . $dimmed;
             foreach ($rowclasses as $class) {
                 $row->attributes['class'] .= ' ' . $class;
@@ -327,6 +339,7 @@ class grade_edit_tree {
 
             $dimmed = ($item->is_hidden()) ? "dimmed_text" : "";
             $gradeitemrow = new html_table_row();
+            $gradeitemrow->id = 'grade-item-' . $eid;
             $gradeitemrow->attributes['class'] = $categoryitemclass . ' item ' . $dimmed;
             foreach ($rowclasses as $class) {
                 $gradeitemrow->attributes['class'] .= ' ' . $class;
@@ -693,14 +706,18 @@ class grade_edit_tree_column_weight extends grade_edit_tree_column {
     }
 
     public function get_item_cell($item, $params) {
+        global $CFG;
         if (empty($params['element'])) {
             throw new Exception('Array key (element) missing from 2nd param of grade_edit_tree_column_weightorextracredit::get_item_cell($item, $params)');
         }
         $itemcell = parent::get_item_cell($item, $params);
         $itemcell->text = '&nbsp;';
+        $object = $params['element']['object'];
 
-        if (!in_array($params['element']['object']->itemtype, array('courseitem', 'categoryitem', 'category'))
-                && !in_array($params['element']['object']->gradetype, array(GRADE_TYPE_NONE, GRADE_TYPE_TEXT))) {
+        if (!in_array($object->itemtype, array('courseitem', 'categoryitem', 'category'))
+                && !in_array($object->gradetype, array(GRADE_TYPE_NONE, GRADE_TYPE_TEXT))
+                && (!$object->is_outcome_item() || $object->load_parent_category()->aggregateoutcomes)
+                && ($object->gradetype != GRADE_TYPE_SCALE || !empty($CFG->grade_includescalesinaggregation))) {
             $itemcell->text = grade_edit_tree::get_weight_input($item);
         }
 
@@ -822,7 +839,7 @@ class grade_edit_tree_column_select extends grade_edit_tree_column {
         $selectnone = new action_link(new moodle_url('#'), get_string('none'), new component_action('click', 'togglecheckboxes', array('eid' => $params['eid'], 'check' => false)));
 
         $categorycell = parent::get_category_cell($category, $levelclass, $params);
-        $categorycell->text = $OUTPUT->render($selectall) . '<br />' . $OUTPUT->render($selectnone);
+        $categorycell->text = $OUTPUT->render($selectall) . ' / ' . $OUTPUT->render($selectnone);
         return $categorycell;
     }
 

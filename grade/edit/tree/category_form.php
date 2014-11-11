@@ -70,13 +70,6 @@ class edit_category_form extends moodleform {
             }
         }
 
-        $mform->addElement('advcheckbox', 'aggregatesubcats', get_string('aggregatesubcats', 'grades'));
-        $mform->addHelpButton('aggregatesubcats', 'aggregatesubcats', 'grades');
-
-        if ((int)$CFG->grade_aggregatesubcats_flag & 2) {
-            $mform->setAdvanced('aggregatesubcats');
-        }
-
         $mform->addElement('text', 'keephigh', get_string('keephigh', 'grades'), 'size="3"');
         $mform->setType('keephigh', PARAM_INT);
         $mform->addHelpButton('keephigh', 'keephigh', 'grades');
@@ -360,9 +353,6 @@ class edit_category_form extends moodleform {
                 if ($mform->elementExists('aggregateoutcomes')) {
                     $mform->removeElement('aggregateoutcomes');
                 }
-                if ($mform->elementExists('aggregatesubcats')) {
-                    $mform->removeElement('aggregatesubcats');
-                }
             }
 
             // If it is a course category, remove the "required" rule from the "fullname" element
@@ -477,7 +467,9 @@ class edit_category_form extends moodleform {
                 }
 
                 // Remove fields used by natural weighting if the parent category is not using natural weighting.
-                if ($parent_category->aggregation != GRADE_AGGREGATE_SUM) {
+                // Or if the item is a scale and scales are not used in aggregation.
+                if ($parent_category->aggregation != GRADE_AGGREGATE_SUM
+                        || (empty($CFG->grade_includescalesinaggregation) && $grade_item->gradetype == GRADE_TYPE_SCALE)) {
                     if ($mform->elementExists('grade_item_weightoverride')) {
                         $mform->removeElement('grade_item_weightoverride');
                     }

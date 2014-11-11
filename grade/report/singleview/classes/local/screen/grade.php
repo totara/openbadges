@@ -108,9 +108,7 @@ class grade extends tablelike implements selectable_items, filterable_items {
     public function original_definition() {
         $def = array('finalgrade', 'feedback');
 
-        if ($this->requiresextra) {
-            $def[] = 'override';
-        }
+        $def[] = 'override';
 
         $def[] = 'exclude';
 
@@ -162,7 +160,6 @@ class grade extends tablelike implements selectable_items, filterable_items {
     public function original_headers() {
         return array(
             '', // For filter icon.
-            '', // For user picture.
             get_string('firstname') . ' (' . get_string('alternatename') . ') ' . get_string('lastname'),
             get_string('range', 'grades'),
             get_string('grade', 'grades'),
@@ -210,12 +207,31 @@ class grade extends tablelike implements selectable_items, filterable_items {
 
         $line = array(
             $OUTPUT->action_icon($this->format_link('user', $item->id), new pix_icon('t/editstring', $iconstring)),
-            $OUTPUT->user_picture($item),
+            $OUTPUT->user_picture($item, array('visibletoscreenreaders' => false)) .
             html_writer::link($url, $fullname),
             $this->item_range()
         );
+        $lineclasses = array(
+            "action",
+            "user",
+            "range"
+        );
+        $outputline = array();
+        $i = 0;
+        foreach ($line as $key => $value) {
+            $cell = new \html_table_cell($value);
+            if ($isheader = $i == 1) {
+                $cell->header = $isheader;
+                $cell->scope = "row";
+            }
+            if (array_key_exists($key, $lineclasses)) {
+                $cell->attributes['class'] = $lineclasses[$key];
+            }
+            $outputline[] = $cell;
+            $i++;
+        }
 
-        return $this->format_definition($line, $grade);
+        return $this->format_definition($outputline, $grade);
     }
 
     /**
@@ -270,6 +286,15 @@ class grade extends tablelike implements selectable_items, filterable_items {
     }
 
     /**
+     * Get the summary for this table.
+     *
+     * @return string
+     */
+    public function summary() {
+        return get_string('summarygrade', 'gradereport_singleview');
+    }
+
+    /**
      * Process the data from the form.
      *
      * @param array $data
@@ -304,10 +329,19 @@ class grade extends tablelike implements selectable_items, filterable_items {
 
                     $data->$field = empty($grade) ? $null : $grade->finalgrade;
                     $data->{"old$field"} = $data->$field;
+
+                    preg_match('/_(\d+)_(\d+)/', $field, $oldoverride);
+                    $oldoverride = 'oldoverride' . $oldoverride[0];
+                    if (empty($data->$oldoverride)) {
+                        $data->$field = (!isset($grade->rawgrade)) ? $null : $grade->rawgrade;
+                    }
                 }
             }
 
             foreach ($data as $varname => $value) {
+                if (preg_match('/override_(\d+)_(\d+)/', $varname, $matches)) {
+                    $data->$matches[0] = '1';
+                }
                 if (!preg_match('/^finalgrade_(\d+)_/', $varname, $matches)) {
                     continue;
                 }

@@ -59,7 +59,32 @@ class subscription_manager {
         }
 
         $subscription->timecreated = time();
-        return $DB->insert_record('tool_monitor_subscriptions', $subscription);
+        $subscription->id = $DB->insert_record('tool_monitor_subscriptions', $subscription);
+
+        // Trigger a subscription created event.
+        if ($subscription->id) {
+            if (!empty($subscription->courseid)) {
+                $courseid = $subscription->courseid;
+                $context = \context_course::instance($subscription->courseid);
+            } else {
+                $courseid = 0;
+                $context = \context_system::instance();
+            }
+
+            $params = array(
+                'objectid' => $subscription->id,
+                'courseid' => $courseid,
+                'context' => $context
+            );
+            $event = \tool_monitor\event\subscription_created::create($params);
+            $event->trigger();
+
+            // Let's invalidate the cache.
+            $cache = \cache::make('tool_monitor', 'eventsubscriptions');
+            $cache->delete($courseid);
+        }
+
+        return $subscription->id;
     }
 
     /**
@@ -81,7 +106,37 @@ class subscription_manager {
         if ($checkuser && $subscription->userid != $USER->id) {
             throw new \coding_exception('Invalid subscription supplied');
         }
-        return $DB->delete_records('tool_monitor_subscriptions', array('id' => $subscription->id));
+
+        // Store the subscription before we delete it.
+        $subscription = $DB->get_record('tool_monitor_subscriptions', array('id' => $subscription->id));
+
+        $success = $DB->delete_records('tool_monitor_subscriptions', array('id' => $subscription->id));
+
+        // If successful trigger a subscription_deleted event.
+        if ($success) {
+            if (!empty($subscription->courseid)) {
+                $courseid = $subscription->courseid;
+                $context = \context_course::instance($subscription->courseid);
+            } else {
+                $courseid = 0;
+                $context = \context_system::instance();
+            }
+
+            $params = array(
+                'objectid' => $subscription->id,
+                'courseid' => $courseid,
+                'context' => $context
+            );
+            $event = \tool_monitor\event\subscription_deleted::create($params);
+            $event->add_record_snapshot('tool_monitor_subscriptions', $subscription);
+            $event->trigger();
+
+            // Let's invalidate the cache.
+            $cache = \cache::make('tool_monitor', 'eventsubscriptions');
+            $cache->delete($courseid);
+        }
+
+        return $success;
     }
 
     /**
@@ -112,12 +167,55 @@ class subscription_manager {
      * Delete all subscribers for a given rule.
      *
      * @param int $ruleid rule id.
+     * @param \context|null $coursecontext the context of the course - this is passed when we
+     *      can not get the context via \context_course as the course has been deleted.
      *
      * @return bool
      */
-    public static function remove_all_subscriptions_for_rule($ruleid) {
+    public static function remove_all_subscriptions_for_rule($ruleid, $coursecontext = null) {
         global $DB;
-        return $DB->delete_records('tool_monitor_subscriptions', array('ruleid' => $ruleid));
+
+        // Store all the subscriptions we have to delete.
+        $subscriptions = $DB->get_recordset('tool_monitor_subscriptions', array('ruleid' => $ruleid));
+
+        // Now delete them.
+        $success = $DB->delete_records('tool_monitor_subscriptions', array('ruleid' => $ruleid));
+
+        // If successful and there were subscriptions that were deleted trigger a subscription deleted event.
+        if ($success && $subscriptions) {
+            foreach ($subscriptions as $subscription) {
+                // It is possible that we are deleting rules associated with a deleted course, so we should be
+                // passing the context as the second parameter.
+                if (!is_null($coursecontext)) {
+                    $context = $coursecontext;
+                    $courseid = $subscription->courseid;
+                } else if (!empty($subscription->courseid) && ($coursecontext =
+                        \context_course::instance($subscription->courseid, IGNORE_MISSING))) {
+                    $courseid = $subscription->courseid;
+                    $context = $coursecontext;
+                } else {
+                    $courseid = 0;
+                    $context = \context_system::instance();
+                }
+
+                $params = array(
+                    'objectid' => $subscription->id,
+                    'courseid' => $courseid,
+                    'context' => $context
+                );
+                $event = \tool_monitor\event\subscription_deleted::create($params);
+                $event->add_record_snapshot('tool_monitor_subscriptions', $subscription);
+                $event->trigger();
+
+                // Let's invalidate the cache.
+                $cache = \cache::make('tool_monitor', 'eventsubscriptions');
+                $cache->delete($courseid);
+            }
+        }
+
+        $subscriptions->close();
+
+        return $success;
     }
 
     /**
@@ -194,7 +292,7 @@ class subscription_manager {
      * @return array list of subscriptions
      */
     public static function get_user_subscriptions($limitfrom = 0, $limitto = 0, $userid = 0,
-                                                             $order = 's.timecreated DESC' ) {
+                                                             $order = 's.courseid ASC, r.name' ) {
         global $DB, $USER;
         if ($userid == 0) {
             $userid = $USER->id;
@@ -278,5 +376,84 @@ class subscription_manager {
             $result[$key] = new subscription($sub);
         }
         return $result;
+    }
+
+    /**
+     * Get count of subscriptions for a given rule.
+     *
+     * @param int $ruleid rule id of the subscription.
+     *
+     * @return int number of subscriptions
+     */
+    public static function count_rule_subscriptions($ruleid) {
+        global $DB;
+        $sql = self::get_subscription_join_rule_sql(true);
+        $sql .= "WHERE s.ruleid = :ruleid";
+
+        return $DB->count_records_sql($sql, array('ruleid' => $ruleid));
+    }
+
+    /**
+     * Returns true if an event in a particular course has a subscription.
+     *
+     * @param string $eventname the name of the event
+     * @param int $courseid the course id
+     * @return bool returns true if the event has subscriptions in a given course, false otherwise.
+     */
+    public static function event_has_subscriptions($eventname, $courseid) {
+        global $DB;
+
+        // Check if we can return these from cache.
+        $cache = \cache::make('tool_monitor', 'eventsubscriptions');
+
+        // The SQL we will be using to fill the cache if it is empty.
+        $sql = "SELECT DISTINCT(r.eventname)
+                  FROM {tool_monitor_subscriptions} s
+            INNER JOIN {tool_monitor_rules} r
+                    ON s.ruleid = r.id
+                 WHERE s.courseid = :courseid";
+
+        $sitesubscriptions = $cache->get(0);
+        // If we do not have the site subscriptions in the cache then return them from the DB.
+        if ($sitesubscriptions === false) {
+            // Set the array for the cache.
+            $sitesubscriptions = array();
+            if ($subscriptions = $DB->get_records_sql($sql, array('courseid' => 0))) {
+                foreach ($subscriptions as $subscription) {
+                    $sitesubscriptions[$subscription->eventname] = true;
+                }
+            }
+            $cache->set(0, $sitesubscriptions);
+        }
+
+        // Check if a subscription exists for this event site wide.
+        if (isset($sitesubscriptions[$eventname])) {
+            return true;
+        }
+
+        // If the course id is for the site, and we reached here then there is no site wide subscription for this event.
+        if (empty($courseid)) {
+            return false;
+        }
+
+        $coursesubscriptions = $cache->get($courseid);
+        // If we do not have the course subscriptions in the cache then return them from the DB.
+        if ($coursesubscriptions === false) {
+            // Set the array for the cache.
+            $coursesubscriptions = array();
+            if ($subscriptions = $DB->get_records_sql($sql, array('courseid' => $courseid))) {
+                foreach ($subscriptions as $subscription) {
+                    $coursesubscriptions[$subscription->eventname] = true;
+                }
+            }
+            $cache->set($courseid, $coursesubscriptions);
+        }
+
+        // Check if a subscription exists for this event in this course.
+        if (isset($coursesubscriptions[$eventname])) {
+            return true;
+        }
+
+        return false;
     }
 }

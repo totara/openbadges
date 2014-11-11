@@ -630,6 +630,13 @@ function forum_cron() {
                     continue;
                 }
 
+                if ($subscriptiontime = \mod_forum\subscriptions::fetch_discussion_subscription($forum->id, $userto->id)) {
+                    // Skip posts if the user subscribed to the discussion after it was created.
+                    if (isset($subscriptiontime[$post->discussion]) && ($subscriptiontime[$post->discussion] > $post->created)) {
+                        continue;
+                    }
+                }
+
                 // Don't send email if the forum is Q&A and the user has not posted.
                 // Initial topics are still mailed.
                 if ($forum->type == 'qanda' && !forum_get_user_posted_time($discussion->id, $userto->id) && $pid != $discussion->firstpost) {
@@ -1175,13 +1182,17 @@ function forum_make_mail_text($course, $cm, $forum, $discussion, $post, $userfro
 
     $strforums = get_string('forums', 'forum');
 
-    $canunsubscribe = ! \mod_forum\subscriptions::is_forcesubscribed($forum);
+    $canunsubscribe = !\mod_forum\subscriptions::is_forcesubscribed($forum);
 
     $posttext = '';
 
+    if ($replyaddress) {
+        $posttext .= "--" . get_string('deleteoriginalonreply', 'mod_forum') . "--\n";
+    }
+
     if (!$bare) {
         $shortname = format_string($course->shortname, true, array('context' => context_course::instance($course->id)));
-        $posttext  = "$shortname -> $strforums -> ".format_string($forum->name,true);
+        $posttext  .= "$shortname -> $strforums -> ".format_string($forum->name,true);
 
         if ($discussion->name != $forum->name) {
             $posttext  .= " -> ".format_string($discussion->name,true);
@@ -1204,15 +1215,25 @@ function forum_make_mail_text($course, $cm, $forum, $discussion, $post, $userfro
     $posttext .= "\n\n";
     $posttext .= forum_print_attachments($post, $cm, "text");
 
-    if (!$bare && $canreply) {
-        $posttext .= "---------------------------------------------------------------------\n";
-        $posttext .= get_string("postmailinfo", "forum", $shortname)."\n";
-        $posttext .= "$CFG->wwwroot/mod/forum/post.php?reply=$post->id\n";
-    }
-    if (!$bare && $canunsubscribe) {
-        $posttext .= "\n---------------------------------------------------------------------\n";
-        $posttext .= get_string("unsubscribe", "forum");
-        $posttext .= ": $CFG->wwwroot/mod/forum/subscribe.php?id=$forum->id\n";
+    if (!$bare) {
+        if ($canreply) {
+            $posttext .= "---------------------------------------------------------------------\n";
+            $posttext .= get_string("postmailinfo", "forum", $shortname)."\n";
+            $posttext .= "$CFG->wwwroot/mod/forum/post.php?reply=$post->id\n";
+        }
+
+        if ($canunsubscribe) {
+            if (\mod_forum\subscriptions::is_subscribed($userto->id, $forum, null, $cm)) {
+                // If subscribed to this forum, offer the unsubscribe link.
+                $posttext .= "\n---------------------------------------------------------------------\n";
+                $posttext .= get_string("unsubscribe", "forum");
+                $posttext .= ": $CFG->wwwroot/mod/forum/subscribe.php?id=$forum->id\n";
+            }
+            // Always offer the unsubscribe from discussion link.
+            $posttext .= "\n---------------------------------------------------------------------\n";
+            $posttext .= get_string("unsubscribediscussion", "forum");
+            $posttext .= ": $CFG->wwwroot/mod/forum/subscribe.php?id=$forum->id&amp;d=$discussion->id\n";
+        }
     }
 
     $posttext .= "\n---------------------------------------------------------------------\n";
@@ -1220,7 +1241,7 @@ function forum_make_mail_text($course, $cm, $forum, $discussion, $post, $userfro
     $posttext .= ": {$CFG->wwwroot}/mod/forum/index.php?id={$forum->course}\n";
 
     if ($replyaddress) {
-        $posttext .= "\n\n" . get_string('replytoforumpost', 'mod_forum', $replyaddress);
+        $posttext .= "\n\n" . get_string('replytoforumpost', 'mod_forum');
     }
 
     return $posttext;
@@ -1265,6 +1286,10 @@ function forum_make_mail_html($course, $cm, $forum, $discussion, $post, $userfro
     $posthtml .= '</head>';
     $posthtml .= "\n<body id=\"email\">\n\n";
 
+    if ($replyaddress) {
+        $posthtml .= "<p><em>--" . get_string('deleteoriginalonreply', 'mod_forum') . "--</em></p>";
+    }
+
     $posthtml .= '<div class="navbar">'.
     '<a target="_blank" href="'.$CFG->wwwroot.'/course/view.php?id='.$course->id.'">'.$shortname.'</a> &raquo; '.
     '<a target="_blank" href="'.$CFG->wwwroot.'/mod/forum/index.php?id='.$course->id.'">'.$strforums.'</a> &raquo; '.
@@ -1278,12 +1303,23 @@ function forum_make_mail_html($course, $cm, $forum, $discussion, $post, $userfro
     $posthtml .= forum_make_mail_post($course, $cm, $forum, $discussion, $post, $userfrom, $userto, false, $canreply, true, false);
 
     if ($replyaddress) {
-        $posthtml .= "<p>" . get_string('replytoforumpost_html', 'mod_forum', $replyaddress) . "</p>";
+        $posthtml .= html_writer::tag('p', get_string('replytoforumpost', 'mod_forum'));
     }
 
     $footerlinks = array();
     if ($canunsubscribe) {
-        $footerlinks[] = '<a href="' . $CFG->wwwroot . '/mod/forum/subscribe.php?id=' . $forum->id . '">' . get_string('unsubscribe', 'forum') . '</a>';
+        if (\mod_forum\subscriptions::is_subscribed($userto->id, $forum, null, $cm)) {
+            // If subscribed to this forum, offer the unsubscribe link.
+            $unsublink = new moodle_url('/mod/forum/subscribe.php', array('id' => $forum->id));
+            $footerlinks[] = html_writer::link($unsublink, get_string('unsubscribe', 'mod_forum'));
+        }
+        // Always offer the unsubscribe from discussion link.
+        $unsublink = new moodle_url('/mod/forum/subscribe.php', array(
+                'id' => $forum->id,
+                'd' => $discussion->id,
+            ));
+        $footerlinks[] = html_writer::link($unsublink, get_string('unsubscribediscussion', 'mod_forum'));
+
         $footerlinks[] = '<a href="' . $CFG->wwwroot . '/mod/forum/unsubscribeall.php">' . get_string('unsubscribeall', 'forum') . '</a>';
     }
     $footerlinks[] = "<a href='{$CFG->wwwroot}/mod/forum/index.php?id={$forum->course}'>" . get_string('digestmailpost', 'forum') . '</a>';
@@ -3748,7 +3784,9 @@ function forum_print_discussion_header(&$post, $forum, $group=-1, $datestring=""
           userdate($usedate, $datestring).'</a>';
     echo "</td>\n";
 
-    if ((!isguestuser() && isloggedin()) && has_capability('mod/forum:viewdiscussion', $modcontext)) {
+    // is_guest should be used here as this also checks whether the user is a guest in the current course.
+    // Guests and visitors cannot subscribe - only enrolled users.
+    if ((!is_guest($modcontext, $USER) && isloggedin()) && has_capability('mod/forum:viewdiscussion', $modcontext)) {
         // Discussion subscription.
         if (\mod_forum\subscriptions::is_subscribable($forum)) {
             echo '<td class="discussionsubscription">';
@@ -3768,7 +3806,7 @@ function forum_print_discussion_header(&$post, $forum, $group=-1, $datestring=""
  * @param int $discussionid The discussion to create an icon for.
  * @return string The generated markup.
  */
-function forum_get_discussion_subscription_icon($forum, $discussionid, $returnurl = null) {
+function forum_get_discussion_subscription_icon($forum, $discussionid, $returnurl = null, $includetext = false) {
     global $USER, $OUTPUT, $PAGE;
 
     if ($returnurl === null && $PAGE->url) {
@@ -3783,26 +3821,51 @@ function forum_get_discussion_subscription_icon($forum, $discussionid, $returnur
         'd' => $discussionid,
         'returnurl' => $returnurl,
     ));
+
+    if ($includetext) {
+        $o .= $subscriptionstatus ? get_string('subscribed', 'mod_forum') : get_string('notsubscribed', 'mod_forum');
+    }
+
     if ($subscriptionstatus) {
-        $o .= html_writer::link($subscriptionlink,
-            $OUTPUT->pix_icon('t/subscribed', get_string('clicktounsubscribe', 'forum'), 'mod_forum'),
-            array(
+        $output = $OUTPUT->pix_icon('t/subscribed', get_string('clicktounsubscribe', 'forum'), 'mod_forum');
+        if ($includetext) {
+            $output .= get_string('subscribed', 'mod_forum');
+        }
+
+        return html_writer::link($subscriptionlink, $output, array(
                 'title' => get_string('clicktounsubscribe', 'forum'),
                 'class' => 'discussiontoggle iconsmall',
                 'data-forumid' => $forum->id,
                 'data-discussionid' => $discussionid,
-        ));
+                'data-includetext' => $includetext,
+            ));
+
     } else {
-        $o .= html_writer::link($subscriptionlink,
-            $OUTPUT->pix_icon('t/unsubscribed', get_string('clicktosubscribe', 'forum'), 'mod_forum'),
-            array(
+        $output = $OUTPUT->pix_icon('t/unsubscribed', get_string('clicktosubscribe', 'forum'), 'mod_forum');
+        if ($includetext) {
+            $output .= get_string('notsubscribed', 'mod_forum');
+        }
+
+        return html_writer::link($subscriptionlink, $output, array(
                 'title' => get_string('clicktosubscribe', 'forum'),
                 'class' => 'discussiontoggle iconsmall',
                 'data-forumid' => $forum->id,
                 'data-discussionid' => $discussionid,
-        ));
+                'data-includetext' => $includetext,
+            ));
     }
+}
 
+/**
+ * Return a pair of spans containing classes to allow the subscribe and
+ * unsubscribe icons to be pre-loaded by a browser.
+ *
+ * @return string The generated markup
+ */
+function forum_get_discussion_subscription_icon_preloaders() {
+    $o = '';
+    $o .= html_writer::span('&nbsp;', 'preload-subscribe');
+    $o .= html_writer::span('&nbsp;', 'preload-unsubscribe');
     return $o;
 }
 
@@ -3842,7 +3905,7 @@ function forum_search_form($course, $search='') {
     $output .= '<fieldset class="invisiblefieldset">';
     $output .= $OUTPUT->help_icon('search');
     $output .= '<label class="accesshide" for="search" >'.get_string('search', 'forum').'</label>';
-    $output .= '<input id="search" name="search" type="text" size="18" value="'.s($search, true).'" alt="search" />';
+    $output .= '<input id="search" name="search" type="text" size="18" value="'.s($search, true).'" />';
     $output .= '<label class="accesshide" for="searchforums" >'.get_string('searchforums', 'forum').'</label>';
     $output .= '<input id="searchforums" value="'.get_string('searchforums', 'forum').'" type="submit" />';
     $output .= '<input name="id" type="hidden" value="'.$course->id.'" />';
@@ -4648,15 +4711,16 @@ function forum_post_subscription($fromform, $forum, $discussion) {
 
     $info = new stdClass();
     $info->name  = fullname($USER);
+    $info->discussion = format_string($discussion->name);
     $info->forum = format_string($forum->name);
 
     if ($fromform->discussionsubscribe) {
         if ($result = \mod_forum\subscriptions::subscribe_user_to_discussion($USER->id, $discussion)) {
-            return html_writer::tag('p', get_string('nowsubscribed', 'forum', $info));
+            return html_writer::tag('p', get_string('discussionnowsubscribed', 'forum', $info));
         }
     } else {
         if ($result = \mod_forum\subscriptions::unsubscribe_user_from_discussion($USER->id, $discussion)) {
-            return html_writer::tag('p', get_string('nownotsubscribed', 'forum', $info));
+            return html_writer::tag('p', get_string('discussionnownotsubscribed', 'forum', $info));
         }
     }
 
@@ -5366,9 +5430,11 @@ function forum_print_latest_discussions($course, $forum, $maxdiscussions = -1, $
             }
         }
         echo '<th class="header lastpost" scope="col">'.get_string('lastpost', 'forum').'</th>';
-        if (has_capability('mod/forum:viewdiscussion', $context)) {
+        if ((!is_guest($context, $USER) && isloggedin()) && has_capability('mod/forum:viewdiscussion', $context)) {
             if (\mod_forum\subscriptions::is_subscribable($forum)) {
-                echo '<th class="header discussionsubscription" scope="col">&nbsp;</th>';
+                echo '<th class="header discussionsubscription" scope="col">';
+                echo forum_get_discussion_subscription_icon_preloaders();
+                echo '</th>';
             }
         }
         echo '</tr>';
@@ -5956,57 +6022,58 @@ function forum_tp_mark_posts_read($user, $postids) {
         return $status;
     }
 
-    list($usql, $params) = $DB->get_in_or_equal($postids);
-    $params[] = $user->id;
+    list($usql, $postidparams) = $DB->get_in_or_equal($postids, SQL_PARAMS_NAMED, 'postid');
 
-    $sql = "SELECT id
-              FROM {forum_read}
-             WHERE postid $usql AND userid = ?";
-    if ($existing = $DB->get_records_sql($sql, $params)) {
-        $existing = array_keys($existing);
+    $insertparams = array(
+        'userid1' => $user->id,
+        'userid2' => $user->id,
+        'userid3' => $user->id,
+        'firstread' => $now,
+        'lastread' => $now,
+        'cutoffdate' => $cutoffdate,
+    );
+    $params = array_merge($postidparams, $insertparams);
+
+    if ($CFG->forum_allowforcedreadtracking) {
+        $trackingsql = "AND (f.trackingtype = ".FORUM_TRACKING_FORCED."
+                        OR (f.trackingtype = ".FORUM_TRACKING_OPTIONAL." AND tf.id IS NULL))";
     } else {
-        $existing = array();
+        $trackingsql = "AND ((f.trackingtype = ".FORUM_TRACKING_OPTIONAL."  OR f.trackingtype = ".FORUM_TRACKING_FORCED.")
+                            AND tf.id IS NULL)";
     }
 
-    $new = array_diff($postids, $existing);
+    // First insert any new entries.
+    $sql = "INSERT INTO {forum_read} (userid, postid, discussionid, forumid, firstread, lastread)
 
-    if ($new) {
-        list($usql, $new_params) = $DB->get_in_or_equal($new);
-        $params = array($user->id, $now, $now, $user->id);
-        $params = array_merge($params, $new_params);
-        $params[] = $cutoffdate;
+            SELECT :userid1, p.id, p.discussion, d.forum, :firstread, :lastread
+                FROM {forum_posts} p
+                    JOIN {forum_discussions} d       ON d.id = p.discussion
+                    JOIN {forum} f                   ON f.id = d.forum
+                    LEFT JOIN {forum_track_prefs} tf ON (tf.userid = :userid2 AND tf.forumid = f.id)
+                    LEFT JOIN {forum_read} fr        ON (
+                            fr.userid = :userid3
+                        AND fr.postid = p.id
+                        AND fr.discussionid = d.id
+                        AND fr.forumid = f.id
+                    )
+                WHERE p.id $usql
+                    AND p.modified >= :cutoffdate
+                    $trackingsql
+                    AND fr.id IS NULL";
 
-        if ($CFG->forum_allowforcedreadtracking) {
-            $trackingsql = "AND (f.trackingtype = ".FORUM_TRACKING_FORCED."
-                            OR (f.trackingtype = ".FORUM_TRACKING_OPTIONAL." AND tf.id IS NULL))";
-        } else {
-            $trackingsql = "AND ((f.trackingtype = ".FORUM_TRACKING_OPTIONAL."  OR f.trackingtype = ".FORUM_TRACKING_FORCED.")
-                                AND tf.id IS NULL)";
-        }
+    $status = $DB->execute($sql, $params) && $status;
 
-        $sql = "INSERT INTO {forum_read} (userid, postid, discussionid, forumid, firstread, lastread)
-
-                SELECT ?, p.id, p.discussion, d.forum, ?, ?
-                  FROM {forum_posts} p
-                       JOIN {forum_discussions} d       ON d.id = p.discussion
-                       JOIN {forum} f                   ON f.id = d.forum
-                       LEFT JOIN {forum_track_prefs} tf ON (tf.userid = ? AND tf.forumid = f.id)
-                 WHERE p.id $usql
-                       AND p.modified >= ?
-                       $trackingsql";
-        $status = $DB->execute($sql, $params) && $status;
-    }
-
-    if ($existing) {
-        list($usql, $new_params) = $DB->get_in_or_equal($existing);
-        $params = array($now, $user->id);
-        $params = array_merge($params, $new_params);
-
-        $sql = "UPDATE {forum_read}
-                   SET lastread = ?
-                 WHERE userid = ? AND postid $usql";
-        $status = $DB->execute($sql, $params) && $status;
-    }
+    // Then update all records.
+    $updateparams = array(
+        'userid' => $user->id,
+        'lastread' => $now,
+    );
+    $params = array_merge($postidparams, $updateparams);
+    $status = $DB->set_field_select('forum_read', 'lastread', $now, '
+                userid      =  :userid
+            AND lastread    <> :lastread
+            AND postid      ' . $usql,
+            $params) && $status;
 
     return $status;
 }
@@ -7060,7 +7127,10 @@ function forum_extend_settings_navigation(settings_navigation $settingsnav, navi
             } else {
                 $linktext = get_string('trackforum', 'forum');
             }
-            $url = new moodle_url('/mod/forum/settracking.php', array('id'=>$forumobject->id));
+            $url = new moodle_url('/mod/forum/settracking.php', array(
+                    'id' => $forumobject->id,
+                    'sesskey' => sesskey(),
+                ));
             $forumnode->add($linktext, $url, navigation_node::TYPE_SETTING);
         }
     }

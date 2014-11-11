@@ -33,6 +33,7 @@ use gradereport_singleview\local\ui\range;
 use gradereport_singleview\local\ui\bulk_insert;
 use grade_item;
 use grade_grade;
+use stdClass;
 
 defined('MOODLE_INTERNAL') || die;
 
@@ -122,8 +123,6 @@ class user extends tablelike implements selectable_items {
 
         $this->requirespaging = count($this->items) > $this->perpage;
 
-        unset($seq);
-
         $this->setup_structure();
 
         $this->definition = array(
@@ -140,7 +139,6 @@ class user extends tablelike implements selectable_items {
     public function original_headers() {
         return array(
             '', // For filter icon.
-            '', // For activity icon.
             get_string('assessmentname', 'gradereport_singleview'),
             get_string('gradecategory', 'grades'),
             get_string('range', 'grades'),
@@ -179,18 +177,58 @@ class user extends tablelike implements selectable_items {
         if (isset($item->cmid)) {
             $realmodid = $item->cmid;
         }
-        $url = new moodle_url('/mod/' . $item->itemmodule . '/view.php', array('id' => $realmodid));
+
         $iconstring = get_string('filtergrades', 'gradereport_singleview', $item->get_name());
+
+        // Create a fake gradetreeitem so we can call get_element_header().
+        // The type logic below is from grade_category->_get_children_recursion().
+        $gradetreeitem = array();
+        if (in_array($item->itemtype, array('course', 'category'))) {
+            $gradetreeitem['type'] = $item->itemtype.'item';
+        } else {
+            $gradetreeitem['type'] = 'item';
+        }
+        $gradetreeitem['object'] = $item;
+        $gradetreeitem['userid'] = $this->item->id;
+
+        $itemlabel = $this->structure->get_element_header($gradetreeitem, true, false, false, false, true);
         $grade->label = $item->get_name();
+
+        $itemlabel = $item->get_name();
+        if (!empty($realmodid)) {
+            $url = new moodle_url('/mod/' . $item->itemmodule . '/view.php', array('id' => $realmodid));
+            $itemlabel = html_writer::link($url, $item->get_name());
+        }
 
         $line = array(
             $OUTPUT->action_icon($this->format_link('grade', $item->id), new pix_icon('t/editstring', $iconstring)),
-            $this->format_icon($item) . $lockicon,
-            html_writer::link($url, $item->get_name()),
+            $this->format_icon($item) . $lockicon . $itemlabel,
             $this->category($item),
-            (new range($item))
+            new range($item)
         );
-        return $this->format_definition($line, $grade);
+        $lineclasses = array(
+            "action",
+            "gradeitem",
+            "category",
+            "range"
+        );
+
+        $outputline = array();
+        $i = 0;
+        foreach ($line as $key => $value) {
+            $cell = new \html_table_cell($value);
+            if ($isheader = $i == 1) {
+                $cell->header = $isheader;
+                $cell->scope = "row";
+            }
+            if (array_key_exists($key, $lineclasses)) {
+                $cell->attributes['class'] = $lineclasses[$key];
+            }
+            $outputline[] = $cell;
+            $i++;
+        }
+
+        return $this->format_definition($outputline, $grade);
     }
 
     /**
@@ -244,6 +282,15 @@ class user extends tablelike implements selectable_items {
     }
 
     /**
+     * Get the summary for this table.
+     *
+     * @return string
+     */
+    public function summary() {
+        return get_string('summaryuser', 'gradereport_singleview');
+    }
+
+    /**
      * Default pager
      *
      * @return string
@@ -290,27 +337,36 @@ class user extends tablelike implements selectable_items {
         if ($bulk->is_applied($data)) {
             $filter = $bulk->get_type($data);
             $insertvalue = $bulk->get_insert_value($data);
-            // Appropriately massage data that may not exist.
 
             $userid = $this->item->id;
             foreach ($this->items as $gradeitemid => $gradeitem) {
                 $null = $gradeitem->gradetype == GRADE_TYPE_SCALE ? -1 : '';
-                $field = "finalgrade_{$gradeitem->id}_{$gradeitemid}";
+                $field = "finalgrade_{$gradeitem->id}_{$this->itemid}";
                 if (isset($data->$field)) {
                     continue;
                 }
 
                 $grade = grade_grade::fetch(array(
-                    'itemid' => $gradeitem->id,
+                    'itemid' => $this->itemid,
                     'userid' => $userid
                 ));
 
                 $data->$field = empty($grade) ? $null : $grade->finalgrade;
                 $data->{"old$field"} = $data->$field;
+
+                preg_match('/_(\d+)_(\d+)/', $field, $oldoverride);
+                $oldoverride = 'oldoverride' . $oldoverride[0];
+                if (empty($data->$oldoverride)) {
+                    $data->$field = (!isset($grade->rawgrade)) ? $null : $grade->rawgrade;
+                }
+
             }
 
             foreach ($data as $varname => $value) {
-                if (!preg_match('/^finalgrade_(\d+)_/', $varname, $matches)) {
+                if (preg_match('/override_(\d+)_(\d+)/', $varname, $matches)) {
+                    $data->$matches[0] = '1';
+                }
+                if (!preg_match('/^finalgrade_(\d+)_(\d+)/', $varname, $matches)) {
                     continue;
                 }
 
@@ -329,7 +385,6 @@ class user extends tablelike implements selectable_items {
                 }
             }
         }
-
         return parent::process($data);
     }
 }

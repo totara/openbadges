@@ -35,6 +35,14 @@ global $CFG;
 class tool_monitor_rule_manager_testcase extends advanced_testcase {
 
     /**
+     * Set up method.
+     */
+    public function setUp() {
+        // Enable monitor.
+        set_config('enablemonitor', 1, 'tool_monitor');
+    }
+
+    /**
      * Test add_rule method.
      */
     public function test_add_rule() {
@@ -108,11 +116,14 @@ class tool_monitor_rule_manager_testcase extends advanced_testcase {
 
         $monitorgenerator = $this->getDataGenerator()->get_plugin_generator('tool_monitor');
 
+        $course1 = $this->getDataGenerator()->create_course();
+        $course2 = $this->getDataGenerator()->create_course();
+
         $record = new stdClass();
-        $record->courseid = 3;
+        $record->courseid = $course1->id;
 
         $record2 = new stdClass();
-        $record2->courseid = 4;
+        $record2->courseid = $course2->id;
 
         $ruleids = array();
         for ($i = 0; $i < 10; $i++) {
@@ -122,8 +133,8 @@ class tool_monitor_rule_manager_testcase extends advanced_testcase {
             $ruleids[] = $rule->id;
             $rule = $monitorgenerator->create_rule($record2); // Create rules in a different course.
         }
-        $ruledata = \tool_monitor\rule_manager::get_rules_by_courseid(3);
-        $this->assertEquals($ruleids, array_keys($ruledata));
+        $ruledata = \tool_monitor\rule_manager::get_rules_by_courseid($course1->id);
+        $this->assertEmpty(array_merge(array_diff(array_keys($ruledata), $ruleids), array_diff($ruleids, array_keys($ruledata))));
         $this->assertCount(20, $ruledata);
     }
 
@@ -150,7 +161,7 @@ class tool_monitor_rule_manager_testcase extends advanced_testcase {
         }
 
         $ruledata = \tool_monitor\rule_manager::get_rules_by_plugin('core');
-        $this->assertEquals($ruleids, array_keys($ruledata));
+        $this->assertEmpty(array_merge(array_diff(array_keys($ruledata), $ruleids), array_diff($ruleids, array_keys($ruledata))));
         $this->assertCount(10, $ruledata);
     }
 

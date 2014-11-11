@@ -157,12 +157,25 @@ abstract class screen {
     public function make_toggle($key) {
         $attrs = array('href' => '#');
 
+        // Do proper lang strings for title attributes exist for the given key?
+        $strmanager = \get_string_manager();
+        $titleall = get_string('all');
+        $titlenone = get_string('none');
+        if ($strmanager->string_exists(strtolower($key) . 'all', 'gradereport_singleview')) {
+            $titleall = get_string(strtolower($key) . 'all', 'gradereport_singleview');
+        }
+        if ($strmanager->string_exists(strtolower($key) . 'none', 'gradereport_singleview')) {
+            $titlenone = get_string(strtolower($key) . 'none', 'gradereport_singleview');
+        }
+
         $all = html_writer::tag('a', get_string('all'), $attrs + array(
-            'class' => 'include all ' . $key
+            'class' => 'include all ' . $key,
+            'title' => $titleall
         ));
 
         $none = html_writer::tag('a', get_string('none'), $attrs + array(
-            'class' => 'include none ' . $key
+            'class' => 'include none ' . $key,
+            'title' => $titlenone
         ));
 
         return html_writer::tag('span', "$all / $none", array(
@@ -255,7 +268,17 @@ abstract class screen {
 
         $fields = $this->definition();
 
+        // Avoiding execution timeouts when updating
+        // a large amount of grades.
+        $progress = 0;
+        $progressbar = new \core\progress\display_if_slow();
+        $progressbar->start_html();
+        $progressbar->start_progress(get_string('savegrades', 'gradereport_singleview'), count((array) $data) - 1);
+        $changecount = array();
+
         foreach ($data as $varname => $throw) {
+            $progressbar->progress($progress);
+            $progress++;
             if (preg_match("/(\w+)_(\d+)_(\d+)/", $varname, $matches)) {
                 $itemid = $matches[2];
                 $userid = $matches[3];
@@ -270,6 +293,9 @@ abstract class screen {
             if (preg_match('/^old[oe]{1}/', $varname)) {
                 $elementname = preg_replace('/^old/', '', $varname);
                 if (!isset($data->$elementname)) {
+                    // Decrease the progress because we've increased the
+                    // size of the array we are iterating through.
+                    $progress--;
                     $data->$elementname = false;
                 }
             }
@@ -309,6 +335,9 @@ abstract class screen {
             if (!empty($msg)) {
                 $warnings[] = $msg;
             }
+            if (preg_match('/_(\d+)_(\d+)/', $varname, $matchelement)) {
+                $changecount[$matchelement[0]] = 1;
+            }
         }
 
         // Some post-processing.
@@ -316,8 +345,11 @@ abstract class screen {
         $eventdata->warnings = $warnings;
         $eventdata->post_data = $data;
         $eventdata->instance = $this;
+        $eventdata->changecount = $changecount;
 
-        return $eventdata->warnings;
+        $progressbar->end_html();
+
+        return $eventdata;
     }
 
     /**

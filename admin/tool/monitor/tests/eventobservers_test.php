@@ -35,6 +35,13 @@ require_once($CFG->dirroot . '/blog/lib.php');
  * Tests for event observers
  */
 class tool_monitor_eventobservers_testcase extends advanced_testcase {
+    /**
+     * Set up method.
+     */
+    public function setUp() {
+        // Enable monitor.
+        set_config('enablemonitor', 1, 'tool_monitor');
+    }
 
     /**
      * Test observer for course delete event.
@@ -46,16 +53,17 @@ class tool_monitor_eventobservers_testcase extends advanced_testcase {
         $this->resetAfterTest(true);
 
         $user = $this->getDataGenerator()->create_user();
-        $course = $this->getDataGenerator()->create_course();
+        $course1 = $this->getDataGenerator()->create_course();
+        $course2 = $this->getDataGenerator()->create_course();
         $monitorgenerator = $this->getDataGenerator()->get_plugin_generator('tool_monitor');
 
         $rule = new stdClass();
         $rule->userid = $user->id;
-        $rule->courseid = $course->id;
+        $rule->courseid = $course1->id;
         $rule->plugin = 'test';
 
         $sub = new stdClass();
-        $sub->courseid = $course->id;
+        $sub->courseid = $course1->id;
         $sub->userid = $user->id;
 
         // Add 10 rules for this course with subscriptions.
@@ -65,36 +73,48 @@ class tool_monitor_eventobservers_testcase extends advanced_testcase {
             $monitorgenerator->create_subscription($sub);
         }
 
-        // Add 10 random rules for random courses.
+        // Add 10 random rules for course 2.
+        $rule->courseid = $course2->id;
         for ($i = 0; $i < 10; $i++) {
-            $rule->courseid = rand(10000000, 50000000);
             $createdrule = $monitorgenerator->create_rule($rule);
             $sub->courseid = $rule->courseid;
             $sub->ruleid = $createdrule->id;
             $monitorgenerator->create_subscription($sub);
         }
 
+        // Add a site rule.
+        $rule = new stdClass();
+        $rule->userid = $user->id;
+        $rule->courseid = 0;
+        $rule->plugin = 'core';
+        $monitorgenerator->create_rule($rule);
+
+        // Verify that if we do not specify that we do not want the site rules, they are returned.
+        $courserules = \tool_monitor\rule_manager::get_rules_by_courseid($course1->id);
+        $this->assertCount(11, $courserules);
+
         // Verify data before course delete.
         $totalrules = \tool_monitor\rule_manager::get_rules_by_plugin('test');
         $this->assertCount(20, $totalrules);
-        $courserules = \tool_monitor\rule_manager::get_rules_by_courseid($course->id);
+        $courserules = \tool_monitor\rule_manager::get_rules_by_courseid($course1->id, 0, 0, false);
         $this->assertCount(10, $courserules);
-        $totalsubs = $DB->get_records('tool_monitor_subscriptions');
-        $this->assertCount(20, $totalsubs);
-        $coursesubs = \tool_monitor\subscription_manager::get_user_subscriptions_for_course($course->id, 0, 0, $user->id);
+        $this->assertEquals(20, $DB->count_records('tool_monitor_subscriptions'));
+        $coursesubs = \tool_monitor\subscription_manager::get_user_subscriptions_for_course($course1->id, 0, 0, $user->id);
         $this->assertCount(10, $coursesubs);
 
         // Let us delete the course now.
-        delete_course($course->id, false);
+        delete_course($course1->id, false);
+
+        // Confirm the site rule still exists.
+        $this->assertEquals(1, $DB->count_records('tool_monitor_rules', array('courseid' => 0)));
 
         // Verify data after course delete.
         $totalrules = \tool_monitor\rule_manager::get_rules_by_plugin('test');
         $this->assertCount(10, $totalrules);
-        $courserules = \tool_monitor\rule_manager::get_rules_by_courseid($course->id);
+        $courserules = \tool_monitor\rule_manager::get_rules_by_courseid($course1->id, 0, 0, false);
         $this->assertCount(0, $courserules); // Making sure all rules are deleted.
-        $totalsubs = $DB->get_records('tool_monitor_subscriptions');
-        $this->assertCount(10, $totalsubs);
-        $coursesubs = \tool_monitor\subscription_manager::get_user_subscriptions_for_course($course->id, 0, 0, $user->id);
+        $this->assertEquals(10, $DB->count_records('tool_monitor_subscriptions'));
+        $coursesubs = \tool_monitor\subscription_manager::get_user_subscriptions_for_course($course1->id, 0, 0, $user->id);
         $this->assertCount(0, $coursesubs); // Making sure all subscriptions are deleted.
     }
 
@@ -106,20 +126,88 @@ class tool_monitor_eventobservers_testcase extends advanced_testcase {
 
         $this->resetAfterTest();
 
-        // Create events and verify data is fine.
+        // Create the necessary items for testing.
+        $user = $this->getDataGenerator()->create_user();
         $course = $this->getDataGenerator()->create_course();
+        $course2 = $this->getDataGenerator()->create_course();
+        $monitorgenerator = $this->getDataGenerator()->get_plugin_generator('tool_monitor');
 
-        $initialevents = $DB->get_records('tool_monitor_events');
-        $initalcount = count($initialevents);
+        // Fire a bunch of events.
+        // Trigger a bunch of other events.
+        $eventparams = array(
+            'context' => context_course::instance($course->id)
+        );
+        for ($i = 0; $i < 5; $i++) {
+            \core\event\course_viewed::create($eventparams)->trigger();
+            \mod_quiz\event\course_module_instance_list_viewed::create($eventparams)->trigger();
+            \mod_scorm\event\course_module_instance_list_viewed::create($eventparams)->trigger();
+        }
+
+        // Confirm that nothing was stored in the tool_monitor_events table
+        // as we do not have any subscriptions associated for the above events.
+        $this->assertEquals(0, $DB->count_records('tool_monitor_events'));
+
+        // Now, let's create a rule so an event can be stored.
+        $rule = new stdClass();
+        $rule->courseid = $course->id;
+        $rule->plugin = 'mod_book';
+        $rule->eventname = '\mod_book\event\course_module_instance_list_viewed';
+        $rule = $monitorgenerator->create_rule($rule);
+
+        // Let's subscribe to this rule.
+        $sub = new stdClass;
+        $sub->courseid = $course->id;
+        $sub->ruleid = $rule->id;
+        $sub->userid = $user->id;
+        $monitorgenerator->create_subscription($sub);
+
+        // Again, let's just fire more events to make sure they still aren't stored.
+        for ($i = 0; $i < 5; $i++) {
+            \core\event\course_viewed::create($eventparams)->trigger();
+            \mod_quiz\event\course_module_instance_list_viewed::create($eventparams)->trigger();
+            \mod_scorm\event\course_module_instance_list_viewed::create($eventparams)->trigger();
+        }
+
+        // Fire the event we want to capture.
         $event = \mod_book\event\course_module_instance_list_viewed::create_from_course($course);
         $event->trigger();
 
+        // Check that the event data is valid.
         $events = $DB->get_records('tool_monitor_events');
-        $count = count($events);
-        $this->assertEquals($initalcount + 1, $count);
+        $this->assertEquals(1, count($events));
         $monitorevent = array_pop($events);
+        $this->assertEquals($event->eventname, $monitorevent->eventname);
+        $this->assertEquals($event->contextid, $monitorevent->contextid);
+        $this->assertEquals($event->contextlevel, $monitorevent->contextlevel);
+        $this->assertEquals($event->get_url()->out(), $monitorevent->link);
+        $this->assertEquals($event->courseid, $monitorevent->courseid);
+        $this->assertEquals($event->timecreated, $monitorevent->timecreated);
 
-        // Match values.
+        // Remove the stored events.
+        $DB->delete_records('tool_monitor_events');
+
+        // Now, let's create a site wide rule.
+        $rule = new stdClass();
+        $rule->courseid = 0;
+        $rule->plugin = 'mod_book';
+        $rule->eventname = '\mod_book\event\course_module_instance_list_viewed';
+        $rule = $monitorgenerator->create_rule($rule);
+
+        // Let's subscribe to this rule.
+        $sub = new stdClass;
+        $sub->courseid = 0;
+        $sub->ruleid = $rule->id;
+        $sub->userid = $user->id;
+        $monitorgenerator->create_subscription($sub);
+
+        // Fire the event we want to capture - but in a different course.
+        $event = \mod_book\event\course_module_instance_list_viewed::create_from_course($course2);
+        $event->trigger();
+
+        // Check that the event data is valid.
+        $events = $DB->get_records('tool_monitor_events');
+        $this->assertEquals(1, count($events));
+        $monitorevent = array_pop($events);
         $this->assertEquals($event->eventname, $monitorevent->eventname);
         $this->assertEquals($event->contextid, $monitorevent->contextid);
         $this->assertEquals($event->contextlevel, $monitorevent->contextlevel);
@@ -266,13 +354,62 @@ class tool_monitor_eventobservers_testcase extends advanced_testcase {
     }
 
     /**
+     * Test that same events are not used twice to calculate conditions for a single subscription.
+     */
+    public function test_multiple_notification_not_sent() {
+        global $USER;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $messagesink = $this->redirectMessages();
+
+        // Generate data.
+        $course = $this->getDataGenerator()->create_course();
+        $toolgenerator = $this->getDataGenerator()->get_plugin_generator('tool_monitor');
+
+        $rulerecord = new stdClass();
+        $rulerecord->courseid = $course->id;
+        $rulerecord->eventname = '\mod_book\event\course_module_instance_list_viewed';
+        $rulerecord->frequency = 5;
+
+        $rule = $toolgenerator->create_rule($rulerecord);
+
+        $subrecord = new stdClass();
+        $subrecord->courseid = $course->id;
+        $subrecord->ruleid = $rule->id;
+        $subrecord->userid = $USER->id;
+        $toolgenerator->create_subscription($subrecord);
+
+        for ($i = 0; $i < 7; $i++) {
+            // Now let us trigger 7 instances of the event.
+            $event = \mod_book\event\course_module_instance_list_viewed::create_from_course($course);
+            $event->trigger();
+            sleep(1); // Add a second delay, to prevent time collisions.
+        }
+        $this->run_adhock_tasks();
+        $messages = $messagesink->get_messages();
+        $this->assertCount(1, $messages); // There should be only one message not 3.
+        for ($i = 0; $i < 3; $i++) {
+            // Now let us trigger 5 more instances of the event.
+            $event = \mod_book\event\course_module_instance_list_viewed::create_from_course($course);
+            $event->trigger();
+        }
+
+        $this->run_adhock_tasks();
+        $messages = $messagesink->get_messages();
+        $this->assertCount(2, $messages); // There should be two messages now.
+    }
+
+    /**
      * Run adhoc tasks.
      */
     protected function run_adhock_tasks() {
+        ob_start();
         while ($task = \core\task\manager::get_next_adhoc_task(time())) {
             $task->execute();
             \core\task\manager::adhoc_task_complete($task);
         }
+        ob_clean(); // Suppress mtrace debugging info.
     }
 
     /**
@@ -374,16 +511,17 @@ class tool_monitor_eventobservers_testcase extends advanced_testcase {
         $this->resetAfterTest(true);
 
         $user = $this->getDataGenerator()->create_user();
-        $course = $this->getDataGenerator()->create_course();
+        $course1 = $this->getDataGenerator()->create_course();
+        $course2 = $this->getDataGenerator()->create_course();
         $monitorgenerator = $this->getDataGenerator()->get_plugin_generator('tool_monitor');
 
         $rule = new stdClass();
         $rule->userid = $user->id;
-        $rule->courseid = $course->id;
+        $rule->courseid = $course1->id;
         $rule->plugin = 'test';
 
         $sub = new stdClass();
-        $sub->courseid = $course->id;
+        $sub->courseid = $course1->id;
         $sub->userid = $user->id;
 
         // Add 10 rules for this course with subscriptions.
@@ -393,9 +531,9 @@ class tool_monitor_eventobservers_testcase extends advanced_testcase {
             $monitorgenerator->create_subscription($sub);
         }
 
-        // Add 10 random rules for random courses.
+        // Add 10 random rules for course 2.
+        $rule->courseid = $course2->id;
         for ($i = 0; $i < 10; $i++) {
-            $rule->courseid = rand(10000000, 50000000);
             $createdrule = $monitorgenerator->create_rule($rule);
             $sub->courseid = $rule->courseid;
             $sub->ruleid = $createdrule->id;
@@ -428,21 +566,22 @@ class tool_monitor_eventobservers_testcase extends advanced_testcase {
         $this->resetAfterTest(true);
 
         $user = $this->getDataGenerator()->create_user();
-        $course = $this->getDataGenerator()->create_course();
+        $course1 = $this->getDataGenerator()->create_course();
+        $course2 = $this->getDataGenerator()->create_course();
         $monitorgenerator = $this->getDataGenerator()->get_plugin_generator('tool_monitor');
 
         // Now let us create a rule specific to a module instance.
         $cm = new stdClass();
-        $cm->course = $course->id;
+        $cm->course = $course1->id;
         $book = $this->getDataGenerator()->create_module('book', $cm);
 
         $rule = new stdClass();
         $rule->userid = $user->id;
-        $rule->courseid = $course->id;
+        $rule->courseid = $course1->id;
         $rule->plugin = 'test';
 
         $sub = new stdClass();
-        $sub->courseid = $course->id;
+        $sub->courseid = $course1->id;
         $sub->userid = $user->id;
         $sub->cmid = $book->cmid;
 
@@ -453,9 +592,9 @@ class tool_monitor_eventobservers_testcase extends advanced_testcase {
             $monitorgenerator->create_subscription($sub);
         }
 
-        // Add 10 random rules for random courses.
+        // Add 10 random rules for course 2.
+        $rule->courseid = $course2->id;
         for ($i = 0; $i < 10; $i++) {
-            $rule->courseid = rand(10000000, 50000000);
             $createdrule = $monitorgenerator->create_rule($rule);
             $sub->courseid = $rule->courseid;
             $sub->ruleid = $createdrule->id;

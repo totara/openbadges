@@ -46,9 +46,13 @@ class finalgrade extends grade_attribute_format implements unique_value, be_disa
      */
     public function get_value() {
         $this->label = $this->grade->grade_item->itemname;
-        // Manual item raw grade support.
-        $val = $this->grade->grade_item->is_manual_item() && (!is_null($this->grade->rawgrade)) ?
-            $this->grade->rawgrade : $this->grade->finalgrade;
+
+        $isoverridden = $this->grade->is_overridden();
+        if (!empty($isoverridden)) {
+            $val = $this->grade->finalgrade;
+        } else {
+            $val = $this->grade->rawgrade;
+        }
 
         if ($this->grade->grade_item->scaleid) {
             return $val ? (int)$val : -1;
@@ -114,18 +118,16 @@ class finalgrade extends grade_attribute_format implements unique_value, be_disa
             return new dropdown_attribute(
                 $this->get_name(),
                 $options,
-                $this->get_value(),
                 $this->get_label(),
-                $this->is_disabled(),
-                $this->get_tabindex()
+                $this->get_value(),
+                $this->is_disabled()
             );
         } else {
             return new text_attribute(
                 $this->get_name(),
                 $this->get_value(),
                 $this->get_label(),
-                $this->is_disabled(),
-                $this->get_tabindex()
+                $this->is_disabled()
             );
         }
     }

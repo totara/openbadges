@@ -53,6 +53,7 @@ $quiz = $DB->get_record('quiz', array('id' => $quizid), '*', MUST_EXIST);
 $cm = get_coursemodule_from_instance('quiz', $quiz->id, $quiz->course);
 $course = $DB->get_record('course', array('id' => $quiz->course), '*', MUST_EXIST);
 require_login($course, false, $cm);
+
 $quizobj = new quiz($quiz, $cm, $course);
 $structure = $quizobj->get_structure();
 $modcontext = context_module::instance($cm->id);
@@ -105,7 +106,7 @@ switch($requestmethod) {
                         echo json_encode(array('instancemaxmark' => quiz_format_question_grade($quiz, $maxmark),
                                 'newsummarks' => quiz_format_grade($quiz, $quiz->sumgrades)));
                         break;
-                    case 'linkslottopage':
+                    case 'updatepagebreak':
                         require_capability('mod/quiz:manage', $modcontext);
                         $slots = $structure->update_page_break($quiz, $id, $value);
                         $json = array();
@@ -133,7 +134,8 @@ switch($requestmethod) {
                 $structure->remove_slot($quiz, $slot->slot);
                 quiz_delete_previews($quiz);
                 quiz_update_sumgrades($quiz);
-                echo json_encode(array('newsummarks' => quiz_format_grade($quiz, $quiz->sumgrades)));
+                echo json_encode(array('newsummarks' => quiz_format_grade($quiz, $quiz->sumgrades),
+                            'deleted' => true, 'newnumquestions' => $structure->get_question_count()));
                 break;
         }
         break;

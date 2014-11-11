@@ -70,20 +70,20 @@ Feature: View gradebook when single item scales are used
     And I set the field "Select all or one user" to "Student 1"
     And the following should exist in the "user-grade" table:
       | Grade item          | Grade | Range     | Contribution to course total |
-      | Test assignment one | Ace!  | Ace!–Ace! | 1.00                         |
-      | Category total      | 1.00  | 0–1       | -                            |
+      | Test assignment one | Ace!  | Ace!–Ace! | 100.00 %                     |
+      | Sub category 1 total      | 1.00  | 0–1       | -                            |
       | Course total        | 1.00  | 0–1       | -                            |
     And I set the field "Select all or one user" to "Student 2"
     And the following should exist in the "user-grade" table:
       | Grade item          | Grade | Range     | Contribution to course total |
-      | Test assignment one | -     | Ace!–Ace! | 0.00                         |
-      | Category total      | -     | 0–1       | -                            |
+      | Test assignment one | -     | Ace!–Ace! | -                            |
+      | Sub category 1 total      | -     | 0–1       | -                            |
       | Course total        | -     | 0–1       | -                            |
     And I set the field "jump" to "Categories and items"
     And the following should exist in the "grade_edit_tree_table" table:
       | Name                | Max grade |
       | Test assignment one | 1.00      |
-      | Category total      | 1.00      |
+      | Sub category 1 total      | 1.00      |
       | Course total        | 1.00      |
 
   @javascript
@@ -113,22 +113,22 @@ Feature: View gradebook when single item scales are used
     And the following should exist in the "user-grade" table:
       | Grade item                        | Grade          | Range       | Contribution to course total |
       | Test assignment one               | Ace!           | Ace!–Ace!   | <contrib1>                   |
-      | Category total<aggregation>.      | <cattotal1>    | 0–100       | -                            |
+      | Sub category (<aggregation>) total<aggregation>.      | <cattotal1>    | 0–100       | -                            |
       | Course total<aggregation>.        | <coursetotal1> | 0–100       | -                            |
     And I set the field "jump" to "Categories and items"
     And the following should exist in the "grade_edit_tree_table" table:
       | Name                         | Max grade |
       | Test assignment one          | Ace! (1)  |
-      | Category total<aggregation>. | 100.00    |
+      | Sub category (<aggregation>) total<aggregation>. | 100.00    |
       | Course total<aggregation>.   | 100.00    |
 
     Examples:
       | aggregation                         | contrib1 | cattotal1 | coursetotal1 | catavg | overallavg |
-      | Mean of grades                      | 100.00   | 100.00    | 100.00       | 100.00 | 100.00     |
-      | Weighted mean of grades             | 0.00     | 100.00    | -            | 100.00 | -          |
-      | Simple weighted mean of grades      | 0.00     | -         | -            | -      | -          |
-      | Mean of grades (with extra credits) | 100.00   | 100.00    | 100.00       | 100.00 | 100.00     |
-      | Median of grades                    | 100.00   | 100.00    | 100.00       | 100.00 | 100.00     |
-      | Lowest grade                        | 100.00   | 100.00    | 100.00       | 100.00 | 100.00     |
-      | Highest grade                       | 100.00   | 100.00    | 100.00       | 100.00 | 100.00     |
-      | Mode of grades                      | 100.00   | 100.00    | 100.00       | 100.00 | 100.00     |
+      | Mean of grades                      | 100.00 % | 100.00    | 100.00       | 100.00 | 100.00     |
+      | Weighted mean of grades             | 0.00 %   | 100.00    | -            | 100.00 | -          |
+      | Simple weighted mean of grades      | 0.00 %   | -         | -            | -      | -          |
+      | Mean of grades (with extra credits) | 100.00 % | 100.00    | 100.00       | 100.00 | 100.00     |
+      | Median of grades                    | 100.00 % | 100.00    | 100.00       | 100.00 | 100.00     |
+      | Lowest grade                        | 100.00 % | 100.00    | 100.00       | 100.00 | 100.00     |
+      | Highest grade                       | 100.00 % | 100.00    | 100.00       | 100.00 | 100.00     |
+      | Mode of grades                      | 100.00 % | 100.00    | 100.00       | 100.00 | 100.00     |

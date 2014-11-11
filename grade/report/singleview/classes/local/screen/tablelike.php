@@ -60,6 +60,13 @@ abstract class tablelike extends screen {
     public abstract function format_line($item);
 
     /**
+     * Get the summary for this table.
+     *
+     * @return string
+     */
+    public abstract function summary();
+
+    /**
      * Get the table headers
      *
      * @return array
@@ -118,15 +125,6 @@ abstract class tablelike extends screen {
     }
 
     /**
-     * Get the tabindex for the table in the page.
-     *
-     * @return int
-     */
-    public function get_tabindex() {
-        return (count($this->definition()) * $this->total) + $this->index;
-    }
-
-    /**
      * Get a element to generate the HTML for this table row
      * @param array $line This is a list of lines in the table (modified)
      * @param grade_grade $grade The grade.
@@ -165,6 +163,11 @@ abstract class tablelike extends screen {
         $table = new html_table();
 
         $table->head = $this->headers();
+
+        $summary = $this->summary();
+        if (!empty($summary)) {
+            $table->summary = $summary;
+        }
 
         // To be used for extra formatting.
         $this->index = 0;
@@ -220,7 +223,6 @@ abstract class tablelike extends screen {
         $save = html_writer::empty_tag('input', array(
             'type' => 'submit',
             'value' => get_string('update'),
-            'tabindex' => $this->get_tabindex(),
         ));
 
         return array($save);

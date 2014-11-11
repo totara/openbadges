@@ -49,9 +49,6 @@ This setting determines whether empty grades are not included in the aggregation
 $string['aggregateoutcomes'] = 'Include outcomes in aggregation';
 $string['aggregateoutcomes_help'] = 'If enabled, outcomes are included in the aggregation. This may result in an unexpected category total.';
 $string['aggregatesonly'] = 'Aggregates only';
-$string['aggregatesubcats'] = 'Aggregate including subcategories';
-$string['aggregatesubcatsshort'] = 'Include subcategories';
-$string['aggregatesubcats_help'] = 'This setting determines whether grades in subcategories are included in the aggregation.';
 $string['aggregatesum'] = 'Natural';
 $string['aggregateweightedmean'] = 'Weighted mean of grades';
 $string['aggregateweightedmean2'] = 'Simple weighted mean of grades';
@@ -71,9 +68,9 @@ $string['aggregationhintextra'] = '( Extra credit )';
 $string['aggregation_link'] = 'grade/aggregation';
 $string['aggregationcoef'] = 'Aggregation coefficient';
 $string['aggregationcoefextra'] = 'Extra credit'; // for the header of the table at Edit categories and items page
-$string['aggregationcoefextra_help'] = 'If the aggregation is Natural or Simple weighted mean and the extra credit checkbox is ticked, the grade item\'s maximum grade is not added to the category\'s maximum grade, resulting in the possibility of achieving the maximum grade (or grades over the maximum if enabled by the site administrator) in the category without having the maximum grade in all the grade items.
+$string['aggregationcoefextra_help'] = 'If the aggregation is \'Natural\' or \'Simple weighted mean\' and the extra credit checkbox is ticked, the grade item\'s maximum grade is not added to the category\'s maximum grade. This will result in the possibility of achieving the maximum grade in the category without having the maximum grade in all the grade items. If the site administrator has enabled grades over the maximum, there might be grades over the maximum.
 
-If the aggregation is Mean of grades (with extra credits) and the extra credit is set to a value greater than zero, the extra credit is the factor by which the grade is multiplied before adding it to the total after the computation of the mean.';
+If the aggregation is \'Mean of grades (with extra credits)\' and the extra credit is set to a value greater than zero, the extra credit is the factor by which the grade is multiplied before adding it to the total after the computation of the mean.';
 $string['aggregationcoefextra_link'] = 'grade/aggregation';
 $string['aggregationcoefextrasum'] = 'Extra credit'; // for the form with checkboxes: Natural or Simple weighted mean
 $string['aggregationcoefextrasumabbr'] = '+';
@@ -193,7 +190,6 @@ $string['errorsavegrade'] = 'Could not save grade, sorry.';
 $string['errorsettinggrade'] = 'Error saving "{$a->itemname}" grade for userid {$a->userid}';
 $string['errorupdatinggradecategoryaggregateonlygraded'] = 'Error updating the "Aggregate only non-empty grades" setting of grade category ID {$a->id}';
 $string['errorupdatinggradecategoryaggregateoutcomes'] = 'Error updating the "Include outcomes in aggregation" setting of grade category ID {$a->id}';
-$string['errorupdatinggradecategoryaggregatesubcats'] = 'Error updating the "Aggregate including subcategories" setting of grade category ID {$a->id}';
 $string['errorupdatinggradecategoryaggregation'] = 'Error updating the aggregation type of grade category ID {$a->id}';
 $string['errorupdatinggradeitemaggregationcoef'] = 'Error updating the aggregation coefficient (weight or extra credit) of grade item ID {$a->id}';
 $string['eventgradedeleted'] = 'Grade deleted';
@@ -580,6 +576,7 @@ $string['reportdefault'] = 'Report default ({$a})';
 $string['reportplugins'] = 'Report plugins';
 $string['reportsettings'] = 'Report settings';
 $string['reprintheaders'] = 'Reprint headers';
+$string['resetweightsshort'] = 'Reset weights';
 $string['resetweights'] = 'Reset weights of {$a->itemname}';
 $string['respectingcurrentdata'] = 'leaving current configuration unmodified';
 $string['rowpreviewnum'] = 'Preview rows';
@@ -680,7 +677,8 @@ $string['subcategory'] = 'Normal category';
 $string['submissions'] = 'Submissions';
 $string['submittedon'] = 'Submitted: {$a}';
 $string['sumofgradesupgradedgrades'] = 'Note: The aggregation method "Sum of grades" has been changed to "Natural" as part of a site upgrade. Since "Sum of grades" was previously used in this course, it is recommended that you review this change in the gradebook.';
-$string['sumofgradesupgradedgradeshidemessage'] = 'OK';
+$string['aggregatesubcatsupgradedgrades'] = 'Note: The aggregation setting "Aggregate including subcategories" has been removed as part of a site upgrade. Since "Aggregate including subcategories" was previously used in this course, it is recommended that you review this change in the gradebook.';
+$string['upgradedgradeshidemessage'] = 'OK';
 $string['switchtofullview'] = 'Switch to full view';
 $string['switchtosimpleview'] = 'Switch to simple view';
 $string['tabs'] = 'Tabs';

@@ -86,26 +86,40 @@ class rule {
     }
 
     /**
-     * Generate a select drop down with list of possible modules for a given course and rule.
+     * Gets the rule subscribe options for a given course and rule.
+     *
+     * Could be a select drop down with a list of possible module
+     * instances or a single link to subscribe if the rule plugin
+     * is not a module.
      *
      * @param int $courseid course id
      *
-     * @return \single_select a single select object
+     * @return \single_select|\moodle_url|string
      * @throws \coding_exception
      */
-    public function get_module_select($courseid) {
+    public function get_subscribe_options($courseid) {
         global $CFG;
-        $options = array();
-        if (strpos($this->plugin, 'mod_') === 0) {
-            $options[0] = get_string('allmodules', 'tool_monitor');
+
+        $url = new \moodle_url($CFG->wwwroot. '/admin/tool/monitor/index.php', array(
+            'courseid' => $courseid,
+            'ruleid' => $this->id,
+            'action' => 'subscribe',
+            'sesskey' => sesskey()
+        ));
+
+        if (strpos($this->plugin, 'mod_') !== 0) {
+            return $url;
+
         } else {
-            $options[0] = get_string('allevents', 'tool_monitor');
-        }
-        if (strpos($this->plugin, 'mod_') === 0) {
+            // Single select when the plugin is an activity.
+            $options = array();
+            $options[0] = get_string('allmodules', 'tool_monitor');
+
             if ($courseid == 0) {
                 // They need to be in a course to select module instance.
                 return get_string('selectcourse', 'tool_monitor');
             }
+
             // Let them select an instance.
             $cms = get_fast_modinfo($courseid);
             $instances = $cms->get_instances_of(str_replace('mod_', '',  $this->plugin));
@@ -115,10 +129,9 @@ class rule {
                     $options[$cminfo->id] = $cminfo->get_formatted_name();
                 }
             }
+
+            return new \single_select($url, 'cmid', $options);
         }
-        $url = new \moodle_url($CFG->wwwroot. '/admin/tool/monitor/index.php', array('courseid' => $courseid, 'ruleid' => $this->id,
-                'action' => 'subscribe', 'sesskey' => sesskey()));
-        return new \single_select($url, 'cmid', $options, '', $nothing = array('' => 'choosedots'));
     }
 
     /**
@@ -208,10 +221,25 @@ class rule {
     }
 
     /**
+     * Get properly formatted name of the course associated.
+     *
+     * @param \context $context context where this name would be displayed.
+     * @return string The course fullname.
+     */
+    public function get_course_name($context) {
+        $courseid = $this->courseid;
+        if (empty($courseid)) {
+            return get_string('site');
+        } else {
+            $course = get_course($courseid);
+            return format_string($course->fullname, true, array('context' => $context));
+        }
+    }
+
+    /**
      * Get properly formatted name of the rule associated.
      *
      * @param \context $context context where this name would be displayed.
-     *
      * @return string Formatted name of the rule.
      */
     public function get_name(\context $context) {
@@ -222,7 +250,6 @@ class rule {
      * Get properly formatted description of the rule associated.
      *
      * @param \context $context context where this description would be displayed.
-     *
      * @return string Formatted description of the rule.
      */
     public function get_description(\context $context) {

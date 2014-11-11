@@ -54,11 +54,6 @@ class rules extends \table_sql implements \renderable {
     protected $context;
 
     /**
-     * @var \tool_monitor\output\helpicon\renderer the help icon renderer.
-     */
-    protected $helpiconrenderer;
-
-    /**
      * Sets up the table_log parameters.
      *
      * @param string $uniqueid unique id of form.
@@ -67,16 +62,18 @@ class rules extends \table_sql implements \renderable {
      * @param int $perpage Number of rules to display per page.
      */
     public function __construct($uniqueid, \moodle_url $url, $courseid = 0, $perpage = 100) {
-        global $PAGE;
-
         parent::__construct($uniqueid);
 
         $this->set_attribute('class', 'toolmonitor subscriberules generaltable generalbox');
-        $this->define_columns(array('name', 'description', 'select'));
+        $this->define_columns(array('name', 'description', 'course', 'plugin', 'eventname', 'filters', 'select'));
         $this->define_headers(array(
-                get_string('name'),
+                get_string('rulename', 'tool_monitor'),
                 get_string('description'),
-                get_string('select')
+                get_string('course'),
+                get_string('area', 'tool_monitor'),
+                get_string('event', 'tool_monitor'),
+                get_string('frequency', 'tool_monitor'),
+                ''
             )
         );
         $this->courseid = $courseid;
@@ -88,7 +85,6 @@ class rules extends \table_sql implements \renderable {
         $this->pageable(true);
         $this->is_downloadable(false);
         $this->define_baseurl($url);
-        $this->helpiconrenderer = $PAGE->get_renderer('tool_monitor', 'helpicon');
         $total = \tool_monitor\rule_manager::count_rules_by_courseid($this->courseid);
         $this->totalcount = $total;
     }
@@ -97,39 +93,92 @@ class rules extends \table_sql implements \renderable {
      * Generate content for name column.
      *
      * @param \tool_monitor\rule $rule rule object
-     *
-     * @return string html used to display the column field.
+     * @return string html used to display the rule name.
      */
     public function col_name(\tool_monitor\rule $rule) {
-        $name = $rule->get_name($this->context);
-        $helpicon = new \tool_monitor\output\helpicon\renderable('rule', $rule->id);
-        $helpicon = $this->helpiconrenderer->render($helpicon);
-
-        return $name . $helpicon;
+        return $rule->get_name($this->context);
     }
 
     /**
      * Generate content for description column.
      *
      * @param \tool_monitor\rule $rule rule object
-     *
-     * @return string html used to display the column field.
+     * @return string html used to display the description.
      */
     public function col_description(\tool_monitor\rule $rule) {
         return $rule->get_description($this->context);
     }
 
     /**
+     * Generate content for course column.
+     *
+     * @param \tool_monitor\rule $rule rule object
+     * @return string html used to display the course name.
+     */
+    public function col_course(\tool_monitor\rule $rule) {
+        $coursename = $rule->get_course_name($this->context);
+
+        $courseid = $rule->courseid;
+        if (empty($courseid)) {
+            return $coursename;
+        } else {
+            return \html_writer::link(new \moodle_url('/course/view.php', array('id' => $this->courseid)), $coursename);
+        }
+    }
+
+    /**
      * Generate content for plugin column.
      *
      * @param \tool_monitor\rule $rule rule object
+     * @return string html used to display the plugin name.
+     */
+    public function col_plugin(\tool_monitor\rule $rule) {
+        return $rule->get_plugin_name();
+    }
+
+    /**
+     * Generate content for eventname column.
      *
-     * @return string html used to display the column field.
+     * @param \tool_monitor\rule $rule rule object
+     * @return string html used to display the event name.
+     */
+    public function col_eventname(\tool_monitor\rule $rule) {
+        return $rule->get_event_name();
+    }
+
+    /**
+     * Generate content for filters column.
+     *
+     * @param \tool_monitor\rule $rule rule object
+     * @return string html used to display the filters.
+     */
+    public function col_filters(\tool_monitor\rule $rule) {
+        return $rule->get_filters_description();
+    }
+
+    /**
+     * Generate content for select column.
+     *
+     * @param \tool_monitor\rule $rule rule object
+     * @return string html used to display the select field.
      */
     public function col_select(\tool_monitor\rule $rule) {
         global $OUTPUT;
-        $select = $rule->get_module_select($this->courseid);
-        return is_object($select) ? $OUTPUT->render($select) : $select;
+
+        $options = $rule->get_subscribe_options($this->courseid);
+        $text = get_string('subscribeto', 'tool_monitor', $rule->get_name($this->context));
+
+        if ($options instanceof \single_select) {
+            $options->set_label($text, array('class' => 'accesshide'));
+            return $OUTPUT->render($options);
+        } else if ($options instanceof \moodle_url) {
+            // A \moodle_url to subscribe.
+            $icon = $OUTPUT->pix_icon('t/add', $text);
+            $link = new \action_link($options, $icon);
+            return $OUTPUT->render($link);
+        } else {
+            return $options;
+        }
     }
 
     /**
@@ -154,14 +203,24 @@ class rules extends \table_sql implements \renderable {
     /**
      * Gets a list of courses where the current user can subscribe to rules as a dropdown.
      *
-     * @return \single_select list of courses.
+     * @return \single_select|bool returns the list of courses, or false if the select box
+     *      should not be displayed.
      */
     public function get_user_courses_select() {
-        $courses = get_user_capability_course('tool/monitor:subscribe', null, true, 'fullname');
+        global $DB;
+
+        // If the number of courses on the site exceed the maximum drop down limit do not display the select box.
+        $numcourses = $DB->count_records('course');
+        if ($numcourses > COURSE_MAX_COURSES_PER_DROPDOWN) {
+            return false;
+        }
+        $orderby = 'visible DESC, sortorder ASC';
         $options = array(0 => get_string('site'));
-        $systemcontext = \context_system::instance();
-        foreach ($courses as $course) {
-            $options[$course->id] = format_text($course->fullname, array('context' => $systemcontext));
+        if ($courses = get_user_capability_course('tool/monitor:subscribe', null, true, 'fullname', $orderby)) {
+            foreach ($courses as $course) {
+                $options[$course->id] = format_string($course->fullname, true,
+                    array('context' => \context_course::instance($course->id)));
+            }
         }
         $url = new \moodle_url('/admin/tool/monitor/index.php');
         $select = new \single_select($url, 'courseid', $options, $this->courseid);

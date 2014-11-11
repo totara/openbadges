@@ -3044,13 +3044,20 @@ EOD;
             $returnstr
         );
         $am->set_alignment(action_menu::TR, action_menu::BR);
+        $am->set_nowrap_on_items();
         if ($withlinks) {
             $navitemcount = count($opts->navitems);
             $idx = 0;
             foreach ($opts->navitems as $key => $value) {
                 $pix = null;
-                if (isset($value->pix)) {
+                if (isset($value->pix) && !empty($value->pix)) {
                     $pix = new pix_icon($value->pix, $value->title, null, array('class' => 'iconsmall'));
+                } else if (isset($value->imgsrc) && !empty($value->imgsrc)) {
+                    $value->title = html_writer::img(
+                        $value->imgsrc,
+                        $value->title,
+                        array('class' => 'iconsmall')
+                    ) . $value->title;
                 }
                 $al = new action_menu_link_secondary(
                     $value->url,
@@ -3712,6 +3719,12 @@ class core_renderer_cli extends core_renderer {
         }
         return "!! $message !!\n";
     }
+
+    /**
+     * There is no footer for a cli request, however we must override the
+     * footer method to prevent the default footer.
+     */
+    public function footer() {}
 }
 
 
