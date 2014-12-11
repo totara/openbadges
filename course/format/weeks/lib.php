@@ -82,6 +82,7 @@ class format_weeks extends format_base {
      * @return null|moodle_url
      */
     public function get_view_url($section, $options = array()) {
+        global $CFG;
         $course = $this->get_course();
         $url = new moodle_url('/course/view.php', array('id' => $course->id));
 
@@ -108,7 +109,7 @@ class format_weeks extends format_base {
             if ($sectionno != 0 && $usercoursedisplay == COURSE_DISPLAY_MULTIPAGE) {
                 $url->param('section', $sectionno);
             } else {
-                if (!empty($options['navigation'])) {
+                if (empty($CFG->linkcoursesections) && !empty($options['navigation'])) {
                     return null;
                 }
                 $url->set_anchor('section-'.$sectionno);
@@ -148,6 +149,19 @@ class format_weeks extends format_base {
             }
         }
         parent::extend_course_navigation($navigation, $node);
+
+        // We want to remove the general section if it is empty.
+        $modinfo = get_fast_modinfo($this->get_course());
+        $sections = $modinfo->get_sections();
+        if (!isset($sections[0])) {
+            // The general section is empty to find the navigation node for it we need to get its ID.
+            $section = $modinfo->get_section_info(0);
+            $generalsection = $node->get($section->id, navigation_node::TYPE_SECTION);
+            if ($generalsection) {
+                // We found the node - now remove it.
+                $generalsection->remove();
+            }
+        }
     }
 
     /**

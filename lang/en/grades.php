@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -18,7 +17,7 @@
 /**
  * Strings for component 'grades', language 'en', branch 'MOODLE_20_STABLE'
  *
- * @package   grades
+ * @package   core_grades
  * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -284,6 +283,7 @@ $string['gradeitemsinc'] = 'Grade items to be included';
 $string['gradeletter'] = 'Grade letter';
 $string['gradeletter_help'] = 'Grade letters are letters, A, B, C, ..., or words, for example Distinction, Merit, Pass, ..., used to represent a range of grades.';
 $string['gradeletternote'] = 'To delete a grade letter just empty any of the<br /> three text areas for that letter and click submit.';
+$string['gradeletteroverridden'] = 'The default grade letters are currently overridden.';
 $string['gradeletters'] = 'Grade letters';
 $string['gradelocked'] = 'Grade is locked';
 $string['gradelong'] = '{$a->grade} / {$a->max}';
@@ -607,7 +607,7 @@ $string['showanalysisicon_help'] = 'If the activity module supports it, the grad
 $string['showaverage'] = 'Show average';
 $string['showaverage_help'] = 'Show the average column? Students may be able to estimate other student\'s grades if the average is calculated from a small number of grades. For performance reasons the average is approximate if it is dependent on any hidden items.';
 $string['showcontributiontocoursetotal'] = 'Show contribution to course total';
-$string['showcontributiontocoursetotal_help'] = 'Show an additional column containing the calculated contribution to the course total?';
+$string['showcontributiontocoursetotal_help'] = 'Whether to show a column of percentages indicating how much each grade item contributes to the user\'s course total percentage (after weighting is applied).';
 $string['showfeedback'] = 'Show feedback';
 $string['showfeedback_help'] = 'Show the feedback column?';
 $string['showgrade'] = 'Show grades';

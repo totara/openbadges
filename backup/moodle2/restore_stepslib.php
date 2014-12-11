@@ -89,6 +89,10 @@ class restore_gradebook_structure_step extends restore_structure_step {
      protected function execute_condition() {
         global $CFG, $DB;
 
+        if ($this->get_courseid() == SITEID) {
+            return false;
+        }
+
         // No gradebook info found, don't execute
         $fullpath = $this->task->get_taskbasepath();
         $fullpath = rtrim($fullpath, '/') . '/' . $this->filename;
@@ -463,6 +467,10 @@ class restore_grade_history_structure_step extends restore_structure_step {
 
      protected function execute_condition() {
         global $CFG, $DB;
+
+        if ($this->get_courseid() == SITEID) {
+            return false;
+        }
 
         // No gradebook info found, don't execute.
         $fullpath = $this->task->get_taskbasepath();
@@ -1814,8 +1822,14 @@ class restore_ras_and_caps_structure_step extends restore_structure_step {
  * If no instances yet add default enrol methods the same way as when creating new course in UI.
  */
 class restore_default_enrolments_step extends restore_execution_step {
+
     public function define_execution() {
         global $DB;
+
+        // No enrolments in front page.
+        if ($this->get_courseid() == SITEID) {
+            return;
+        }
 
         $course = $DB->get_record('course', array('id'=>$this->get_courseid()), '*', MUST_EXIST);
 
@@ -1852,6 +1866,10 @@ class restore_enrolments_structure_step extends restore_structure_step {
      * @return bool true is safe to execute, false otherwise
      */
     protected function execute_condition() {
+
+        if ($this->get_courseid() == SITEID) {
+            return false;
+        }
 
         // Check it is included in the backup
         $fullpath = $this->task->get_taskbasepath();
@@ -2337,15 +2355,17 @@ class restore_calendarevents_structure_step extends restore_structure_step {
     }
 
     public function process_calendarevents($data) {
-        global $DB, $SITE;
+        global $DB, $SITE, $USER;
 
         $data = (object)$data;
         $oldid = $data->id;
         $restorefiles = true; // We'll restore the files
-        // Find the userid and the groupid associated with the event. Return if not found.
+        // Find the userid and the groupid associated with the event.
         $data->userid = $this->get_mappingid('user', $data->userid);
         if ($data->userid === false) {
-            return;
+            // Blank user ID means that we are dealing with module generated events such as quiz starting times.
+            // Use the current user ID for these events.
+            $data->userid = $USER->id;
         }
         if (!empty($data->groupid)) {
             $data->groupid = $this->get_mappingid('group', $data->groupid);
@@ -2439,6 +2459,11 @@ class restore_course_completion_structure_step extends restore_structure_step {
         // First check course completion is enabled on this site
         if (empty($CFG->enablecompletion)) {
             // Disabled, don't restore course completion
+            return false;
+        }
+
+        // No course completion on the front page.
+        if ($this->get_courseid() == SITEID) {
             return false;
         }
 
@@ -2789,6 +2814,10 @@ class restore_activity_grading_structure_step extends restore_structure_step {
      */
      protected function execute_condition() {
 
+        if ($this->get_courseid() == SITEID) {
+            return false;
+        }
+
         $fullpath = $this->task->get_taskbasepath();
         $fullpath = rtrim($fullpath, '/') . '/' . $this->filename;
         if (!file_exists($fullpath)) {
@@ -2922,6 +2951,14 @@ class restore_activity_grading_structure_step extends restore_structure_step {
  * available there
  */
 class restore_activity_grades_structure_step extends restore_structure_step {
+
+    /**
+     * No grades in front page.
+     * @return bool
+     */
+    protected function execute_condition() {
+        return ($this->get_courseid() != SITEID);
+    }
 
     protected function define_structure() {
 
@@ -3059,6 +3096,11 @@ class restore_activity_grade_history_structure_step extends restore_structure_st
      * This step is executed only if the grade history file is present.
      */
      protected function execute_condition() {
+
+        if ($this->get_courseid() == SITEID) {
+            return false;
+        }
+
         $fullpath = $this->task->get_taskbasepath();
         $fullpath = rtrim($fullpath, '/') . '/' . $this->filename;
         if (!file_exists($fullpath)) {
@@ -3145,11 +3187,52 @@ class restore_block_instance_structure_step extends restore_structure_step {
         }
 
         if (!$bi->instance_allow_multiple()) {
-            if ($DB->record_exists_sql("SELECT bi.id
-                                          FROM {block_instances} bi
-                                          JOIN {block} b ON b.name = bi.blockname
-                                         WHERE bi.parentcontextid = ?
-                                           AND bi.blockname = ?", array($data->parentcontextid, $data->blockname))) {
+            // The block cannot be added twice, so we will check if the same block is already being
+            // displayed on the same page. For this, rather than mocking a page and using the block_manager
+            // we use a similar query to the one in block_manager::load_blocks(), this will give us
+            // a very good idea of the blocks already displayed in the context.
+            $params =  array(
+                'blockname' => $data->blockname
+            );
+
+            // Context matching test.
+            $context = context::instance_by_id($data->parentcontextid);
+            $contextsql = 'bi.parentcontextid = :contextid';
+            $params['contextid'] = $context->id;
+
+            $parentcontextids = $context->get_parent_context_ids();
+            if ($parentcontextids) {
+                list($parentcontextsql, $parentcontextparams) =
+                        $DB->get_in_or_equal($parentcontextids, SQL_PARAMS_NAMED);
+                $contextsql = "($contextsql OR (bi.showinsubcontexts = 1 AND bi.parentcontextid $parentcontextsql))";
+                $params = array_merge($params, $parentcontextparams);
+            }
+
+            // Page type pattern test.
+            $pagetypepatterns = matching_page_type_patterns_from_pattern($data->pagetypepattern);
+            list($pagetypepatternsql, $pagetypepatternparams) =
+                $DB->get_in_or_equal($pagetypepatterns, SQL_PARAMS_NAMED);
+            $params = array_merge($params, $pagetypepatternparams);
+
+            // Sub page pattern test.
+            $subpagepatternsql = 'bi.subpagepattern IS NULL';
+            if ($data->subpagepattern !== null) {
+                $subpagepatternsql = "($subpagepatternsql OR bi.subpagepattern = :subpagepattern)";
+                $params['subpagepattern'] = $data->subpagepattern;
+            }
+
+            $exists = $DB->record_exists_sql("SELECT bi.id
+                                                FROM {block_instances} bi
+                                                JOIN {block} b ON b.name = bi.blockname
+                                               WHERE bi.blockname = :blockname
+                                                 AND $contextsql
+                                                 AND bi.pagetypepattern $pagetypepatternsql
+                                                 AND $subpagepatternsql", $params);
+            if ($exists) {
+                // There is at least one very similar block visible on the page where we
+                // are trying to restore the block. In these circumstances the block API
+                // would not allow the user to add another instance of the block, so we
+                // apply the same rule here.
                 return false;
             }
         }
@@ -3444,6 +3527,11 @@ class restore_userscompletion_structure_step extends restore_structure_step {
          if (empty($CFG->enablecompletion)) {
              return false;
          }
+
+        // No completion on the front page.
+        if ($this->get_courseid() == SITEID) {
+            return false;
+        }
 
          // No user completion info found, don't execute
         $fullpath = $this->task->get_taskbasepath();

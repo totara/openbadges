@@ -162,7 +162,7 @@ M.mod_scorm.init = function(Y, nav_display, navposition_left, navposition_top, h
             if (window_name) {
                 var mine = window.open('','','width=1,height=1,left=0,top=0,scrollbars=no');
                 if(! mine) {
-                    alert(M.str.scorm.popupsblocked);
+                    alert(M.util.get_string('popupsblocked', 'scorm'));
                 }
                 mine.close();
             }
@@ -802,6 +802,9 @@ M.mod_scorm.connectPrereqCallback = {
             }
             var el_new_tree = document.createElement('div');
             var pagecontent = document.getElementById("page-content");
+            if (!pagecontent) {
+                pagecontent = document.getElementById("content");
+            }
             el_new_tree.setAttribute('id','scormtree123');
             el_new_tree.innerHTML = o.responseText;
             // Make sure it does not show.

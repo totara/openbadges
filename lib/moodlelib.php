@@ -4283,6 +4283,9 @@ function delete_user(stdClass $user) {
     // Purge user extra profile info.
     $DB->delete_records('user_info_data', array('userid' => $user->id));
 
+    // Purge log of previous password hashes.
+    $DB->delete_records('user_password_history', array('userid' => $user->id));
+
     // Last course access not necessary either.
     $DB->delete_records('user_lastaccess', array('userid' => $user->id));
     // Remove all user tokens.
@@ -8650,8 +8653,22 @@ function getremoteaddr($default='0.0.0.0') {
     }
     if (!($variablestoskip & GETREMOTEADDR_SKIP_HTTP_X_FORWARDED_FOR)) {
         if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $hdr = explode(",", $_SERVER['HTTP_X_FORWARDED_FOR']);
-            $address = cleanremoteaddr($hdr[0]);
+            $forwardedaddresses = explode(",", $_SERVER['HTTP_X_FORWARDED_FOR']);
+            $address = $forwardedaddresses[0];
+
+            if (substr_count($address, ":") > 1) {
+                // Remove port and brackets from IPv6.
+                if (preg_match("/\[(.*)\]:/", $address, $matches)) {
+                    $address = $matches[1];
+                }
+            } else {
+                // Remove port from IPv4.
+                if (substr_count($address, ":") == 1) {
+                    $address = explode(":", $address)[0];
+                }
+            }
+
+            $address = cleanremoteaddr($address);
             return $address ? $address : $default;
         }
     }

@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -18,7 +17,7 @@
 /**
  * This file contains the strings used by backup
  *
- * @package   moodlecore
+ * @package   core
  * @copyright 2010 Eloy
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -114,9 +113,9 @@ $string['error_course_module_not_found'] = 'Orphan course module (id: {$a}) foun
 $string['errorfilenamerequired'] = 'You must enter a valid filename for this backup';
 $string['errorfilenamemustbezip'] = 'The filename you enter must be a ZIP file and have the .mbz extension';
 $string['errorminbackup20version'] = 'This backup file has been created with one development version of Moodle backup ({$a->backup}). Minimum required is {$a->min}. Cannot be restored.';
-$string['errorrestorefrontpage'] = 'Restoring over front page is not allowed.';
 $string['errorinvalidformat'] = 'Unknown backup format';
 $string['errorinvalidformatinfo'] = 'The selected file is not a valid Moodle backup file and can\'t be restored.';
+$string['errorrestorefrontpagebackup'] = 'You can only restore front page backups on the front page';
 $string['executionsuccess'] = 'The backup file was successfully created.';
 $string['filename'] = 'Filename';
 $string['filealiasesrestorefailures'] = 'Aliases restore failures';
@@ -238,6 +237,7 @@ $string['rootsettinglogs'] = 'Include course logs';
 $string['rootsettinggradehistories'] = 'Include grade history';
 $string['rootsettingimscc1'] = 'Convert to IMS Common Cartridge 1.0';
 $string['rootsettingimscc11'] = 'Convert to IMS Common Cartridge 1.1';
+$string['sitecourseformatwarning'] = 'This is a front page backup, note that they can only be restored on the front page';
 $string['storagecourseonly'] = 'Course backup filearea';
 $string['storagecourseandexternal'] = 'Course backup filearea and the specified directory';
 $string['storageexternalonly'] = 'Specified directory for automated backups';

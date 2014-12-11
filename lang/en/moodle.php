@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -18,7 +17,7 @@
 /**
  * Strings for component 'moodle', language 'en', branch 'MOODLE_20_STABLE'
  *
- * @package   moodle
+ * @package   core
  * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -262,6 +261,7 @@ $string['collapseall'] = 'Collapse all';
 $string['collapsecategory'] = 'Collapse {$a}';
 $string['commentincontext'] = 'Find this comment in context';
 $string['comments'] = 'Comments';
+$string['commentscount'] = 'Comments ({$a})';
 $string['commentsnotenabled'] = 'Comments feature is not enabled';
 $string['commentsrequirelogin'] = 'You need to login to view the comments';
 $string['comparelanguage'] = 'Compare and edit current language';
@@ -822,7 +822,7 @@ $string['frontpagecourselist'] = 'List of courses';
 $string['frontpagecoursesearch'] = 'Course search box';
 $string['frontpageenrolledcourselist'] = 'Enrolled courses';
 $string['frontpagedescription'] = 'Front page summary';
-$string['frontpagedescriptionhelp'] = 'This summary can be displayed on the front page using the course/site summary block or by including a topic section on the front page.';
+$string['frontpagedescriptionhelp'] = 'This summary can be displayed on the front page using the course/site summary block.';
 $string['frontpageformat'] = 'Front page format';
 $string['frontpageformatloggedin'] = 'Front page format when logged in';
 $string['frontpagenews'] = 'News items';
@@ -1566,6 +1566,7 @@ $string['saveandnext'] = 'Save and show next';
 $string['savedat'] = 'Saved at:';
 $string['savechanges'] = 'Save changes';
 $string['savechangesanddisplay'] = 'Save and display';
+$string['savechangesandreturn'] = 'Save and return';
 $string['savechangesandreturntocourse'] = 'Save and return to course';
 $string['savecomment'] = 'Save comment';
 $string['savepreferences'] = 'Save preferences';
