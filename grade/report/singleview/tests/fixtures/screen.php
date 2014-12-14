@@ -15,43 +15,38 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Atto text editor integration version file.
+ * Fixtures for single view report screen class testing.
  *
- * @package    atto_image
- * @copyright  2013 Damyon Wiese  <damyon@moodle.com>
+ * @package    gradereport_singleview
+ * @copyright  2014 onwards Simey Lameze <simey@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-/**
- * Initialise the strings required for js
- */
-function atto_image_strings_for_js() {
-    global $PAGE;
+class gradereport_singleview_screen_testable extends \gradereport_singleview\local\screen\screen {
 
-    $strings = array(
-        'alignment',
-        'alignment_bottom',
-        'alignment_left',
-        'alignment_middle',
-        'alignment_right',
-        'alignment_top',
-        'browserepositories',
-        'constrain',
-        'saveimage',
-        'imageproperties',
-        'customstyle',
-        'enterurl',
-        'enteralt',
-        'height',
-        'presentation',
-        'presentationoraltrequired',
-        'size',
-        'width',
-        'uploading',
-    );
+    /**
+     * Wrapper to make protected method accessible during testing.
+     *
+     * @return array returns array of users.
+     */
+    public function test_load_users() {
+        return $this->load_users();
+    }
 
-    $PAGE->requires->strings_for_js($strings, 'atto_image');
+    /**
+     * Return the HTML for the page.
+     */
+    public function init($selfitemisempty = false) {}
+
+    /**
+     * Get the type of items on this screen, not valid so return false.
+     */
+    public function item_type() {}
+
+    /**
+     * Return the HTML for the page.
+     */
+    public function html() {}
 }
-

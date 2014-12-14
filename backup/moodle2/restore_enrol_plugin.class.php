@@ -15,18 +15,25 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Strings for component 'report_backups'
+ * Defines restore_enrol_plugin class.
  *
- * @package    report
- * @subpackage backups
- * @copyright  2007 onwards Eloy Lafuente (stronk7) {@link http://stronk7.com}
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package     core_backup
+ * @subpackage  moodle2
+ * @category    backup
+ * @copyright   2014 University of Wisconsin
+ * @author      Matt petro
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['backupofcourselogs'] = 'Backup logs of {$a}';
-$string['logsofbackupexecutedon'] = 'Logs of the backup executed on {$a}';
-$string['nobackupsfound'] = 'There were no backups found.';
-$string['nologsfound'] = 'There were no logs found for this backup.';
-$string['pluginname'] = 'Backups report';
-$string['strftimetime'] = '%I:%M:%S %p';
-$string['viewlogs'] = 'View logs';
+defined('MOODLE_INTERNAL') || die();
+
+/**
+ * Base class for enrol backup plugins.
+ *
+ * @package   core_backup
+ * @copyright 2014 University of Wisconsin
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+abstract class restore_enrol_plugin extends restore_plugin {
+    // Use default parent behaviour.
+}
