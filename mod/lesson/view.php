@@ -410,7 +410,6 @@ if ($pageid != LESSON_EOL) {
         echo '<a name="maincontent" id="maincontent" title="' . get_string('anchortitle', 'lesson') . '"></a>';
     }
     echo $lessoncontent;
-    echo $lessonoutput->slideshow_end();
     echo $lessonoutput->progress_bar($lesson);
     echo $lessonoutput->footer();
 
@@ -434,6 +433,12 @@ if ($pageid != LESSON_EOL) {
         // Update the clock / get time information for this user.
         $lesson->stop_timer();
         $gradeinfo = lesson_grade($lesson, $ntries);
+
+        // Update completion state.
+        $completion = new completion_info($course);
+        if ($completion->is_enabled($cm) && $lesson->completionendreached) {
+            $completion->update_state($cm, COMPLETION_COMPLETE);
+        }
 
         if ($gradeinfo->attempts) {
             if (!$lesson->custom) {

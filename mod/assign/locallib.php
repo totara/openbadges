@@ -139,6 +139,9 @@ class assign {
     /** @var array cached list of participants for this assignment. The cache key will be group, showactive and the context id */
     private $participants = array();
 
+    /** @var array cached list of user groups when team submissions are enabled. The cache key will be the user. */
+    private $usersubmissiongroups = array();
+
     /**
      * Constructor for the base assign class.
      *
@@ -1380,6 +1383,11 @@ class assign {
      * @return array List of user records
      */
     public function list_participants($currentgroup, $idsonly) {
+
+        if (empty($currentgroup)) {
+            $currentgroup = 0;
+        }
+
         $key = $this->context->id . '-' . $currentgroup . '-' . $this->show_only_active_users();
         if (!isset($this->participants[$key])) {
             $users = get_enrolled_users($this->context, 'mod/assign:submit', $currentgroup, 'u.*', null, null, null,
@@ -1406,21 +1414,51 @@ class assign {
     /**
      * Load a count of valid teams for this assignment.
      *
+     * @param int $activitygroup Activity active group
      * @return int number of valid teams
      */
-    public function count_teams() {
+    public function count_teams($activitygroup = 0) {
 
-        $groups = groups_get_all_groups($this->get_course()->id,
-                                        0,
-                                        $this->get_instance()->teamsubmissiongroupingid,
-                                        'g.id');
-        $count = count($groups);
+        $count = 0;
 
-        // See if there are any users in the default group.
-        $defaultusers = $this->get_submission_group_members(0, true);
-        if (count($defaultusers) > 0) {
-            $count += 1;
+        $participants = $this->list_participants($activitygroup, true);
+
+        // If a team submission grouping id is provided all good as all returned groups
+        // are the submission teams, but if no team submission grouping was specified
+        // $groups will contain all participants groups.
+        if ($this->get_instance()->teamsubmissiongroupingid) {
+
+            // We restrict the users to the selected group ones.
+            $groups = groups_get_all_groups($this->get_course()->id,
+                                            array_keys($participants),
+                                            $this->get_instance()->teamsubmissiongroupingid,
+                                            'DISTINCT g.id, g.name');
+
+            $count = count($groups);
+
+            // When a specific group is selected we don't count the default group users.
+            if ($activitygroup == 0) {
+
+                // See if there are any users in the default group.
+                $defaultusers = $this->get_submission_group_members(0, true);
+                if (count($defaultusers) > 0) {
+                    $count += 1;
+                }
+            }
+        } else {
+            // It is faster to loop around participants if no grouping was specified.
+            $groups = array();
+            foreach ($participants as $participant) {
+                if ($group = $this->get_submission_group($participant->id)) {
+                    $groups[$group->id] = true;
+                } else {
+                    $groups[0] = true;
+                }
+            }
+
+            $count = count($groups);
         }
+
         return $count;
     }
 
@@ -1468,7 +1506,7 @@ class assign {
                         s.assignment = :assignid AND
                         s.timemodified IS NOT NULL AND
                         s.status = :submitted AND
-                        (s.timemodified > g.timemodified OR g.timemodified IS NULL)';
+                        (s.timemodified > g.timemodified OR g.timemodified IS NULL OR g.grade IS NULL)';
 
         return $DB->count_records_sql($sql, $params);
     }
@@ -1568,13 +1606,27 @@ class assign {
         $params['submissionstatus'] = $status;
 
         if ($this->get_instance()->teamsubmission) {
+
+            $groupsstr = '';
+            if ($currentgroup != 0) {
+                // If there is an active group we should only display the current group users groups.
+                $participants = $this->list_participants($currentgroup, true);
+                $groups = groups_get_all_groups($this->get_course()->id,
+                                                array_keys($participants),
+                                                $this->get_instance()->teamsubmissiongroupingid,
+                                                'DISTINCT g.id, g.name');
+                list($groupssql, $groupsparams) = $DB->get_in_or_equal(array_keys($groups), SQL_PARAMS_NAMED);
+                $groupsstr = 's.groupid ' . $groupssql . ' AND';
+                $params = $params + $groupsparams;
+            }
             $sql = 'SELECT COUNT(s.groupid)
                         FROM {assign_submission} s
                         WHERE
                             s.latest = 1 AND
                             s.assignment = :assignid AND
                             s.timemodified IS NOT NULL AND
-                            s.userid = :groupuserid AND
+                            s.userid = :groupuserid AND '
+                            . $groupsstr . '
                             s.status = :submissionstatus';
             $params['groupuserid'] = 0;
         } else {
@@ -1643,8 +1695,12 @@ class assign {
         $timenow   = time();
         $lastcron = $DB->get_field('modules', 'lastcron', array('name' => 'assign'));
 
-        // Collect all submissions from the past 24 hours that require mailing.
-        // Submissions are excluded if the assignment is hidden in the gradebook.
+        // Collect all submissions that require mailing.
+        // Submissions are included if all are true:
+        //   - The assignment is visible in the gradebook.
+        //   - No previous notification has been sent.
+        //   - If marking workflow is not enabled, the grade was updated in the past 24 hours, or
+        //     if marking workflow is enabled, the workflow state is at 'released'.
         $sql = "SELECT g.id as gradeid, a.course, a.name, a.blindmarking, a.revealidentities,
                        g.*, g.timemodified as lastmodified, cm.id as cmid
                  FROM {assign} a
@@ -1653,12 +1709,16 @@ class assign {
                  JOIN {course_modules} cm ON cm.course = a.course AND cm.instance = a.id
                  JOIN {modules} md ON md.id = cm.module AND md.name = 'assign'
                  JOIN {grade_items} gri ON gri.iteminstance = a.id AND gri.courseid = a.course AND gri.itemmodule = md.name
-                 WHERE g.timemodified >= :yesterday AND
-                       g.timemodified <= :today AND
+                 WHERE ((a.markingworkflow = 0 AND g.timemodified >= :yesterday AND g.timemodified <= :today) OR
+                        (a.markingworkflow = 1 AND uf.workflowstate = :wfreleased)) AND
                        uf.mailed = 0 AND gri.hidden = 0
               ORDER BY a.course, cm.id";
 
-        $params = array('yesterday' => $yesterday, 'today' => $timenow);
+        $params = array(
+            'yesterday' => $yesterday,
+            'today' => $timenow,
+            'wfreleased' => ASSIGN_MARKING_WORKFLOW_STATE_RELEASED,
+        );
         $submissions = $DB->get_records_sql($sql, $params);
 
         if (!empty($submissions)) {
@@ -1810,13 +1870,14 @@ class assign {
      * Mark in the database that this grade record should have an update notification sent by cron.
      *
      * @param stdClass $grade a grade record keyed on id
+     * @param bool $mailedoverride when true, flag notification to be sent again.
      * @return bool true for success
      */
-    public function notify_grade_modified($grade) {
+    public function notify_grade_modified($grade, $mailedoverride = false) {
         global $DB;
 
         $flags = $this->get_user_flags($grade->userid, true);
-        if ($flags->mailed != 1) {
+        if ($flags->mailed != 1 || $mailedoverride) {
             $flags->mailed = 0;
         }
 
@@ -1882,19 +1943,13 @@ class assign {
             // Set it to the default.
             $grade->attemptnumber = 0;
         }
-        $result = $DB->update_record('assign_grades', $grade);
+        $DB->update_record('assign_grades', $grade);
 
-        // If the conditions are met, allow another attempt.
         $submission = null;
         if ($this->get_instance()->teamsubmission) {
             $submission = $this->get_group_submission($grade->userid, 0, false);
         } else {
             $submission = $this->get_user_submission($grade->userid, false);
-        }
-        if ($submission && $submission->attemptnumber == $grade->attemptnumber) {
-            $this->reopen_submission_if_required($grade->userid,
-                                                 $submission,
-                                                 $reopenattempt);
         }
 
         // Only push to gradebook if the update is for the latest attempt.
@@ -1903,11 +1958,16 @@ class assign {
             return true;
         }
 
-        if ($result) {
-            $this->gradebook_item_update(null, $grade);
-            \mod_assign\event\submission_graded::create_from_grade($this, $grade)->trigger();
+        $this->gradebook_item_update(null, $grade);
+
+        // If the conditions are met, allow another attempt.
+        if ($submission) {
+            $this->reopen_submission_if_required($grade->userid,
+                    $submission,
+                    $reopenattempt);
         }
-        return $result;
+        \mod_assign\event\submission_graded::create_from_grade($this, $grade)->trigger();
+        return true;
     }
 
     /**
@@ -1999,6 +2059,7 @@ class assign {
                 }
             }
         }
+
         return $members;
     }
 
@@ -2221,12 +2282,23 @@ class assign {
      * @return mixed The group or false
      */
     public function get_submission_group($userid) {
+
+        if (isset($this->usersubmissiongroups[$userid])) {
+            return $this->usersubmissiongroups[$userid];
+        }
+
         $grouping = $this->get_instance()->teamsubmissiongroupingid;
         $groups = groups_get_all_groups($this->get_course()->id, $userid, $grouping);
         if (count($groups) != 1) {
-            return false;
+            $return = false;
+        } else {
+            $return = array_pop($groups);
         }
-        return array_pop($groups);
+
+        // Cache the user submission group.
+        $this->usersubmissiongroups[$userid] = $return;
+
+        return $return;
     }
 
 
@@ -3902,7 +3974,7 @@ class assign {
 
             $cangrade = has_capability('mod/assign:grade', $this->get_context());
             // If there is a visible grade, show the summary.
-            if ((!empty($gradebookgrade->grade) || !$emptyplugins)
+            if ((!is_null($gradebookgrade->grade) || !$emptyplugins)
                     && ($cangrade || !$gradebookgrade->hidden)) {
 
                 $gradefordisplay = null;
@@ -3911,7 +3983,7 @@ class assign {
                 $gradingmanager = get_grading_manager($this->get_context(), 'mod_assign', 'submissions');
 
                 // Only show the grade if it is not hidden in gradebook.
-                if (!empty($gradebookgrade->grade) && ($cangrade || !$gradebookgrade->hidden)) {
+                if (!is_null($gradebookgrade->grade) && ($cangrade || !$gradebookgrade->hidden)) {
                     if ($controller = $gradingmanager->get_active_controller()) {
                         $menu = make_grades_menu($this->get_instance()->grade);
                         $controller->set_grade_range($menu, $this->get_instance()->grade > 0);
@@ -4132,8 +4204,15 @@ class assign {
         if ($this->can_view_grades()) {
             $draft = ASSIGN_SUBMISSION_STATUS_DRAFT;
             $submitted = ASSIGN_SUBMISSION_STATUS_SUBMITTED;
+
+            // Group selector will only be displayed if necessary.
+            $currenturl = new moodle_url('/mod/assign/view.php', array('id' => $this->get_course_module()->id));
+            $o .= groups_print_activity_menu($this->get_course_module(), $currenturl->out(), true);
+
+            $activitygroup = groups_get_activity_group($this->get_course_module());
+
             if ($instance->teamsubmission) {
-                $summary = new assign_grading_summary($this->count_teams(),
+                $summary = new assign_grading_summary($this->count_teams($activitygroup),
                                                       $instance->submissiondrafts,
                                                       $this->count_submissions_with_status($draft),
                                                       $this->is_any_submission_plugin_enabled(),
@@ -4145,7 +4224,9 @@ class assign {
                                                       $instance->teamsubmission);
                 $o .= $this->get_renderer()->render($summary);
             } else {
-                $summary = new assign_grading_summary($this->count_participants(0),
+                // The active group has already been updated in groups_print_activity_menu().
+                $countparticipants = $this->count_participants($activitygroup);
+                $summary = new assign_grading_summary($countparticipants,
                                                       $instance->submissiondrafts,
                                                       $this->count_submissions_with_status($draft),
                                                       $this->is_any_submission_plugin_enabled(),
@@ -5305,7 +5386,7 @@ class assign {
 
             // Allow teachers to skip sending notifications.
             if (optional_param('sendstudentnotifications', true, PARAM_BOOL)) {
-                $this->notify_grade_modified($grade);
+                $this->notify_grade_modified($grade, true);
             }
 
             // Save outcomes.
@@ -6082,10 +6163,15 @@ class assign {
         // Get assignment visibility information for student.
         $modinfo = get_fast_modinfo($settings->course, $userid);
         $cm = $modinfo->get_cm($this->get_course_module()->id);
-        // Don't allow notification to be sent if student can't access assignment.
+
+        // Don't allow notification to be sent if the student can't access the assignment,
+        // or until in "Released" state if using marking workflow.
         if (!$cm->uservisible) {
             $mform->setDefault('sendstudentnotifications', 0);
             $mform->freeze('sendstudentnotifications');
+        } else if ($this->get_instance()->markingworkflow) {
+            $mform->setDefault('sendstudentnotifications', 0);
+            $mform->disabledIf('sendstudentnotifications', 'workflowstate', 'neq', ASSIGN_MARKING_WORKFLOW_STATE_RELEASED);
         } else {
             $mform->setDefault('sendstudentnotifications', $this->get_instance()->sendstudentnotifications);
         }
@@ -6361,6 +6447,16 @@ class assign {
 
                 $flags->workflowstate = $state;
 
+                // Clear the mailed flag if notification is requested, the student hasn't been
+                // notified previously, the student can access the assignment, and the state
+                // is "Released".
+                $modinfo = get_fast_modinfo($this->course, $userid);
+                $cm = $modinfo->get_cm($this->get_course_module()->id);
+                if ($formdata->sendstudentnotifications && $cm->uservisible &&
+                        $state == ASSIGN_MARKING_WORKFLOW_STATE_RELEASED) {
+                    $flags->mailed = 0;
+                }
+
                 $gradingdisabled = $this->grading_disabled($userid);
 
                 // Will not apply update if user does not have permission to assign this workflow state.
@@ -6557,7 +6653,7 @@ class assign {
         // Note the default if not provided for this option is true (e.g. webservices).
         // This is for backwards compatibility.
         if (!isset($formdata->sendstudentnotifications) || $formdata->sendstudentnotifications) {
-            $this->notify_grade_modified($grade);
+            $this->notify_grade_modified($grade, true);
         }
     }
 
@@ -6631,7 +6727,8 @@ class assign {
             if ($gradeitem) {
                 $gradegrade = grade_grade::fetch(array('userid' => $userid, 'itemid' => $gradeitem->id));
 
-                if ($gradegrade && !$gradegrade->is_passed()) {
+                // Do not reopen if is_passed returns null, e.g. if there is no pass criterion set.
+                if ($gradegrade && ($gradegrade->is_passed() === false)) {
                     $shouldreopen = true;
                 }
             }

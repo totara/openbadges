@@ -60,12 +60,9 @@ function add_to_log($courseid, $module, $action, $url='', $info='', $cm=0, $user
  *
  * @deprecated since 2.7 - use new file picker instead
  *
- * @param string $newfilepath
- * @param stdClass $course
- * @param bool $nourl
  */
 function clam_log_upload($newfilepath, $course=null, $nourl=false) {
-    debugging('clam_log_upload() is not supposed to be used any more, use new file picker instead', DEBUG_DEVELOPER);
+    throw new coding_exception('clam_log_upload() can not be used any more, please use file picker instead');
 }
 
 /**
@@ -73,12 +70,9 @@ function clam_log_upload($newfilepath, $course=null, $nourl=false) {
  *
  * @deprecated since 2.7 - use new file picker instead
  *
- * @param string $oldfilepath
- * @param string $newfilepath
- * @param int $userid The user
  */
 function clam_log_infected($oldfilepath='', $newfilepath='', $userid=0) {
-    debugging('clam_log_infected() is not supposed to be used any more, use new file picker instead', DEBUG_DEVELOPER);
+    throw new coding_exception('clam_log_infected() can not be used any more, please use file picker instead');
 }
 
 /**
@@ -86,12 +80,9 @@ function clam_log_infected($oldfilepath='', $newfilepath='', $userid=0) {
  *
  * @deprecated since 2.7 - use new file picker instead
  *
- * @param string $oldpath
- * @param string $newpath
- * @param boolean $update
  */
 function clam_change_log($oldpath, $newpath, $update=true) {
-    debugging('clam_change_log() is not supposed to be used any more, use new file picker instead', DEBUG_DEVELOPER);
+    throw new coding_exception('clam_change_log() can not be used any more, please use file picker instead');
 }
 
 /**
@@ -99,13 +90,32 @@ function clam_change_log($oldpath, $newpath, $update=true) {
  *
  * @deprecated since 2.7 - infected files are now deleted in file picker
  *
- * @param string $file
- * @return boolean
  */
 function clam_replace_infected_file($file) {
-    debugging('clam_change_log() is not supposed to be used any more', DEBUG_DEVELOPER);
-    return false;
+    throw new coding_exception('clam_replace_infected_file() can not be used any more, please use file picker instead');
 }
+
+/**
+ * Deals with an infected file - either moves it to a quarantinedir
+ * (specified in CFG->quarantinedir) or deletes it.
+ *
+ * If moving it fails, it deletes it.
+ *
+ * @deprecated since 2.7
+ */
+function clam_handle_infected_file($file, $userid=0, $basiconly=false) {
+    throw new coding_exception('clam_handle_infected_file() can not be used any more, please use file picker instead');
+}
+
+/**
+ * If $CFG->runclamonupload is set, we scan a given file. (called from {@link preprocess_files()})
+ *
+ * @deprecated since 2.7
+ */
+function clam_scan_moodle_file(&$file, $course) {
+    throw new coding_exception('clam_scan_moodle_file() can not be used any more, please use file picker instead');
+}
+
 
 /**
  * Checks whether the password compatibility library will work with the current
@@ -1377,17 +1387,14 @@ function show_event($event) {
 
 /**
  * Original singleton helper function, please use static methods instead,
- * ex: core_text::convert()
+ * ex: core_text::convert().
  *
- * @deprecated since Moodle 2.2 use core_text::xxxx() instead
- * @see textlib
- * @return textlib instance
+ * @deprecated since Moodle 2.2 use core_text::xxxx() instead.
+ * @see core_text
  */
 function textlib_get_instance() {
-
-    debugging('textlib_get_instance() is deprecated. Please use static calling core_text::functioname() instead.', DEBUG_DEVELOPER);
-
-    return new textlib();
+    throw new coding_exception('textlib_get_instance() can not be used any more, please use '.
+        'core_text::functioname() instead.');
 }
 
 /**
@@ -3250,16 +3257,10 @@ function get_context_instance($contextlevel, $instance = 0, $strictness = IGNORE
  * Get a context instance as an object, from a given context id.
  *
  * @deprecated since Moodle 2.2 MDL-35009 - please do not use this function any more.
- * @todo MDL-34550 This will be deleted in Moodle 2.8
  * @see context::instance_by_id($id)
- * @param int $id context id
- * @param int $strictness IGNORE_MISSING means compatible mode, false returned if record not found, debug message if more found;
- *                        MUST_EXIST means throw exception if no record or multiple records found
- * @return context|bool the context object or false if not found.
  */
 function get_context_instance_by_id($id, $strictness = IGNORE_MISSING) {
-    debugging('get_context_instance_by_id() is deprecated, please use context::instance_by_id($id) instead.', DEBUG_DEVELOPER);
-    return context::instance_by_id($id, $strictness);
+    throw new coding_exception('get_context_instance_by_id() is now removed, please use context::instance_by_id($id) instead.');
 }
 
 /**
@@ -3891,75 +3892,31 @@ function can_use_html_editor() {
 
 
 /**
- * Returns an object with counts of failed login attempts
+ * Returns an object with counts of failed login attempts.
  *
- * Returns information about failed login attempts.  If the current user is
- * an admin, then two numbers are returned:  the number of attempts and the
- * number of accounts.  For non-admins, only the attempts on the given user
- * are shown.
- *
- * @deprecate since Moodle 2.7, use {@link user_count_login_failures()} instead.
- * @global moodle_database $DB
- * @uses CONTEXT_SYSTEM
- * @param string $mode Either 'admin' or 'everybody'
- * @param string $username The username we are searching for
- * @param string $lastlogin The date from which we are searching
- * @return int
+ * @deprecated since Moodle 2.7, use {@link user_count_login_failures()} instead.
  */
 function count_login_failures($mode, $username, $lastlogin) {
-    global $DB;
-
-    debugging('This method has been deprecated. Please use user_count_login_failures() instead.', DEBUG_DEVELOPER);
-
-    $params = array('mode'=>$mode, 'username'=>$username, 'lastlogin'=>$lastlogin);
-    $select = "module='login' AND action='error' AND time > :lastlogin";
-
-    $count = new stdClass();
-
-    if (is_siteadmin()) {
-        if ($count->attempts = $DB->count_records_select('log', $select, $params)) {
-            $count->accounts = $DB->count_records_select('log', $select, $params, 'COUNT(DISTINCT info)');
-            return $count;
-        }
-    } else if ($mode == 'everybody') {
-        if ($count->attempts = $DB->count_records_select('log', "$select AND info = :username", $params)) {
-            return $count;
-        }
-    }
-    return NULL;
+    throw new coding_exception('count_login_failures() can not be used any more, please use user_count_login_failures().');
 }
 
 /**
- * Returns whether ajax is enabled/allowed or not.
- * This function is deprecated and always returns true.
+ * It should no longer be required to work without JavaScript enabled.
  *
- * @param array $unused - not used any more.
- * @return bool
- * @deprecated since 2.7 MDL-33099 - please do not use this function any more.
- * @todo MDL-44088 This will be removed in Moodle 2.9.
+ * @deprecated since 2.7 MDL-33099/MDL-44088 - please do not use this function any more.
  */
 function ajaxenabled(array $browsers = null) {
-    debugging('ajaxenabled() is deprecated - please update your code to assume it returns true.', DEBUG_DEVELOPER);
-    return true;
+    throw new coding_exception('ajaxenabled() can not be used anymore. Update your code to work with JS at all times.');
 }
 
 /**
- * Determine whether a course module is visible within a course,
- * this is different from instance_is_visible() - faster and visibility for user
+ * Determine whether a course module is visible within a course.
  *
- * @global object
- * @global object
- * @uses DEBUG_DEVELOPER
- * @uses CONTEXT_MODULE
- * @param object $cm object
- * @param int $userid empty means current user
- * @return bool Success
- * @deprecated Since Moodle 2.7
+ * @deprecated Since Moodle 2.7 MDL-44070
  */
 function coursemodule_visible_for_user($cm, $userid=0) {
-    debugging('coursemodule_visible_for_user() deprecated since Moodle 2.7. ' .
-            'Replace with \core_availability\info_module::is_user_visible().');
-    return \core_availability\info_module::is_user_visible($cm, $userid, false);
+    throw new coding_exception('coursemodule_visible_for_user() can not be used any more,
+            please use \core_availability\info_module::is_user_visible()');
 }
 
 /**

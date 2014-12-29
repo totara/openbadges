@@ -1297,17 +1297,8 @@ class global_navigation extends navigation_node {
         }
 
         // Give the local plugins a chance to include some navigation if they want.
-        foreach (core_component::get_plugin_list_with_file('local', 'lib.php', true) as $plugin => $file) {
-            $function = "local_{$plugin}_extends_navigation";
-            $oldfunction = "{$plugin}_extends_navigation";
-            if (function_exists($function)) {
-                // This is the preferred function name as there is less chance of conflicts
-                $function($this);
-            } else if (function_exists($oldfunction)) {
-                // We continue to support the old function name to ensure backwards compatibility
-                debugging("Deprecated local plugin navigation callback: Please rename '{$oldfunction}' to '{$function}'. Support for the old callback will be dropped after the release of 2.4", DEBUG_DEVELOPER);
-                $oldfunction($this);
-            }
+        foreach (get_plugin_list_with_function('local', 'extends_navigation') as $function) {
+            $function($this);
         }
 
         // Remove any empty root nodes
@@ -1639,13 +1630,17 @@ class global_navigation extends navigation_node {
         } else if (array_key_exists($categoryid, $this->addedcategories)) {
             // The category itself has been loaded already so we just need to ensure its subcategories
             // have been loaded
-            list($sql, $params) = $DB->get_in_or_equal(array_keys($this->addedcategories), SQL_PARAMS_NAMED, 'parent', false);
-            if ($showbasecategories) {
-                // We need to include categories with parent = 0 as well
-                $sqlwhere .= " AND (cc.parent = :categoryid OR cc.parent = 0) AND cc.parent {$sql}";
-            } else {
-                // All we need is categories that match the parent
-                $sqlwhere .= " AND cc.parent = :categoryid AND cc.parent {$sql}";
+            $addedcategories = $this->addedcategories;
+            unset($addedcategories[$categoryid]);
+            if (count($addedcategories) > 0) {
+                list($sql, $params) = $DB->get_in_or_equal(array_keys($addedcategories), SQL_PARAMS_NAMED, 'parent', false);
+                if ($showbasecategories) {
+                    // We need to include categories with parent = 0 as well
+                    $sqlwhere .= " AND (cc.parent = :categoryid OR cc.parent = 0) AND cc.parent {$sql}";
+                } else {
+                    // All we need is categories that match the parent
+                    $sqlwhere .= " AND cc.parent = :categoryid AND cc.parent {$sql}";
+                }
             }
             $params['categoryid'] = $categoryid;
         } else {
