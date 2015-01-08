@@ -51,15 +51,13 @@ function lesson_add_instance($data, $mform) {
     $lessonid = $DB->insert_record("lesson", $data);
     $data->id = $lessonid;
 
-    $lesson = $DB->get_record('lesson', array('id'=>$lessonid), '*', MUST_EXIST);
-
     lesson_update_media_file($lessonid, $context, $draftitemid);
 
     lesson_process_post_save($data);
 
     lesson_grade_item_update($data);
 
-    return $lesson->id;
+    return $lessonid;
 }
 
 /**
@@ -430,11 +428,11 @@ function lesson_grade_item_update($lesson, $grades=null) {
         $params = array('itemname'=>$lesson->name);
     }
 
-    if ($lesson->grade > 0) {
+    if (!$lesson->practice and $lesson->grade > 0) {
         $params['gradetype']  = GRADE_TYPE_VALUE;
         $params['grademax']   = $lesson->grade;
         $params['grademin']   = 0;
-    } else if ($lesson->grade < 0) {
+    } else if (!$lesson->practice and $lesson->grade < 0) {
         $params['gradetype']  = GRADE_TYPE_SCALE;
         $params['scaleid']   = -$lesson->grade;
 

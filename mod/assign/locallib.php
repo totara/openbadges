@@ -49,6 +49,10 @@ define('ASSIGN_ATTEMPT_REOPEN_METHOD_UNTILPASS', 'untilpass');
 // Special value means allow unlimited attempts.
 define('ASSIGN_UNLIMITED_ATTEMPTS', -1);
 
+// Grading states.
+define('ASSIGN_GRADING_STATUS_GRADED', 'graded');
+define('ASSIGN_GRADING_STATUS_NOT_GRADED', 'notgraded');
+
 // Marking workflow states.
 define('ASSIGN_MARKING_WORKFLOW_STATE_NOTMARKED', 'notmarked');
 define('ASSIGN_MARKING_WORKFLOW_STATE_INMARKING', 'inmarking');
@@ -696,9 +700,11 @@ class assign {
         }
 
         // Delete_records will throw an exception if it fails - so no need for error checking here.
-        $DB->delete_records('assign_submission', array('assignment'=>$this->get_instance()->id));
-        $DB->delete_records('assign_grades', array('assignment'=>$this->get_instance()->id));
-        $DB->delete_records('assign_plugin_config', array('assignment'=>$this->get_instance()->id));
+        $DB->delete_records('assign_submission', array('assignment' => $this->get_instance()->id));
+        $DB->delete_records('assign_grades', array('assignment' => $this->get_instance()->id));
+        $DB->delete_records('assign_plugin_config', array('assignment' => $this->get_instance()->id));
+        $DB->delete_records('assign_user_flags', array('assignment' => $this->get_instance()->id));
+        $DB->delete_records('assign_user_mapping', array('assignment' => $this->get_instance()->id));
 
         // Delete items from the gradebook.
         if (! $this->delete_grades()) {
@@ -757,19 +763,18 @@ class assign {
                 }
             }
 
-            $assignssql = 'SELECT a.id
-                             FROM {assign} a
-                           WHERE a.course=:course';
-            $params = array('course'=>$data->courseid);
+            $assignids = $DB->get_records('assign', array('course' => $data->courseid), '', 'id');
+            list($sql, $params) = $DB->get_in_or_equal(array_keys($assignids));
 
-            $DB->delete_records_select('assign_submission', "assignment IN ($assignssql)", $params);
+            $DB->delete_records_select('assign_submission', "assignment $sql", $params);
+            $DB->delete_records_select('assign_user_flags', "assignment $sql", $params);
 
             $status[] = array('component'=>$componentstr,
                               'item'=>get_string('deleteallsubmissions', 'assign'),
                               'error'=>false);
 
             if (!empty($data->reset_gradebook_grades)) {
-                $DB->delete_records_select('assign_grades', "assignment IN ($assignssql)", $params);
+                $DB->delete_records_select('assign_grades', "assignment $sql", $params);
                 // Remove all grades from gradebook.
                 require_once($CFG->dirroot.'/mod/assign/lib.php');
                 assign_reset_gradebook($data->courseid);
@@ -1958,7 +1963,9 @@ class assign {
             return true;
         }
 
-        $this->gradebook_item_update(null, $grade);
+        if ($this->gradebook_item_update(null, $grade)) {
+            \mod_assign\event\submission_graded::create_from_grade($this, $grade)->trigger();
+        }
 
         // If the conditions are met, allow another attempt.
         if ($submission) {
@@ -1966,7 +1973,7 @@ class assign {
                     $submission,
                     $reopenattempt);
         }
-        \mod_assign\event\submission_graded::create_from_grade($this, $grade)->trigger();
+
         return true;
     }
 
@@ -3046,7 +3053,8 @@ class assign {
                                                              $this->is_blind_marking(),
                                                              '',
                                                              $instance->attemptreopenmethod,
-                                                             $instance->maxattempts);
+                                                             $instance->maxattempts,
+                                                             $this->get_grading_status($userid));
             $o .= $this->get_renderer()->render($submissionstatus);
         }
 
@@ -3055,16 +3063,18 @@ class assign {
             if ($grade->grade !== null && $grade->grade >= 0) {
                 $data->grade = format_float($grade->grade, 2);
             }
-            if (!empty($flags->workflowstate)) {
-                $data->workflowstate = $flags->workflowstate;
-            }
-            if (!empty($flags->allocatedmarker)) {
-                $data->allocatedmarker = $flags->allocatedmarker;
-            }
         } else {
             $data = new stdClass();
             $data->grade = '';
         }
+
+        if (!empty($flags->workflowstate)) {
+            $data->workflowstate = $flags->workflowstate;
+        }
+        if (!empty($flags->allocatedmarker)) {
+            $data->allocatedmarker = $flags->allocatedmarker;
+        }
+
         // Warning if required.
         $allsubmissions = $this->get_all_submissions($userid);
 
@@ -3360,7 +3370,6 @@ class assign {
         require_once($CFG->dirroot . '/mod/assign/gradeform.php');
 
         // Only load this if it is.
-
         $o .= $this->view_grading_table();
 
         $o .= $this->view_footer();
@@ -3906,6 +3915,7 @@ class assign {
             }
             $viewfullnames = has_capability('moodle/site:viewfullnames', $this->get_course_context());
 
+            $gradingstatus = $this->get_grading_status($user->id);
             $submissionstatus = new assign_submission_status($instance->allowsubmissionsfromdate,
                                                               $instance->alwaysshowdescription,
                                                               $submission,
@@ -3932,7 +3942,8 @@ class assign {
                                                               $this->is_blind_marking(),
                                                               $gradingcontrollerpreview,
                                                               $instance->attemptreopenmethod,
-                                                              $instance->maxattempts);
+                                                              $instance->maxattempts,
+                                                              $gradingstatus);
             if (has_capability('mod/assign:submit', $this->get_context(), $user)) {
                 $o .= $this->get_renderer()->render($submissionstatus);
             }
@@ -3965,10 +3976,7 @@ class assign {
                 }
             }
 
-            $gradereleased = true;
-            if ($this->get_instance()->markingworkflow &&
-                (empty($grade) || $flags->workflowstate != ASSIGN_MARKING_WORKFLOW_STATE_RELEASED)) {
-                $gradereleased = false;
+            if ($this->get_instance()->markingworkflow && $gradingstatus != ASSIGN_MARKING_WORKFLOW_STATE_RELEASED) {
                 $emptyplugins = true; // Don't show feedback plugins until released either.
             }
 
@@ -4314,12 +4322,12 @@ class assign {
         if ($this->is_blind_marking()) {
             return false;
         }
-        // If marking workflow is enabled and grade is not released then don't send to gradebook yet.
-        if ($this->get_instance()->markingworkflow && !empty($grade)) {
-            $flags = $this->get_user_flags($grade->userid, false);
-            if (empty($flags->workflowstate) || $flags->workflowstate != ASSIGN_MARKING_WORKFLOW_STATE_RELEASED) {
-                return false;
-            }
+
+        // If marking workflow is enabled and grade is not released then remove any grade that may exist in the gradebook.
+        if ($this->get_instance()->markingworkflow && !empty($grade) &&
+                $this->get_grading_status($grade->userid) != ASSIGN_MARKING_WORKFLOW_STATE_RELEASED) {
+            // Remove the grade (if it exists) from the gradebook as it is not 'final'.
+            $grade->grade = -1;
         }
 
         if ($submission != null) {
@@ -4349,7 +4357,7 @@ class assign {
         $assign->cmidnumber = $this->get_course_module()->idnumber;
         // Set assign gradebook feedback plugin status (enabled and visible).
         $assign->gradefeedbackenabled = $this->is_gradebook_feedback_enabled();
-        return assign_grade_item_update($assign, $gradebookgrade);
+        return assign_grade_item_update($assign, $gradebookgrade) == GRADE_UPDATE_OK;
     }
 
     /**
@@ -7267,6 +7275,31 @@ class assign {
 
         // Gradebook feedback plugin is either not visible/enabled.
         return false;
+    }
+
+    /**
+     * Returns the grading status.
+     *
+     * @param int $userid the user id
+     * @return string returns the grading status
+     */
+    public function get_grading_status($userid) {
+        if ($this->get_instance()->markingworkflow) {
+            $flags = $this->get_user_flags($userid, false);
+            if (!empty($flags->workflowstate)) {
+                return $flags->workflowstate;
+            }
+            return ASSIGN_MARKING_WORKFLOW_STATE_NOTMARKED;
+        } else {
+            $attemptnumber = optional_param('attemptnumber', -1, PARAM_INT);
+            $grade = $this->get_user_grade($userid, false, $attemptnumber);
+
+            if (!empty($grade) && $grade->grade !== null && $grade->grade >= 0) {
+                return ASSIGN_GRADING_STATUS_GRADED;
+            } else {
+                return ASSIGN_GRADING_STATUS_NOT_GRADED;
+            }
+        }
     }
 }
 
