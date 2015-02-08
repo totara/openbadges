@@ -1220,7 +1220,20 @@ class behat_general extends behat_base {
      * @param number $expectedsize the expected file size in bytes.
      */
     public function following_should_download_bytes($link, $expectedsize) {
-        $result = $this->download_file_from_link($link);
+        $exception = new ExpectationException('Error while downloading data from ' . $link, $this->getSession());
+
+        // It will stop spinning once file is downloaded or time out.
+        $result = $this->spin(
+            function($context, $args) {
+                $link = $args['link'];
+                return $this->download_file_from_link($link);
+            },
+            array('link' => $link),
+            self::EXTENDED_TIMEOUT,
+            $exception
+        );
+
+        // Check download size.
         $actualsize = (int)strlen($result);
         if ($actualsize !== (int)$expectedsize) {
             throw new ExpectationException('Downloaded data was ' . $actualsize .
@@ -1249,7 +1262,21 @@ class behat_general extends behat_base {
             list($minexpectedsize, $maxexpectedsize) = array($maxexpectedsize, $minexpectedsize);
         }
 
-        $result = $this->download_file_from_link($link);
+        $exception = new ExpectationException('Error while downloading data from ' . $link, $this->getSession());
+
+        // It will stop spinning once file is downloaded or time out.
+        $result = $this->spin(
+            function($context, $args) {
+                $link = $args['link'];
+
+                return $this->download_file_from_link($link);
+            },
+            array('link' => $link),
+            self::EXTENDED_TIMEOUT,
+            $exception
+        );
+
+        // Check download size.
         $actualsize = (int)strlen($result);
         if ($actualsize < $minexpectedsize || $actualsize > $maxexpectedsize) {
             throw new ExpectationException('Downloaded data was ' . $actualsize .
@@ -1346,5 +1373,33 @@ class behat_general extends behat_base {
      */
     protected function get_page_load_xpath() {
         return "//span[@data-rel = '" . self::PAGE_LOAD_DETECTION_STRING . "']";
+    }
+
+    /**
+     * Wait unit user press Enter/Return key. Useful when debugging a scenario.
+     *
+     * @Then /^(?:|I )pause(?:| scenario execution)$/
+     */
+    public function i_pause_scenario_executon() {
+        global $CFG;
+
+        $posixexists = function_exists('posix_isatty');
+
+        // Make sure this step is only used with interactive terminal (if detected).
+        if ($posixexists && !@posix_isatty(STDOUT)) {
+            $session = $this->getSession();
+            throw new ExpectationException('Break point should only be used with interative terminal.', $session);
+        }
+
+        // Windows don't support ANSI code by default, but with ANSICON.
+        $isansicon = getenv('ANSICON');
+        if (($CFG->ostype === 'WINDOWS') && empty($isansicon)) {
+            fwrite(STDOUT, "Paused. Press Enter/Return to continue.");
+            fread(STDIN, 1024);
+        } else {
+            fwrite(STDOUT, "\033[s\n\033[0;93mPaused. Press \033[1;31mEnter/Return\033[0;93m to continue.\033[0m");
+            fread(STDIN, 1024);
+            fwrite(STDOUT, "\033[2A\033[u\033[2B");
+        }
     }
 }

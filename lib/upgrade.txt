@@ -3,6 +3,7 @@ information provided here is intended especially for developers.
 
 === 2.9 ===
 
+* Webservice core_course_delete_courses now return warning messages on any failures and does not try to rollback the entire deletion.
 * \core\event\course_viewed 'other' argument renamed from coursesectionid to coursesectionnumber as it contains the section number.
 * New API core_filetypes::add_type (etc.) allows custom filetypes to be added and modified.
 * PHPUnit: PHPMailer Sink is now started for all tests and is setup within the phpunit wrapper for advanced tests.
@@ -11,6 +12,9 @@ information provided here is intended especially for developers.
 * The file pluginlib.php was deprecated since 2.6 and has now been removed, do not include or require it.
 * \core_component::fetch_subsystems() now returns a valid path for completion component instead of null.
 * Deprecated JS global methods have been removed (show_item, destroy_item, hide_item, addonload, getElementsByTagName, findChildNodes).
+* For 3rd party plugin specific environment.xml files, it's now possible to specify version independent checks by using the
+  <PLUGIN name="component_name"> tag instead of the version dependent <MOODLE version="x.y"> one. If the PLUGIN tag is used any
+  Moodle specific tags will be ignored.
 
 === 2.8 ===
 

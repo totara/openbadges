@@ -58,6 +58,8 @@ define("LESSON_UNDEFINED", -99);
 /** LESSON_MAX_EVENT_LENGTH = 432000 ; 5 days maximum */
 define("LESSON_MAX_EVENT_LENGTH", "432000");
 
+/** Answer format is HTML */
+define("LESSON_ANSWER_HTML", "HTML");
 
 //////////////////////////////////////////////////////////////////////////////////////
 /// Any other lesson functions go here.  Each of them must have a name that
@@ -785,23 +787,24 @@ abstract class lesson_add_page_form_base extends moodleform {
      * @param int $count The count of the element to add
      * @param string $label, null means default
      * @param bool $required
+     * @param string $format
      * @return void
      */
-    protected final function add_answer($count, $label = null, $required = false) {
+    protected final function add_answer($count, $label = null, $required = false, $format= '') {
         if ($label === null) {
             $label = get_string('answer', 'lesson');
         }
 
-        if ($this->qtype != 'multichoice' && $this->qtype != 'matching') {
-            $this->_form->addElement('editor', 'answer_editor['.$count.']', $label,
-                    array('rows' => '4', 'columns' => '80'), array('noclean' => true));
-            $this->_form->setDefault('answer_editor['.$count.']', array('text' => '', 'format' => FORMAT_MOODLE));
-        } else {
+        if ($format == LESSON_ANSWER_HTML) {
             $this->_form->addElement('editor', 'answer_editor['.$count.']', $label,
                     array('rows' => '4', 'columns' => '80'),
                     array('noclean' => true, 'maxfiles' => EDITOR_UNLIMITED_FILES, 'maxbytes' => $this->_customdata['maxbytes']));
             $this->_form->setType('answer_editor['.$count.']', PARAM_RAW);
             $this->_form->setDefault('answer_editor['.$count.']', array('text' => '', 'format' => FORMAT_HTML));
+        } else {
+            $this->_form->addElement('editor', 'answer_editor['.$count.']', $label,
+                    array('rows' => '4', 'columns' => '80'), array('noclean' => true));
+            $this->_form->setDefault('answer_editor['.$count.']', array('text' => '', 'format' => FORMAT_MOODLE));
         }
 
         if ($required) {
@@ -1870,7 +1873,19 @@ abstract class lesson_page extends lesson_base {
      */
     final public function delete() {
         global $DB;
-        // first delete all the associated records...
+
+        $cm = get_coursemodule_from_instance('lesson', $this->lesson->id, $this->lesson->course);
+        $context = context_module::instance($cm->id);
+
+        // Delete files associated with attempts.
+        $fs = get_file_storage();
+        if ($attempts = $DB->get_records('lesson_attempts', array("pageid" => $this->properties->id))) {
+            foreach ($attempts as $attempt) {
+                $fs->delete_area_files($context->id, 'mod_lesson', 'essay_responses', $attempt->id);
+            }
+        }
+
+        // Then delete all the associated records...
         $DB->delete_records("lesson_attempts", array("pageid" => $this->properties->id));
         // ...now delete the answers...
         $DB->delete_records("lesson_answers", array("pageid" => $this->properties->id));
@@ -1878,9 +1893,6 @@ abstract class lesson_page extends lesson_base {
         $DB->delete_records("lesson_pages", array("id" => $this->properties->id));
 
         // Delete files associated with this page.
-        $cm = get_coursemodule_from_instance('lesson', $this->lesson->id, $this->lesson->course);
-        $context = context_module::instance($cm->id);
-        $fs = get_file_storage();
         $fs->delete_area_files($context->id, 'mod_lesson', 'page_contents', $this->properties->id);
         $fs->delete_area_files($context->id, 'mod_lesson', 'page_answers', $this->properties->id);
         $fs->delete_area_files($context->id, 'mod_lesson', 'page_responses', $this->properties->id);
@@ -2074,7 +2086,7 @@ abstract class lesson_page extends lesson_base {
                     if ($qattempts == 1) {
                         $result->feedback = $OUTPUT->box(get_string("firstwrong", "lesson"), 'feedback');
                     } else {
-                        $result->feedback = $OUTPUT->BOX(get_string("secondpluswrong", "lesson"), 'feedback');
+                        $result->feedback = $OUTPUT->box(get_string("secondpluswrong", "lesson"), 'feedback');
                     }
                 } else {
                     $class = 'response';
@@ -2087,12 +2099,26 @@ abstract class lesson_page extends lesson_base {
                     $options->noclean = true;
                     $options->para = true;
                     $options->overflowdiv = true;
-                    $result->response = file_rewrite_pluginfile_urls($result->response, 'pluginfile.php', $context->id,
-                            'mod_lesson', 'page_responses', $result->answerid);
+                    $options->context = $context;
 
                     $result->feedback = $OUTPUT->box(format_text($this->get_contents(), $this->properties->contentsformat, $options), 'generalbox boxaligncenter');
-                    $result->feedback .= '<div class="correctanswer generalbox"><em>'.get_string("youranswer", "lesson").'</em> : '.$result->studentanswer; // already in clean html
-                    $result->feedback .= $OUTPUT->box($result->response, $class); // already conerted to HTML
+                    if (isset($result->studentanswerformat)) {
+                        // This is the student's answer so it should be cleaned.
+                        $studentanswer = format_text($result->studentanswer, $result->studentanswerformat,
+                                array('context' => $context, 'para' => true));
+                    } else {
+                        $studentanswer = format_string($result->studentanswer);
+                    }
+                    $result->feedback .= '<div class="correctanswer generalbox"><em>'
+                            . get_string("youranswer", "lesson").'</em> : ' . $studentanswer;
+                    if (isset($result->responseformat)) {
+                        $result->response = file_rewrite_pluginfile_urls($result->response, 'pluginfile.php', $context->id,
+                            'mod_lesson', 'page_responses', $result->answerid);
+                        $result->feedback .= $OUTPUT->box(format_text($result->response, $result->responseformat, $options)
+                            , $class);
+                    } else {
+                        $result->feedback .= $OUTPUT->box($result->response, $class);
+                    }
                     $result->feedback .= '</div>';
                 }
             }

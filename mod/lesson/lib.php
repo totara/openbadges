@@ -196,8 +196,8 @@ function lesson_user_complete($course, $user, $mod, $lesson) {
                 "retry, timeseen")) {
         echo $OUTPUT->box_start();
         $table = new html_table();
-        $table->head = array (get_string("attempt", "lesson"),  get_string("numberofpagesviewed", "lesson"),
-            get_string("numberofcorrectanswers", "lesson"), get_string("time"));
+        $table->head = array (get_string("attemptheader", "lesson"),  get_string("numberofpagesviewedheader", "lesson"),
+            get_string("numberofcorrectanswersheader", "lesson"), get_string("time"));
         $table->width = "100%";
         $table->align = array ("center", "center", "center", "center");
         $table->size = array ("*", "*", "*", "*");
@@ -682,6 +682,20 @@ function lesson_reset_userdata($data) {
                         WHERE l.course=:course";
 
         $params = array ("course" => $data->courseid);
+        $lessons = $DB->get_records_sql($lessonssql, $params);
+
+        // Get rid of attempts files.
+        $fs = get_file_storage();
+        if ($lessons) {
+            foreach ($lessons as $lessonid => $unused) {
+                if (!$cm = get_coursemodule_from_instance('lesson', $lessonid)) {
+                    continue;
+                }
+                $context = context_module::instance($cm->id);
+                $fs->delete_area_files($context->id, 'mod_lesson', 'essay_responses');
+            }
+        }
+
         $DB->delete_records_select('lesson_timer', "lessonid IN ($lessonssql)", $params);
         $DB->delete_records_select('lesson_high_scores', "lessonid IN ($lessonssql)", $params);
         $DB->delete_records_select('lesson_grades', "lessonid IN ($lessonssql)", $params);
@@ -729,8 +743,6 @@ function lesson_supports($feature) {
             return false;
         case FEATURE_GROUPINGS:
             return false;
-        case FEATURE_GROUPMEMBERSONLY:
-            return true;
         case FEATURE_MOD_INTRO:
             return true;
         case FEATURE_COMPLETION_TRACKS_VIEWS:
@@ -798,7 +810,7 @@ function lesson_extend_settings_navigation($settings, $lessonnode) {
         $editnode->add(get_string('full', 'lesson'), $url);
     }
 
-    if (has_capability('mod/lesson:manage', $PAGE->cm->context)) {
+    if (has_capability('mod/lesson:viewreports', $PAGE->cm->context)) {
         $reportsnode = $lessonnode->add(get_string('reports', 'lesson'));
         $url = new moodle_url('/mod/lesson/report.php', array('id'=>$PAGE->cm->id, 'action'=>'reportoverview'));
         $reportsnode->add(get_string('overview', 'lesson'), $url);
@@ -899,6 +911,13 @@ function lesson_pluginfile($course, $cm, $context, $filearea, $args, $forcedownl
         }
         $fullpath = "/$context->id/mod_lesson/$filearea/$itemid/".implode('/', $args);
 
+    } else if ($filearea === 'essay_responses') {
+        $itemid = (int)array_shift($args);
+        if (!$attempt = $DB->get_record('lesson_attempts', array('id' => $itemid))) {
+            return false;
+        }
+        $fullpath = "/$context->id/mod_lesson/$filearea/$itemid/".implode('/', $args);
+
     } else if ($filearea === 'mediafile') {
         if (count($args) > 1) {
             // Remove the itemid when it appears to be part of the arguments. If there is only one argument
@@ -933,6 +952,7 @@ function lesson_get_file_areas() {
     $areas['mediafile'] = get_string('mediafile', 'mod_lesson');
     $areas['page_answers'] = get_string('pageanswers', 'mod_lesson');
     $areas['page_responses'] = get_string('pageresponses', 'mod_lesson');
+    $areas['essay_responses'] = get_string('essayresponses', 'mod_lesson');
     return $areas;
 }
 

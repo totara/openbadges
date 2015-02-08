@@ -4121,7 +4121,45 @@ function xmldb_main_upgrade($oldversion) {
 
         // Main savepoint reached.
         upgrade_main_savepoint(true, 2015010800.01);
+
     }
 
+    if ($oldversion < 2015012600.00) {
+
+        // If the site is using internal and external storage, or just external
+        // storage, and the external path specified is empty we change the setting
+        // to internal only. That is how the backup code is handling this
+        // misconfiguration.
+        $storage = (int) get_config('backup', 'backup_auto_storage');
+        $folder = get_config('backup', 'backup_auto_destination');
+        if ($storage !== 0 && empty($folder)) {
+            set_config('backup_auto_storage', 0, 'backup');
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2015012600.00);
+    }
+
+    if ($oldversion < 2015012600.01) {
+
+        // Convert calendar_lookahead to nearest new value.
+        $value = $DB->get_field('config', 'value', array('name' => 'calendar_lookahead'));
+        if ($value > 90) {
+            set_config('calendar_lookahead', '120');
+        } else if ($value > 60 and $value < 90) {
+            set_config('calendar_lookahead', '90');
+        } else if ($value > 30 and $value < 60) {
+            set_config('calendar_lookahead', '60');
+        } else if ($value > 21 and $value < 30) {
+            set_config('calendar_lookahead', '30');
+        } else if ($value > 14 and $value < 21) {
+            set_config('calendar_lookahead', '21');
+        } else if ($value > 7 and $value < 14) {
+            set_config('calendar_lookahead', '14');
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2015012600.01);
+    }
     return true;
 }

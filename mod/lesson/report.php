@@ -38,7 +38,7 @@ $lesson = new lesson($DB->get_record('lesson', array('id' => $cm->instance), '*'
 require_login($course, false, $cm);
 
 $context = context_module::instance($cm->id);
-require_capability('mod/lesson:manage', $context);
+require_capability('mod/lesson:viewreports', $context);
 
 $ufields = user_picture::fields('u'); // These fields are enough
 $params = array("lessonid" => $lesson->id);
@@ -252,7 +252,7 @@ if ($action === 'delete') {
             $bestgradefound = false;
             // $tries holds all the tries/retries a student has done
             $tries = $studentdata[$student->id];
-            $studentname = "{$student->lastname},&nbsp;$student->firstname";
+            $studentname = fullname($student, true);
             foreach ($tries as $try) {
             // start to build up the checkbox and link
                 if (has_capability('mod/lesson:edit', $context)) {
@@ -261,7 +261,8 @@ if ($action === 'delete') {
                     $temp = '';
                 }
 
-                $temp .= "<a href=\"report.php?id=$cm->id&amp;action=reportdetail&amp;userid=".$try['userid'].'&amp;try='.$try['try'].'">';
+                $temp .= "<a href=\"report.php?id=$cm->id&amp;action=reportdetail&amp;userid=".$try['userid']
+                        .'&amp;try='.$try['try'].'" class="lesson-attempt-link">';
                 if ($try["grade"] !== null) { // if null then not done yet
                     // this is what the link does when the user has completed the try
                     $timetotake = $try["timeend"] - $try["timestart"];
@@ -466,6 +467,7 @@ if ($action === 'delete') {
         $options = new stdClass;
         $options->noclean = true;
         $options->overflowdiv = true;
+        $options->context = $context;
         $answerpage->contents = format_text($page->contents, $page->contentsformat, $options);
 
         $answerpage->qtype = $qtypes[$page->qtype].$page->option_description_string();
