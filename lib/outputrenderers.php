@@ -819,7 +819,7 @@ class core_renderer extends renderer_base {
         $output .= $this->notification($message, 'redirectmessage');
         $output .= '<div class="continuebutton">(<a href="'. $encodedurl .'">'. get_string('continue') .'</a>)</div>';
         if ($debugdisableredirect) {
-            $output .= '<p><strong>Error output, so disabling automatic redirect.</strong></p>';
+            $output .= '<p><strong>'.get_string('erroroutput', 'error').'</strong></p>';
         }
         $output .= $this->footer();
         return $output;
@@ -3399,7 +3399,7 @@ EOD;
         $linkurl = new moodle_url('/theme/switchdevice.php', array('url' => $this->page->url, 'device' => $devicetype, 'sesskey' => sesskey()));
 
         $content  = html_writer::start_tag('div', array('id' => 'theme_switch_link'));
-        $content .= html_writer::link($linkurl, $linktext);
+        $content .= html_writer::link($linkurl, $linktext, array('rel' => 'nofollow'));
         $content .= html_writer::end_tag('div');
 
         return $content;

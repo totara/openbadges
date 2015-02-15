@@ -4161,5 +4161,21 @@ function xmldb_main_upgrade($oldversion) {
         // Main savepoint reached.
         upgrade_main_savepoint(true, 2015012600.01);
     }
+
+    if ($oldversion < 2015021100.00) {
+
+        // Define field timemodified to be added to registration_hubs.
+        $table = new xmldb_table('registration_hubs');
+        $field = new xmldb_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'secret');
+
+        // Conditionally launch add field timemodified.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2015021100.00);
+    }
+
     return true;
 }
