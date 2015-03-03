@@ -54,6 +54,18 @@ class lesson_page_type_matching extends lesson_page {
         $data->id = $PAGE->cm->id;
         $data->pageid = $this->properties->id;
         $mform->set_data($data);
+
+        // Trigger an event question viewed.
+        $eventparams = array(
+            'context' => context_module::instance($PAGE->cm->id),
+            'objectid' => $this->properties->id,
+            'other' => array(
+                    'pagetype' => $this->get_typestring()
+                )
+            );
+
+        $event = \mod_lesson\event\question_viewed::create($eventparams);
+        $event->trigger();
         return $mform->display();
     }
 
@@ -308,6 +320,9 @@ class lesson_page_type_matching extends lesson_page {
         $properties->timemodified = time();
         $properties = file_postupdate_standard_editor($properties, 'contents', array('noclean'=>true, 'maxfiles'=>EDITOR_UNLIMITED_FILES, 'maxbytes'=>$PAGE->course->maxbytes), context_module::instance($PAGE->cm->id), 'mod_lesson', 'page_contents', $properties->id);
         $DB->update_record("lesson_pages", $properties);
+
+        // Trigger an event: page updated.
+        \mod_lesson\event\page_updated::create_from_lesson_page($this, $context)->trigger();
 
         // need to add two to offset correct response and wrong response
         $this->lesson->maxanswers += 2;

@@ -1478,8 +1478,24 @@ class lesson extends lesson_base {
         $clusterpages = $this->get_sub_pages_of($pageid, array(LESSON_PAGE_ENDOFCLUSTER));
         $unseen = array();
         foreach ($clusterpages as $key=>$cluster) {
-            if ($cluster->type !== lesson_page::TYPE_QUESTION) {
+            // Remove the page if  it is in a branch table or is an endofbranch.
+            if ($this->is_sub_page_of_type($cluster->id,
+                    array(LESSON_PAGE_BRANCHTABLE), array(LESSON_PAGE_ENDOFBRANCH, LESSON_PAGE_CLUSTER))
+                    || $cluster->qtype == LESSON_PAGE_ENDOFBRANCH) {
                 unset($clusterpages[$key]);
+            } else if ($cluster->qtype == LESSON_PAGE_BRANCHTABLE) {
+                // If branchtable, check to see if any pages inside have been viewed.
+                $branchpages = $this->get_sub_pages_of($cluster->id, array(LESSON_PAGE_BRANCHTABLE, LESSON_PAGE_ENDOFBRANCH));
+                $flag = true;
+                foreach ($branchpages as $branchpage) {
+                    if (array_key_exists($branchpage->id, $seenpages)) {  // Check if any of the pages have been viewed.
+                        $flag = false;
+                    }
+                }
+                if ($flag && count($branchpages) > 0) {
+                    // Add branch table.
+                    $unseen[] = $cluster;
+                }
             } elseif ($cluster->is_unseen($seenpages)) {
                 $unseen[] = $cluster;
             }
@@ -1830,6 +1846,20 @@ abstract class lesson_page extends lesson_base {
         $page = lesson_page::load($newpage, $lesson);
         $page->create_answers($properties);
 
+        // Trigger an event: page created.
+        $eventparams = array(
+            'context' => $context,
+            'objectid' => $newpage->id,
+            'other' => array(
+                'pagetype' => $page->get_typestring()
+                )
+            );
+        $event = \mod_lesson\event\page_created::create($eventparams);
+        $snapshot = clone($newpage);
+        $snapshot->timemodified = 0;
+        $event->add_record_snapshot('lesson_pages', $snapshot);
+        $event->trigger();
+
         $lesson->add_message(get_string('insertedpage', 'lesson').': '.format_string($newpage->title, true), 'notifysuccess');
 
         return $page;
@@ -1891,6 +1921,18 @@ abstract class lesson_page extends lesson_base {
         $DB->delete_records("lesson_answers", array("pageid" => $this->properties->id));
         // ..and the page itself
         $DB->delete_records("lesson_pages", array("id" => $this->properties->id));
+
+        // Trigger an event: page deleted.
+        $eventparams = array(
+            'context' => $context,
+            'objectid' => $this->properties->id,
+            'other' => array(
+                'pagetype' => $this->get_typestring()
+                )
+            );
+        $event = \mod_lesson\event\page_deleted::create($eventparams);
+        $event->add_record_snapshot('lesson_pages', $this->properties);
+        $event->trigger();
 
         // Delete files associated with this page.
         $fs->delete_area_files($context->id, 'mod_lesson', 'page_contents', $this->properties->id);
@@ -1993,7 +2035,7 @@ abstract class lesson_page extends lesson_base {
      * @return stdClass Returns the result of the attempt
      */
     final public function record_attempt($context) {
-        global $DB, $USER, $OUTPUT;
+        global $DB, $USER, $OUTPUT, $PAGE;
 
         /**
          * This should be overridden by each page type to actually check the response
@@ -2033,7 +2075,19 @@ abstract class lesson_page extends lesson_base {
                 // Only insert a record if we are not reviewing the lesson.
                 if (!$userisreviewing) {
                     if ($this->lesson->retake || (!$this->lesson->retake && $nretakes == 0)) {
-                        $DB->insert_record("lesson_attempts", $attempt);
+                        $attempt->id = $DB->insert_record("lesson_attempts", $attempt);
+                        // Trigger an event: question answered.
+                        $eventparams = array(
+                            'context' => context_module::instance($PAGE->cm->id),
+                            'objectid' => $this->properties->id,
+                            'other' => array(
+                                'pagetype' => $this->get_typestring()
+                                )
+                            );
+                        $event = \mod_lesson\event\question_answered::create($eventparams);
+                        $event->add_record_snapshot('lesson_attempts', $attempt);
+                        $event->trigger();
+
                     }
                 }
                 // "number of attempts remaining" message if $this->lesson->maxattempts > 1
@@ -2269,6 +2323,10 @@ abstract class lesson_page extends lesson_base {
         $properties->timemodified = time();
         $properties = file_postupdate_standard_editor($properties, 'contents', array('noclean'=>true, 'maxfiles'=>EDITOR_UNLIMITED_FILES, 'maxbytes'=>$maxbytes), $context, 'mod_lesson', 'page_contents', $properties->id);
         $DB->update_record("lesson_pages", $properties);
+
+        // Trigger an event: page updated.
+        \mod_lesson\event\page_updated::create_from_lesson_page($this, $context)->trigger();
+
         if ($this->type == self::TYPE_STRUCTURE && $this->get_typeid() != LESSON_PAGE_BRANCHTABLE) {
             if (count($answers) > 1) {
                 $answer = array_shift($answers);

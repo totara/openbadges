@@ -2486,9 +2486,8 @@ function forum_count_discussion_replies($forumid, $forumsort="", $limit=-1, $pag
                   FROM {forum_posts} p
                        JOIN {forum_discussions} d ON p.discussion = d.id
                  WHERE d.forum = ?
-              GROUP BY p.discussion $groupby
-              $orderby";
-        return $DB->get_records_sql("SELECT * FROM ($sql) sq", array($forumid), $limitfrom, $limitnum);
+              GROUP BY p.discussion $groupby $orderby";
+        return $DB->get_records_sql($sql, array($forumid), $limitfrom, $limitnum);
     }
 }
 
@@ -4719,7 +4718,7 @@ function forum_post_subscription($fromform, $forum, $discussion) {
     $info->discussion = format_string($discussion->name);
     $info->forum = format_string($forum->name);
 
-    if ($fromform->discussionsubscribe) {
+    if (isset($fromform->discussionsubscribe) && $fromform->discussionsubscribe) {
         if ($result = \mod_forum\subscriptions::subscribe_user_to_discussion($USER->id, $discussion)) {
             return html_writer::tag('p', get_string('discussionnowsubscribed', 'forum', $info));
         }

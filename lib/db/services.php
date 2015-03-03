@@ -303,6 +303,15 @@ $functions = array(
         'type'        => 'write',
     ),
 
+    'core_group_get_course_user_groups' => array(
+        'classname'     => 'core_group_external',
+        'methodname'    => 'get_course_user_groups',
+        'classpath'     => 'group/externallib.php',
+        'description'   => 'Returns all groups in specified course for the specified user.',
+        'type'          => 'read',
+        'capabilities'  => 'moodle/course:managegroups',
+    ),
+
     // === file related functions ===
 
     'moodle_file_get_files' => array(
@@ -463,6 +472,15 @@ $functions = array(
         'description' => 'Store mobile user devices information for PUSH Notifications.',
         'type'        => 'write',
         'capabilities'=> '',
+    ),
+
+    'core_user_remove_user_device' => array(
+        'classname'     => 'core_user_external',
+        'methodname'    => 'remove_user_device',
+        'classpath'     => 'user/externallib.php',
+        'description'   => 'Remove a user device from the Moodle database.',
+        'type'          => 'write',
+        'capabilities'  => '',
     ),
 
     // === enrol related functions ===
@@ -985,7 +1003,9 @@ $services = array(
             'core_message_get_contacts',
             'core_message_search_contacts',
             'core_message_get_blocked_users',
-            'gradereport_user_get_grades_table'
+            'gradereport_user_get_grades_table',
+            'core_group_get_course_user_groups',
+            'core_user_remove_user_device',
             ),
         'enabled' => 0,
         'restrictedusers' => 0,
