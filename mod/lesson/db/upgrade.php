@@ -137,5 +137,85 @@ function xmldb_lesson_upgrade($oldversion) {
         // Lesson savepoint reached.
         upgrade_mod_savepoint(true, 2014122900, 'lesson');
     }
+
+    if ($oldversion < 2015030300) {
+
+        // Define field nextpageid to be added to lesson_branch.
+        $table = new xmldb_table('lesson_branch');
+        $field = new xmldb_field('nextpageid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'timeseen');
+
+        // Conditionally launch add field nextpageid.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Lesson savepoint reached.
+        upgrade_mod_savepoint(true, 2015030300, 'lesson');
+    }
+
+    if ($oldversion < 2015030301) {
+
+        // Clean lesson answers that should be plain text.
+        // Unfortunately we can't use LESSON_PAGE_XX constants here as we can't include the files.
+        // 1 = LESSON_PAGE_SHORTANSWER, 8 = LESSON_PAGE_NUMERICAL, 20 = LESSON_PAGE_BRANCHTABLE.
+
+        $sql = 'SELECT a.*
+                  FROM {lesson_answers} a
+                  JOIN {lesson_pages} p ON p.id = a.pageid
+                 WHERE a.answerformat <> :format
+                   AND p.qtype IN (1, 8, 20)';
+        $badanswers = $DB->get_recordset_sql($sql, array('format' => FORMAT_MOODLE));
+
+        foreach ($badanswers as $badanswer) {
+            // Strip tags from answer text and convert back the format to FORMAT_MOODLE.
+            $badanswer->answer = strip_tags($badanswer->answer);
+            $badanswer->answerformat = FORMAT_MOODLE;
+            $DB->update_record('lesson_answers', $badanswer);
+        }
+        $badanswers->close();
+
+        // Lesson savepoint reached.
+        upgrade_mod_savepoint(true, 2015030301, 'lesson');
+    }
+
+    if ($oldversion < 2015030400) {
+
+        // Creating new field timelimit in lesson table.
+        $table = new xmldb_table('lesson');
+        $field = new xmldb_field('timelimit', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'maxpages');
+
+        // Conditionally launch add field timelimit.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Lesson savepoint reached.
+        upgrade_mod_savepoint(true, 2015030400, 'lesson');
+    }
+
+    if ($oldversion < 2015030401) {
+
+        // Convert maxtime (minutes) to timelimit (seconds).
+        $table = new xmldb_table('lesson');
+        $oldfield = new xmldb_field('maxtime');
+        $newfield = new xmldb_field('timelimit');
+        if ($dbman->field_exists($table, $oldfield) && $dbman->field_exists($table, $newfield)) {
+            $sql = 'UPDATE {lesson} SET timelimit = 60 * maxtime';
+            $DB->execute($sql);
+            // Drop field maxtime.
+            $dbman->drop_field($table, $oldfield);
+        }
+
+        $oldfield = new xmldb_field('timed');
+        if ($dbman->field_exists($table, $oldfield) && $dbman->field_exists($table, $newfield)) {
+            // Set timelimit to 0 for non timed lessons.
+            $DB->set_field_select('lesson', 'timelimit', 0, 'timed = 0');
+            // Drop field timed.
+            $dbman->drop_field($table, $oldfield);
+        }
+        // Lesson savepoint reached.
+        upgrade_mod_savepoint(true, 2015030401, 'lesson');
+    }
+
     return true;
 }

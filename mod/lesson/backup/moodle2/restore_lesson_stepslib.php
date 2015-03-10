@@ -77,6 +77,14 @@ class restore_lesson_activity_structure_step extends restore_activity_structure_
             $data->completionendreached = 0;
         }
 
+        // Compatibility with old backups with maxtime and timed fields.
+        if (!isset($data->timelimit)) {
+            if (isset($data->timed) && isset($data->maxtime) && $data->timed) {
+                $data->timelimit = 60 * $data->maxtime;
+            } else {
+                $data->timelimit = 0;
+            }
+        }
         // insert the lesson record
         $newitemid = $DB->insert_record('lesson', $data);
         // immediately after inserting "activity" record, call this
@@ -232,6 +240,37 @@ class restore_lesson_activity_structure_step extends restore_activity_structure_
             }
         }
         $rs->close();
+
+        // Remap all the restored 'nextpageid' fields now that we have all the pages and their mappings.
+        $rs = $DB->get_recordset('lesson_branch', array('lessonid' => $this->task->get_activityid()),
+                                 '', 'id, nextpageid');
+        foreach ($rs as $answer) {
+            if ($answer->nextpageid > 0) {
+                $answer->nextpageid = $this->get_mappingid('lesson_page', $answer->nextpageid);
+                $DB->update_record('lesson_branch', $answer);
+            }
+        }
+        $rs->close();
+
+        // Replay the upgrade step 2015022700
+        // to clean lesson answers that should be plain text.
+        // 1 = LESSON_PAGE_SHORTANSWER, 8 = LESSON_PAGE_NUMERICAL, 20 = LESSON_PAGE_BRANCHTABLE.
+
+        $sql = 'SELECT a.*
+                  FROM {lesson_answers} a
+                  JOIN {lesson_pages} p ON p.id = a.pageid
+                 WHERE a.answerformat <> :format
+                   AND a.lessonid = :lessonid
+                   AND p.qtype IN (1, 8, 20)';
+        $badanswers = $DB->get_recordset_sql($sql, array('lessonid' => $this->task->get_activityid(), 'format' => FORMAT_MOODLE));
+
+        foreach ($badanswers as $badanswer) {
+            // Strip tags from answer text and convert back the format to FORMAT_MOODLE.
+            $badanswer->answer = strip_tags($badanswer->answer);
+            $badanswer->answerformat = FORMAT_MOODLE;
+            $DB->update_record('lesson_answers', $badanswer);
+        }
+        $badanswers->close();
 
         // Re-map the dependency and activitylink information
         // If a depency or activitylink has no mapping in the backup data then it could either be a duplication of a
