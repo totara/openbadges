@@ -3,6 +3,7 @@ information provided here is intended especially for developers.
 
 === 2.9 ===
 
+* Support for rendering templates from php or javascript has been added. See MDL-49152.
 * Support for loading AMD javascript modules has been added. See MDL-49046.
 * Webservice core_course_delete_courses now return warning messages on any failures and does not try to rollback the entire deletion.
 * \core\event\course_viewed 'other' argument renamed from coursesectionid to coursesectionnumber as it contains the section number.
@@ -20,6 +21,12 @@ information provided here is intended especially for developers.
 * html_table: new API for adding captions to tables (new field, $table->caption) and subsequently hiding said captions from sighted users using accesshide (enabled using $table->captionhide).
 * The authorization procedure in the mdeploy.php script has been improved. The script
   now relies on the main config.php when deploying an available update.
+* sql_internal_reader and sql_select_reader interfaces have been deprecated in favour of sql_internal_table_reader
+  and sql_reader which use iterators to be more memory efficient.
+* $CFG->enabletgzbackups setting has been removed as now backups are stored internally using .tar.gz format by default, you can
+  set $CFG->usezipbackups to store them in zip format. This does not affect the restore process, which continues accepting both.
+* Added support for custom string manager implementations via $CFG->customstringmanager
+  directive in the config.php. See MDL-49361 for details.
 
 === 2.8 ===
 

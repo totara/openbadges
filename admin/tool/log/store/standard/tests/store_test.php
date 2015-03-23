@@ -218,4 +218,62 @@ class logstore_standard_store_testcase extends advanced_testcase {
             $this->assertContains($expectedreport, $reports);
         }
     }
+
+    /**
+     * Test sql_reader::get_events_select_iterator.
+     * @return void
+     */
+    public function test_events_traversable() {
+        global $DB;
+
+        $this->resetAfterTest();
+        $this->preventResetByRollback();
+        $this->setAdminUser();
+
+        set_config('enabled_stores', 'logstore_standard', 'tool_log');
+
+        $manager = get_log_manager(true);
+        $stores = $manager->get_readers();
+        $store = $stores['logstore_standard'];
+
+        $events = $store->get_events_select_iterator('', array(), '', 0, 0);
+        $this->assertFalse($events->valid());
+
+        // Here it should be already closed, but we should be allowed to
+        // over-close it without exception.
+        $events->close();
+
+        $user = $this->getDataGenerator()->create_user();
+        for ($i = 0; $i < 1000; $i++) {
+            \core\event\user_created::create_from_userid($user->id)->trigger();
+        }
+        $store->flush();
+
+        // Check some various sizes get the right number of elements.
+        $this->assertEquals(1, iterator_count($store->get_events_select_iterator('', array(), '', 0, 1)));
+        $this->assertEquals(2, iterator_count($store->get_events_select_iterator('', array(), '', 0, 2)));
+
+        $iterator = $store->get_events_select_iterator('', array(), '', 0, 500);
+        $this->assertInstanceOf('\core\event\base', $iterator->current());
+        $this->assertEquals(500, iterator_count($iterator));
+        $iterator->close();
+
+        // Look for non-linear memory usage for the iterator version.
+        $mem = memory_get_usage();
+        $events = $store->get_events_select('', array(), '', 0, 0);
+        $arraymemusage = memory_get_usage() - $mem;
+
+        $mem = memory_get_usage();
+        $eventsit = $store->get_events_select_iterator('', array(), '', 0, 0);
+        $eventsit->close();
+        $itmemusage = memory_get_usage() - $mem;
+
+        $this->assertInstanceOf('\Traversable', $eventsit);
+
+        $this->assertLessThan($arraymemusage / 10, $itmemusage);
+
+        set_config('enabled_stores', '', 'tool_log');
+        get_log_manager(true);
+    }
+
 }

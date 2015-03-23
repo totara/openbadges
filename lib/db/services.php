@@ -950,6 +950,13 @@ $functions = array(
         'type'        => 'write',
         'capabilities'=> 'moodle/calendar:manageentries', 'moodle/calendar:manageownentries', 'moodle/calendar:managegroupentries'
     ),
+
+    'core_output_load_template' => array(
+        'classname'   => 'core\output\external',
+        'methodname'  => 'load_template',
+        'description' => 'Load a template for a renderable',
+        'type'        => 'read'
+    ),
 );
 
 $services = array(
@@ -1006,6 +1013,7 @@ $services = array(
             'gradereport_user_get_grades_table',
             'core_group_get_course_user_groups',
             'core_user_remove_user_device',
+            'core_course_get_courses'
             ),
         'enabled' => 0,
         'restrictedusers' => 0,
