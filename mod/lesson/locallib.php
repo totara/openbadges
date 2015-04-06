@@ -577,7 +577,12 @@ function lesson_add_header_buttons($cm, $context, $extraeditbuttons=false, $less
             print_error('invalidpageid', 'lesson');
         }
         if (!empty($lessonpageid) && $lessonpageid != LESSON_EOL) {
-            $url = new moodle_url('/mod/lesson/editpage.php', array('id'=>$cm->id, 'pageid'=>$lessonpageid, 'edit'=>1));
+            $url = new moodle_url('/mod/lesson/editpage.php', array(
+                'id'       => $cm->id,
+                'pageid'   => $lessonpageid,
+                'edit'     => 1,
+                'returnto' => $PAGE->url->out(false)
+            ));
             $PAGE->set_button($OUTPUT->single_button($url, get_string('editpagecontent', 'lesson')));
         }
     }
@@ -699,6 +704,11 @@ abstract class lesson_add_page_form_base extends moodleform {
         $editoroptions = $this->_customdata['editoroptions'];
 
         $mform->addElement('header', 'qtypeheading', get_string('createaquestionpage', 'lesson', get_string($this->qtypestring, 'lesson')));
+
+        if (!empty($this->_customdata['returnto'])) {
+            $mform->addElement('hidden', 'returnto', $this->_customdata['returnto']);
+            $mform->setType('returnto', PARAM_URL);
+        }
 
         $mform->addElement('hidden', 'id');
         $mform->setType('id', PARAM_INT);
@@ -1256,6 +1266,9 @@ class lesson extends lesson_base {
      */
     public function update_timer($restart=false, $continue=false, $endreached =false) {
         global $USER, $DB;
+
+        $cm = get_coursemodule_from_instance('lesson', $this->properties->id, $this->properties->course);
+
         // clock code
         // get time information for this user
         $params = array("lessonid" => $this->properties->id, "userid" => $USER->id);
@@ -1269,9 +1282,27 @@ class lesson extends lesson_base {
             if ($continue) {
                 // continue a previous test, need to update the clock  (think this option is disabled atm)
                 $timer->starttime = time() - ($timer->lessontime - $timer->starttime);
+
+                // Trigger lesson resumed event.
+                $event = \mod_lesson\event\lesson_resumed::create(array(
+                    'objectid' => $this->properties->id,
+                    'context' => context_module::instance($cm->id),
+                    'courseid' => $this->properties->course
+                ));
+                $event->trigger();
+
             } else {
                 // starting over, so reset the clock
                 $timer->starttime = time();
+
+                // Trigger lesson restarted event.
+                $event = \mod_lesson\event\lesson_restarted::create(array(
+                    'objectid' => $this->properties->id,
+                    'context' => context_module::instance($cm->id),
+                    'courseid' => $this->properties->course
+                ));
+                $event->trigger();
+
             }
         }
 
@@ -1614,6 +1645,82 @@ class lesson extends lesson_base {
             $pageid = $pages[$pageid]->prevpageid;
         }
     }
+
+    /**
+     * Move a page resorting all other pages.
+     *
+     * @param int $pageid
+     * @param int $after
+     * @return void
+     */
+    public function resort_pages($pageid, $after) {
+        global $CFG;
+
+        $cm = get_coursemodule_from_instance('lesson', $this->properties->id, $this->properties->course);
+        $context = context_module::instance($cm->id);
+
+        $pages = $this->load_all_pages();
+
+        if (!array_key_exists($pageid, $pages) || ($after!=0 && !array_key_exists($after, $pages))) {
+            print_error('cannotfindpages', 'lesson', "$CFG->wwwroot/mod/lesson/edit.php?id=$cm->id");
+        }
+
+        $pagetomove = clone($pages[$pageid]);
+        unset($pages[$pageid]);
+
+        $pageids = array();
+        if ($after === 0) {
+            $pageids['p0'] = $pageid;
+        }
+        foreach ($pages as $page) {
+            $pageids[] = $page->id;
+            if ($page->id == $after) {
+                $pageids[] = $pageid;
+            }
+        }
+
+        $pageidsref = $pageids;
+        reset($pageidsref);
+        $prev = 0;
+        $next = next($pageidsref);
+        foreach ($pageids as $pid) {
+            if ($pid === $pageid) {
+                $page = $pagetomove;
+            } else {
+                $page = $pages[$pid];
+            }
+            if ($page->prevpageid != $prev || $page->nextpageid != $next) {
+                $page->move($next, $prev);
+
+                if ($pid === $pageid) {
+                    // We will trigger an event.
+                    $pageupdated = array('next' => $next, 'prev' => $prev);
+                }
+            }
+
+            $prev = $page->id;
+            $next = next($pageidsref);
+            if (!$next) {
+                $next = 0;
+            }
+        }
+
+        // Trigger an event: page moved.
+        if (!empty($pageupdated)) {
+            $eventparams = array(
+                'context' => $context,
+                'objectid' => $pageid,
+                'other' => array(
+                    'pagetype' => $page->get_typestring(),
+                    'prevpageid' => $pageupdated['prev'],
+                    'nextpageid' => $pageupdated['next']
+                )
+            );
+            $event = \mod_lesson\event\page_moved::create($eventparams);
+            $event->trigger();
+        }
+
+    }
 }
 
 
@@ -1926,6 +2033,8 @@ abstract class lesson_page extends lesson_base {
 
         // Then delete all the associated records...
         $DB->delete_records("lesson_attempts", array("pageid" => $this->properties->id));
+
+        $DB->delete_records("lesson_branch", array("pageid" => $this->properties->id));
         // ...now delete the answers...
         $DB->delete_records("lesson_answers", array("pageid" => $this->properties->id));
         // ..and the page itself

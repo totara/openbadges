@@ -524,7 +524,7 @@ class backup_enrolments_structure_step extends backup_structure_step {
 
         $enrol = new backup_nested_element('enrol', array('id'), array(
             'enrol', 'status', 'name', 'enrolperiod', 'enrolstartdate',
-            'enrolenddate', 'expirynotify', 'expirytreshold', 'notifyall',
+            'enrolenddate', 'expirynotify', 'expirythreshold', 'notifyall',
             'password', 'cost', 'currency', 'roleid',
             'customint1', 'customint2', 'customint3', 'customint4', 'customint5', 'customint6', 'customint7', 'customint8',
             'customchar1', 'customchar2', 'customchar3',
@@ -825,7 +825,7 @@ class backup_badges_structure_step extends backup_structure_step {
 
         $criteria = new backup_nested_element('criteria');
         $criterion = new backup_nested_element('criterion', array('id'), array('badgeid',
-                'criteriatype', 'method'));
+                'criteriatype', 'method', 'description', 'descriptionformat'));
 
         $parameters = new backup_nested_element('parameters');
         $parameter = new backup_nested_element('parameter', array('id'), array('critid',

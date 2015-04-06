@@ -37,7 +37,7 @@ require_once(dirname(__FILE__) . '/../../../engine/tests/helpers.php');
  * @copyright  2015 The Open University
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qbehaviour_informationitem_type_test extends basic_testcase {
+class qbehaviour_informationitem_type_testcase extends basic_testcase {
 
     /** @var qbehaviour_informationitem_type */
     protected $behaviourtype;
@@ -54,6 +54,10 @@ class qbehaviour_informationitem_type_test extends basic_testcase {
     public function test_get_unused_display_options() {
         $this->assertEquals(array(),
                 $this->behaviourtype->get_unused_display_options());
+    }
+
+    public function test_can_questions_finish_during_the_attempt() {
+        $this->assertFalse($this->behaviourtype->can_questions_finish_during_the_attempt());
     }
 
     public function test_adjust_random_guess_score() {

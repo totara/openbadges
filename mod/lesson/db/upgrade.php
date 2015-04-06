@@ -232,5 +232,36 @@ function xmldb_lesson_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2015031500, 'lesson');
     }
 
+    if ($oldversion < 2015032600) {
+
+        // Change practice lesson to allow multiple attempts
+        // so that behaviour is not changed by MDL-18966.
+        $DB->set_field('lesson', 'retake', 1, array('practice' => 1));
+
+        // Lesson savepoint reached.
+        upgrade_mod_savepoint(true, 2015032600, 'lesson');
+    }
+
+    if ($oldversion < 2015032700) {
+        // Delete any orphaned lesson_branch record.
+        if ($DB->get_dbfamily() === 'mysql') {
+            $sql = "DELETE {lesson_branch}
+                      FROM {lesson_branch}
+                 LEFT JOIN {lesson_pages}
+                        ON {lesson_branch}.pageid = {lesson_pages}.id
+                     WHERE {lesson_pages}.id IS NULL";
+        } else {
+            $sql = "DELETE FROM {lesson_branch}
+               WHERE NOT EXISTS (
+                         SELECT 'x' FROM {lesson_pages}
+                          WHERE {lesson_branch}.pageid = {lesson_pages}.id)";
+        }
+
+        $DB->execute($sql);
+
+        // Lesson savepoint reached.
+        upgrade_mod_savepoint(true, 2015032700, 'lesson');
+    }
+
     return true;
 }

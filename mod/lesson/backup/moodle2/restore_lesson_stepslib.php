@@ -80,6 +80,11 @@ class restore_lesson_activity_structure_step extends restore_activity_structure_
             $data->completiontimespent = 0;
         }
 
+        if (!isset($data->intro)) {
+            $data->intro = '';
+            $data->introformat = FORMAT_HTML;
+        }
+
         // Compatibility with old backups with maxtime and timed fields.
         if (!isset($data->timelimit)) {
             if (isset($data->timed) && isset($data->maxtime) && $data->timed) {
@@ -215,7 +220,8 @@ class restore_lesson_activity_structure_step extends restore_activity_structure_
                     'answerid' => $answer->id));
         }
 
-        // Add lesson mediafile, no need to match by itemname (just internally handled context)
+        // Add lesson files, no need to match by itemname (just internally handled context).
+        $this->add_related_files('mod_lesson', 'intro', null);
         $this->add_related_files('mod_lesson', 'mediafile', null);
         // Add lesson page files, by lesson_page itemname
         $this->add_related_files('mod_lesson', 'page_contents', 'lesson_page');
@@ -255,7 +261,7 @@ class restore_lesson_activity_structure_step extends restore_activity_structure_
         }
         $rs->close();
 
-        // Replay the upgrade step 2015022700
+        // Replay the upgrade step 2015030301
         // to clean lesson answers that should be plain text.
         // 1 = LESSON_PAGE_SHORTANSWER, 8 = LESSON_PAGE_NUMERICAL, 20 = LESSON_PAGE_BRANCHTABLE.
 
@@ -274,6 +280,23 @@ class restore_lesson_activity_structure_step extends restore_activity_structure_
             $DB->update_record('lesson_answers', $badanswer);
         }
         $badanswers->close();
+
+        // Replay the upgrade step 2015032700.
+        // Delete any orphaned lesson_branch record.
+        if ($DB->get_dbfamily() === 'mysql') {
+            $sql = "DELETE {lesson_branch}
+                      FROM {lesson_branch}
+                 LEFT JOIN {lesson_pages}
+                        ON {lesson_branch}.pageid = {lesson_pages}.id
+                     WHERE {lesson_pages}.id IS NULL";
+        } else {
+            $sql = "DELETE FROM {lesson_branch}
+               WHERE NOT EXISTS (
+                         SELECT 'x' FROM {lesson_pages}
+                          WHERE {lesson_branch}.pageid = {lesson_pages}.id)";
+        }
+
+        $DB->execute($sql);
 
         // Re-map the dependency and activitylink information
         // If a depency or activitylink has no mapping in the backup data then it could either be a duplication of a
