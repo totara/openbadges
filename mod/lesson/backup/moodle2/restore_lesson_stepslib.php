@@ -42,6 +42,7 @@ class restore_lesson_activity_structure_step extends restore_activity_structure_
         $paths[] = new restore_path_element('lesson', '/activity/lesson');
         $paths[] = new restore_path_element('lesson_page', '/activity/lesson/pages/page');
         $paths[] = new restore_path_element('lesson_answer', '/activity/lesson/pages/page/answers/answer');
+        $paths[] = new restore_path_element('lesson_override', '/activity/lesson/overrides/override');
         if ($userinfo) {
             $paths[] = new restore_path_element('lesson_attempt', '/activity/lesson/pages/page/answers/answer/attempts/attempt');
             $paths[] = new restore_path_element('lesson_grade', '/activity/lesson/grades/grade');
@@ -202,6 +203,43 @@ class restore_lesson_activity_structure_step extends restore_activity_structure_
             $data->completed = 0;
         }
         $newitemid = $DB->insert_record('lesson_timer', $data);
+    }
+
+    /**
+     * Process a lesson override restore
+     * @param object $data The data in object form
+     * @return void
+     */
+    protected function process_lesson_override($data) {
+        global $DB;
+
+        $data = (object)$data;
+        $oldid = $data->id;
+
+        // Based on userinfo, we'll restore user overides or no.
+        $userinfo = $this->get_setting_value('userinfo');
+
+        // Skip user overrides if we are not restoring userinfo.
+        if (!$userinfo && !is_null($data->userid)) {
+            return;
+        }
+
+        $data->lessonid = $this->get_new_parentid('lesson');
+
+        if (!is_null($data->userid)) {
+            $data->userid = $this->get_mappingid('user', $data->userid);
+        }
+        if (!is_null($data->groupid)) {
+            $data->groupid = $this->get_mappingid('group', $data->groupid);
+        }
+
+        $data->available = $this->apply_date_offset($data->available);
+        $data->deadline = $this->apply_date_offset($data->deadline);
+
+        $newitemid = $DB->insert_record('lesson_overrides', $data);
+
+        // Add mapping, restore of logs needs it.
+        $this->set_mapping('lesson_override', $oldid, $newitemid);
     }
 
     protected function after_execute() {

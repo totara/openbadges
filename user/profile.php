@@ -225,13 +225,7 @@ if ($currentpage->userid == 0) {
 }
 
 // Trigger a user profile viewed event.
-$event = \core\event\user_profile_viewed::create(array(
-    'objectid' => $user->id,
-    'relateduserid' => $user->id,
-    'context' => $usercontext
-));
-$event->add_record_snapshot('user', $user);
-$event->trigger();
+profile_view($user, $usercontext);
 
 // TODO WORK OUT WHERE THE NAV BAR IS!
 echo $OUTPUT->header();
@@ -323,6 +317,11 @@ if (isset($identityfields['email']) and ($currentuser
   or ($user->maildisplay == 2 and enrol_sharing_course($user, $USER)))) {
     echo html_writer::tag('dt', get_string('email'));
     echo html_writer::tag('dd', obfuscate_mailto($user->email, ''));
+}
+
+if (!isset($hiddenfields['timezone'])) {
+    echo html_writer::tag('dt', get_string('timezone'));
+    echo html_writer::tag('dd', core_date::get_localised_timezone(core_date::get_user_timezone($user)));
 }
 
 if ($user->url && !isset($hiddenfields['webpage'])) {

@@ -110,16 +110,6 @@ $functions = array(
         'capabilities'  => 'moodle/comment:view',
     ),
 
-    // Completion related functions.
-
-    'core_completion_get_activities_completion_status' => array(
-        'classname'     => 'core_completion_external',
-        'methodname'    => 'get_activities_completion_status',
-        'description'   => 'Return the activities completion status for a user in a course.',
-        'type'          => 'read',
-        'capabilities'  => '',
-    ),
-
     // Grade related functions.
 
     'core_grades_get_grades' => array(
@@ -513,6 +503,24 @@ $functions = array(
         'capabilities'  => '',
     ),
 
+    'core_user_view_user_list' => array(
+        'classname'     => 'core_user_external',
+        'methodname'    => 'view_user_list',
+        'classpath'     => 'user/externallib.php',
+        'description'   => 'Simulates the web-interface view of user/index.php (triggering events).',
+        'type'          => 'write',
+        'capabilities'  => 'moodle/course:viewparticipants',
+    ),
+
+    'core_user_view_user_profile' => array(
+        'classname'     => 'core_user_external',
+        'methodname'    => 'view_user_profile',
+        'classpath'     => 'user/externallib.php',
+        'description'   => 'Simulates the web-interface view of user/view.php and user/profile.php (triggering events).',
+        'type'          => 'write',
+        'capabilities'  => 'moodle/user:viewdetails',
+    ),
+
     // === enrol related functions ===
 
     'core_enrol_get_enrolled_users_with_capability' => array(
@@ -838,6 +846,15 @@ $functions = array(
         'capabilities'  => '',
     ),
 
+    'core_message_mark_message_read' => array(
+        'classname'     => 'core_message_external',
+        'methodname'    => 'mark_message_read',
+        'classpath'     => 'message/externallib.php',
+        'description'   => 'Mark a single message as read, trigger message_viewed event.',
+        'type'          => 'write',
+        'capabilities'  => '',
+    ),
+
     // === notes related functions ===
 
     'moodle_notes_create_notes' => array(
@@ -883,6 +900,15 @@ $functions = array(
         'description' => 'Update notes',
         'type'        => 'write',
         'capabilities'=> 'moodle/notes:manage',
+    ),
+
+    'core_notes_view_notes' => array(
+        'classname'     => 'core_notes_external',
+        'methodname'    => 'view_notes',
+        'classpath'     => 'notes/externallib.php',
+        'description'   => 'Simulates the web interface view of notes/index.php: trigger events.',
+        'type'          => 'write',
+        'capabilities'  => 'moodle/notes:view',
     ),
 
     // === grading related functions ===
@@ -1004,6 +1030,31 @@ $functions = array(
         'description' => 'Update completion status for the current user in an activity, only for activities with manual tracking.',
         'type'        => 'write',
     ),
+
+    'core_completion_get_activities_completion_status' => array(
+        'classname'     => 'core_completion_external',
+        'methodname'    => 'get_activities_completion_status',
+        'description'   => 'Return the activities completion status for a user in a course.',
+        'type'          => 'read',
+        'capabilities'  => '',
+    ),
+
+    'core_completion_get_course_completion_status' => array(
+        'classname'    => 'core_completion_external',
+        'methodname'   => 'get_course_completion_status',
+        'description'  => 'Returns course completion status.',
+        'type'         => 'read',
+        'capabilities' => 'report/completion:view',
+    ),
+
+    // Rating functions.
+    'core_rating_get_item_ratings' => array(
+        'classname'     => 'core_rating_external',
+        'methodname'    => 'get_item_ratings',
+        'description'   => 'Retrieve all the ratings for an item.',
+        'type'          => 'read',
+        'capabilities'  => 'moodle/rating:view'
+    ),
 );
 
 $services = array(
@@ -1068,6 +1119,14 @@ $services = array(
             'core_course_view_course',
             'core_completion_get_activities_completion_status',
             'core_notes_get_course_notes',
+            'core_completion_get_course_completion_status',
+            'core_user_view_user_list',
+            'core_message_mark_message_read',
+            'core_notes_view_notes',
+            'mod_forum_view_forum_discussion',
+            'core_user_view_user_profile',
+            'gradereport_user_view_grade_report',
+            'core_rating_get_item_ratings',
             ),
         'enabled' => 0,
         'restrictedusers' => 0,
