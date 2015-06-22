@@ -479,9 +479,9 @@ class core_badges_renderer extends plugin_renderer_base {
                     get_string('downloadall'), 'POST', array('class' => 'activatebadge'));
 
         // Local badges.
-        $localhtml = html_writer::start_tag('fieldset', array('id' => 'issued-badge-table', 'class' => 'generalbox'));
+        $localhtml = html_writer::start_tag('div', array('id' => 'issued-badge-table', 'class' => 'generalbox'));
         $heading = get_string('localbadges', 'badges', format_string($SITE->fullname, true, array('context' => context_system::instance())));
-        $localhtml .= html_writer::tag('legend', $this->output->heading_with_help($heading, 'localbadgesh', 'badges'));
+        $localhtml .= $this->output->heading_with_help($heading, 'localbadgesh', 'badges');
         if ($badges->badges) {
             $downloadbutton = $this->output->heading(get_string('badgesearned', 'badges', $badges->totalcount), 4, 'activatebadge');
             $downloadbutton .= $downloadall;
@@ -491,13 +491,13 @@ class core_badges_renderer extends plugin_renderer_base {
         } else {
             $localhtml .= $searchform . $this->output->notification(get_string('nobadges', 'badges'));
         }
-        $localhtml .= html_writer::end_tag('fieldset');
+        $localhtml .= html_writer::end_tag('div');
 
         // External badges.
         $externalhtml = "";
         if (!empty($CFG->badges_allowexternalbackpack)) {
-            $externalhtml .= html_writer::start_tag('fieldset', array('class' => 'generalbox'));
-            $externalhtml .= html_writer::tag('legend', $this->output->heading_with_help(get_string('externalbadges', 'badges'), 'externalbadges', 'badges'));
+            $externalhtml .= html_writer::start_tag('div', array('class' => 'generalbox'));
+            $externalhtml .= $this->output->heading_with_help(get_string('externalbadges', 'badges'), 'externalbadges', 'badges');
             if (!is_null($backpack)) {
                 if ($backpack->totalcollections == 0) {
                     $externalhtml .= get_string('nobackpackcollections', 'badges', $backpack);
@@ -513,7 +513,7 @@ class core_badges_renderer extends plugin_renderer_base {
                 $externalhtml .= get_string('externalconnectto', 'badges', $mybackpack->out());
             }
 
-            $externalhtml .= html_writer::end_tag('fieldset');
+            $externalhtml .= html_writer::end_tag('div');
         }
 
         return $localhtml . $externalhtml;
@@ -785,11 +785,7 @@ class core_badges_renderer extends plugin_renderer_base {
 
     // Prints criteria actions for badge editing.
     public function print_criteria_actions(badge $badge) {
-        $table = new html_table();
-        $table->attributes = array('class' => 'boxaligncenter', 'id' => 'badgeactions');
-        $table->colclasses = array('activatebadge');
-
-        $actions = array();
+        $output = '';
         if (!$badge->is_active() && !$badge->is_locked()) {
             $accepted = $badge->get_accepted_criteria();
             $potential = array_diff($accepted, array_keys($badge->criteria));
@@ -800,16 +796,21 @@ class core_badges_renderer extends plugin_renderer_base {
                         $select[$p] = get_string('criteria_' . $p, 'badges');
                     }
                 }
-                $actions[] = get_string('addbadgecriteria', 'badges');
-                $actions[] = $this->output->single_select(new moodle_url('/badges/criteria_settings.php',
-                        array('badgeid' => $badge->id, 'add' => true)), 'type', $select);
+                $output .= $this->output->single_select(
+                    new moodle_url('/badges/criteria_settings.php', array('badgeid' => $badge->id, 'add' => true)),
+                    'type',
+                    $select,
+                    '',
+                    array('' => 'choosedots'),
+                    null,
+                    array('label' => get_string('addbadgecriteria', 'badges'))
+                );
             } else {
-                $actions[] = $this->output->box(get_string('nothingtoadd', 'badges'), 'clearfix');
+                $output .= $this->output->box(get_string('nothingtoadd', 'badges'), 'clearfix');
             }
         }
 
-        $table->data[] = $actions;
-        return html_writer::table($table);
+        return $output;
     }
 
     // Renders a table with users who have earned the badge.

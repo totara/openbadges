@@ -11,13 +11,14 @@ Feature: In an assignment, teachers grade multiple students on one page
       | Course 1 | C1 | 0 | 1 |
     And the following "users" exist:
       | username | firstname | lastname | email |
-      | teacher1 | Teacher | 1 | teacher1@asd.com |
-      | student1 | Student | 1 | student1@asd.com |
+      | teacher1 | Teacher | 1 | teacher1@example.com |
+      | student1 | Student | 1 | student1@example.com |
     And the following "course enrolments" exist:
       | user | course | role |
       | teacher1 | C1 | editingteacher |
       | student1 | C1 | student |
     When I log in as "admin"
+    And I am on site homepage
     And I follow "Course 1"
     And I turn editing mode on
     And I add a "Assignment" to section "1" and I fill the form with:
@@ -34,6 +35,7 @@ Feature: In an assignment, teachers grade multiple students on one page
     And I press "Save changes"
     And I log out
     And I log in as "admin"
+    And I am on site homepage
     And I follow "Course 1"
     And I follow "Test assignment name"
     And I follow "View/grade all submissions"
@@ -50,9 +52,9 @@ Feature: In an assignment, teachers grade multiple students on one page
       | Course 1 | C1 | 0 | 1 |
     And the following "users" exist:
       | username | firstname | lastname | email |
-      | teacher1 | Teacher | 1 | teacher1@asd.com |
-      | student1 | Student | 1 | student1@asd.com |
-      | student2 | Student | 2 | student2@asd.com |
+      | teacher1 | Teacher | 1 | teacher1@example.com |
+      | student1 | Student | 1 | student1@example.com |
+      | student2 | Student | 2 | student2@example.com |
     And the following "course enrolments" exist:
       | user | course | role |
       | teacher1 | C1 | editingteacher |
@@ -126,8 +128,8 @@ Feature: In an assignment, teachers grade multiple students on one page
     And I follow "Test assignment name"
     And I should see "I'm the teacher first feedback"
     And I should see "60.0"
+    And I follow "Grades" in the user menu
     And I follow "Course 1"
-    And I follow "Grades"
     And I should see "1337"
     And I log out
     And I log in as "student2"
@@ -135,8 +137,8 @@ Feature: In an assignment, teachers grade multiple students on one page
     And I follow "Test assignment name"
     And I should not see "I'm the teacher first feedback"
     And I should not see "60.0"
+    And I follow "Grades" in the user menu
     And I follow "Course 1"
-    And I follow "Grades"
     And I should not see "1337"
     And I log out
     And I log in as "teacher1"
@@ -165,8 +167,8 @@ Feature: In an assignment, teachers grade multiple students on one page
     And I follow "Test assignment name"
     And I should see "I'm the teacher first feedback"
     And I should see "60.0"
+    And I follow "Grades" in the user menu
     And I follow "Course 1"
-    And I follow "Grades"
     And I should see "1337"
     And I log out
     And I log in as "student2"
@@ -174,6 +176,6 @@ Feature: In an assignment, teachers grade multiple students on one page
     And I follow "Test assignment name"
     And I should not see "I'm the teacher first feedback"
     And I should not see "60.0"
+    And I follow "Grades" in the user menu
     And I follow "Course 1"
-    And I follow "Grades"
     And I should not see "1337"

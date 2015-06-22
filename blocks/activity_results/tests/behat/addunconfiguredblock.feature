@@ -7,7 +7,7 @@ Feature: The activity results block displays student scores
   Background:
     Given the following "users" exist:
       | username | firstname | lastname | email | idnumber |
-      | teacher1 | Teacher | 1 | teacher1@asd.com | T1 |
+      | teacher1 | Teacher | 1 | teacher1@example.com | T1 |
     And the following "courses" exist:
       | fullname | shortname | category |
       | Course 1 | C1 | 0 |
@@ -20,14 +20,14 @@ Feature: The activity results block displays student scores
 
   Scenario: Add the block to a the course
     Given I add the "Activity results" block
-    Then I should see "There is an error right now with this block: you need to select which activity it should display results from." in the "Activity results" "block"
+    Then I should see "Please configure this block and select which activity it should display results from." in the "Activity results" "block"
 
   Scenario: Try to configure the block on the course page in a course without activities
     Given I add the "Activity results" block
     When I configure the "Activity results" block
-    And I should see "This course does not contain any activity activities . You must add at least one before you are able to use this block correctly."
+    And I should see "There are not yet any activities in this course."
     And I press "Save changes"
-    Then I should see "There is an error right now with this block: you need to select which activity it should display results from." in the "Activity results" "block"
+    Then I should see "Please configure this block and select which activity it should display results from." in the "Activity results" "block"
 
   Scenario: Try to configure the block on a resource page in a course without activities
     Given I add a "Page" to section "1"
@@ -38,6 +38,6 @@ Feature: The activity results block displays student scores
     And I press "Save and display"
     When I add the "Activity results" block
     And I configure the "Activity results" block
-    And I should see "This course does not contain any activity activities . You must add at least one before you are able to use this block correctly."
+    And I should see "There are not yet any activities in this course."
     And I press "Save changes"
-    Then I should see "There is an error right now with this block: you need to select which activity it should display results from." in the "Activity results" "block"
+    Then I should see "Please configure this block and select which activity it should display results from." in the "Activity results" "block"

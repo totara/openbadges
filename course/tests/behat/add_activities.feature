@@ -7,8 +7,8 @@ Feature: Add activities to courses
   Background:
     Given the following "users" exist:
       | username | firstname | lastname | email |
-      | student1 | Student | 1 | student1@asd.com |
-      | student2 | Student | 2 | student2@asd.com |
+      | student1 | Student | 1 | student1@example.com |
+      | student2 | Student | 2 | student2@example.com |
     And the following "courses" exist:
       | fullname | shortname | format |
       | Course 1 | C1 | topics |
@@ -17,6 +17,7 @@ Feature: Add activities to courses
       | student1 | C1 | student |
       | student2 | C1 | student |
     And I log in as "admin"
+    And I am on site homepage
     And I follow "Course 1"
     And I turn editing mode on
 
@@ -46,7 +47,7 @@ Feature: Add activities to courses
   Scenario: Set activity description to required then add an activity supplying only the name
     Given I set the following administration settings values:
       | requiremodintro | Yes |
-    When I follow "Home"
+    When I am on site homepage
     And I follow "Course 1"
     And I add a "Database" to section "3" and I fill the form with:
       | Name | Test name |

@@ -885,7 +885,7 @@ function data_tags_check($dataid, $template) {
     // then we generate strings to replace
     $tagsok = true; // let's be optimistic
     foreach ($fields as $field){
-        $pattern="/\[\[".$field->name."\]\]/i";
+        $pattern="/\[\[" . preg_quote($field->name, '/') . "\]\]/i";
         if (preg_match_all($pattern, $template, $dummy)>1){
             $tagsok = false;
             echo $OUTPUT->notification('[['.$field->name.']] - '.get_string('multipletags','data'));
@@ -3836,8 +3836,8 @@ function data_process_submission(stdClass $mod, $fields, stdClass $datarecord) {
             $requiredfieldsfilled = false;
         }
 
-        if ($fieldhascontent) {
-            // The field has content so it should be updatable.
+        // Update the field.
+        if (isset($submitteddata[$fieldrecord->id])) {
             foreach ($submitteddata[$fieldrecord->id] as $value) {
                 $result->fields[$value->fieldname] = $field;
             }

@@ -41,6 +41,7 @@ Feature: display_availability
   Scenario: Activity availability display
     # Set up.
     Given I log in as "teacher1"
+    And I am on site homepage
     And I follow "Course 1"
     And I turn editing mode on
 
@@ -74,7 +75,7 @@ Feature: display_availability
     And I press "Add restriction..."
     And I click on "User profile" "button" in the "Add restriction..." "dialogue"
     And I set the field "User profile field" to "Email address"
-    And I set the field "Value to compare against" to "email@example.org"
+    And I set the field "Value to compare against" to "email@example.com"
     And I set the field "Method of comparison" to "is equal to"
     And I press "Save and return to course"
 
@@ -103,6 +104,7 @@ Feature: display_availability
     # Change to student view.
     Given I log out
     And I log in as "student1"
+    And I am on site homepage
     And I follow "Course 1"
 
     # Page 1 display still there but should be dimmed and not a link.
@@ -123,6 +125,7 @@ Feature: display_availability
   Scenario: Section availability display
     # Set up.
     Given I log in as "teacher1"
+    And I am on site homepage
     And I follow "Course 1"
     And I turn editing mode on
 
@@ -146,7 +149,7 @@ Feature: display_availability
     And I press "Save changes"
 
     # This is necessary because otherwise it fails in Chrome, see MDL-44959
-    And I am on homepage
+    And I am on site homepage
     And I follow "Course 1"
 
     # Add Pages to each section.
@@ -171,6 +174,7 @@ Feature: display_availability
     # Change to student view.
     Given I log out
     And I log in as "student1"
+    And I am on site homepage
     And I follow "Course 1"
 
     # The contents of both sections should be hidden.

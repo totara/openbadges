@@ -79,6 +79,15 @@ class behat_general extends behat_base {
     }
 
     /**
+     * Opens Moodle site homepage.
+     *
+     * @Given /^I am on site homepage$/
+     */
+    public function i_am_on_site_homepage() {
+        $this->getSession()->visit($this->locate_path('/?redirect=0'));
+    }
+
+    /**
      * Reloads the current page.
      *
      * @Given /^I reload the page$/
@@ -1084,7 +1093,7 @@ class behat_general extends behat_base {
 
         // Check if value exists in specific row/column.
         // Get row xpath.
-        $rowxpath = $tablexpath."/tbody/tr[th[normalize-space(.)=" . $rowliteral . "] | td[normalize-space(.)=" . $rowliteral . "]]";
+        $rowxpath = $tablexpath."/tbody/tr[th[normalize-space(.)=" . $rowliteral . "] or td[normalize-space(.)=" . $rowliteral . "]]";
 
         $columnvaluexpath = $rowxpath . $columnpositionxpath . "[contains(normalize-space(.)," . $valueliteral . ")]";
 

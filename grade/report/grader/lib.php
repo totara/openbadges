@@ -844,7 +844,7 @@ class grade_report_grader extends grade_report {
                             'itemid' => $element['object']->id));
                         $singleview = $OUTPUT->action_icon(
                             $url,
-                            new pix_icon('t/editstring', get_string('singleview', 'grades', $element['object']->itemname))
+                            new pix_icon('t/editstring', get_string('singleview', 'grades', $element['object']->get_name()))
                         );
                     }
 
@@ -1086,8 +1086,8 @@ class grade_report_grader extends grade_report {
                     } else {
                         // The max and min for an aggregation may be different to the grade_item.
                         if (!is_null($gradeval)) {
-                            $item->grademax = $grade->rawgrademax;
-                            $item->grademin = $grade->rawgrademin;
+                            $item->grademax = $grade->get_grade_max();
+                            $item->grademin = $grade->get_grade_min();
                         }
 
                         $itemcell->text .= "<span class='gradevalue{$hidden}{$gradepass}'>" .

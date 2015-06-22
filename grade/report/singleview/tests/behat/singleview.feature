@@ -10,11 +10,11 @@ Feature: We can use Single view
       | Course 1 | C1 | 0 |
     And the following "users" exist:
       | username | firstname | lastname | email | idnumber | alternatename |
-      | teacher1 | Teacher | 1 | teacher1@asd.com | t1 | fred |
-      | student1 | Student | 1 | student1@asd.com | s1 | james |
-      | student2 | Student | 2 | student1@asd.com | s2 | holly |
-      | student3 | Student | 3 | student1@asd.com | s3 | anna |
-      | student4 | Student | 4 | student1@asd.com | s4 | zac |
+      | teacher1 | Teacher | 1 | teacher1@example.com | t1 | fred |
+      | student1 | Student | 1 | student1@example.com | s1 | james |
+      | student2 | Student | 2 | student1@example.com | s2 | holly |
+      | student3 | Student | 3 | student1@example.com | s3 | anna |
+      | student4 | Student | 4 | student1@example.com | s4 | zac |
     And the following "scales" exist:
       | name | scale |
       | Test Scale | Disappointing, Good, Very good, Excellent |
@@ -46,7 +46,7 @@ Feature: We can use Single view
       | Test grade item | C1 | Scale |
     And I log in as "teacher1"
     And I follow "Course 1"
-    And I follow "Grades"
+    And I navigate to "Grades" node in "Course administration"
 
   @javascript
   Scenario: I can update grades, add feedback and exclude grades.

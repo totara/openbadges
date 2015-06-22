@@ -713,7 +713,8 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
         if (empty($cacheddata['basic']) || $cacheddata['basic']['roles'] !== $CFG->coursecontact ||
                 $cacheddata['basic']['lastreset'] < time() - self::CACHE_COURSE_CONTACTS_TTL) {
             // Reset cache.
-            $cache->purge();
+            $keys = $DB->get_fieldset_select('course', 'id', '');
+            $cache->delete_many($keys);
             $cache->set('basic', array('roles' => $CFG->coursecontact, 'lastreset' => time()));
             $cacheddata = $cache->get_many(array_merge(array('basic'), array_keys($courses)));
         }
@@ -2400,7 +2401,7 @@ class coursecat implements renderable, cacheable_object, IteratorAggregate {
      * @return bool
      */
     public function can_restore_courses_into() {
-        return has_capability('moodle/course:create', $this->get_context());
+        return has_capability('moodle/restore:restorecourse', $this->get_context());
     }
 
     /**

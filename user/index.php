@@ -155,6 +155,7 @@ $PAGE->add_body_class('path-user');                     // So we can style it in
 $PAGE->set_other_editing_capability('moodle/course:manageactivities');
 
 echo $OUTPUT->header();
+echo $OUTPUT->heading(get_string('participants'));
 
 echo '<div class="userlist">';
 
@@ -374,8 +375,8 @@ $table->define_columns($tablecolumns);
 $table->define_headers($tableheaders);
 $table->define_baseurl($baseurl->out());
 
-if (!isset($hiddenfields['lastcourseaccess'])) {
-    $table->sortable(true, 'lastcourseaccess', SORT_DESC);
+if (!isset($hiddenfields['lastaccess'])) {
+    $table->sortable(true, 'lastaccess', SORT_DESC);
 } else {
     $table->sortable(true, 'firstname', SORT_ASC);
 }
@@ -490,8 +491,8 @@ $userlist = $DB->get_recordset_sql("$select $from $where $sort", $params, $table
 // If there are multiple Roles in the course, then show a drop down menu for switching.
 if (count($rolenames) > 1) {
     echo '<div class="rolesform">';
-    echo '<label for="rolesform_jump">'.get_string('currentrole', 'role').'&nbsp;</label>';
-    echo $OUTPUT->single_select($rolenamesurl, 'roleid', $rolenames, $roleid, null, 'rolesform');
+    echo $OUTPUT->single_select($rolenamesurl, 'roleid', $rolenames, $roleid, null,
+        'rolesform', array('label' => get_string('currentrole', 'role')));
     echo '</div>';
 
 } else if (count($rolenames) == 1) {

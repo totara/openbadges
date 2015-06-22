@@ -468,6 +468,45 @@ function hide_natural_aggregation_upgrade_notice($courseid) {
 }
 
 /**
+ * Hide warning about changed grades during upgrade from 2.8.0-2.8.6 and 2.9.0.
+ *
+ * @param int $courseid The current course id.
+ */
+function grade_hide_min_max_grade_upgrade_notice($courseid) {
+    unset_config('show_min_max_grades_changed_' . $courseid);
+}
+
+/**
+ * Use the grade min and max from the grade_grade.
+ *
+ * This is reserved for core use after an upgrade.
+ *
+ * @param int $courseid The current course id.
+ */
+function grade_upgrade_use_min_max_from_grade_grade($courseid) {
+    grade_set_setting($courseid, 'minmaxtouse', GRADE_MIN_MAX_FROM_GRADE_GRADE);
+
+    grade_force_full_regrading($courseid);
+    // Do this now, because it probably happened to late in the page load to be happen automatically.
+    grade_regrade_final_grades($courseid);
+}
+
+/**
+ * Use the grade min and max from the grade_item.
+ *
+ * This is reserved for core use after an upgrade.
+ *
+ * @param int $courseid The current course id.
+ */
+function grade_upgrade_use_min_max_from_grade_item($courseid) {
+    grade_set_setting($courseid, 'minmaxtouse', GRADE_MIN_MAX_FROM_GRADE_ITEM);
+
+    grade_force_full_regrading($courseid);
+    // Do this now, because it probably happened to late in the page load to be happen automatically.
+    grade_regrade_final_grades($courseid);
+}
+
+/**
  * Hide warning about changed grades during upgrade to 2.8.
  *
  * @param int $courseid The current course id.
@@ -487,20 +526,26 @@ function hide_aggregatesubcats_upgrade_notice($courseid) {
  * @return nothing or string if $return true
  */
 function print_natural_aggregation_upgrade_notice($courseid, $context, $thispage, $return=false) {
-    global $OUTPUT;
+    global $CFG, $OUTPUT;
     $html = '';
+
+    // Do not do anything if they cannot manage the grades of this course.
+    if (!has_capability('moodle/grade:manage', $context)) {
+        return $html;
+    }
 
     $hidesubcatswarning = optional_param('seenaggregatesubcatsupgradedgrades', false, PARAM_BOOL) && confirm_sesskey();
     $showsubcatswarning = get_config('core', 'show_aggregatesubcats_upgrade_' . $courseid);
     $hidenaturalwarning = optional_param('seensumofgradesupgradedgrades', false, PARAM_BOOL) && confirm_sesskey();
     $shownaturalwarning = get_config('core', 'show_sumofgrades_upgrade_' . $courseid);
 
-    // Do not do anything if they are not a teacher.
-    if ($hidesubcatswarning || $showsubcatswarning || $hidenaturalwarning || $shownaturalwarning) {
-        if (!has_capability('moodle/grade:manage', $context)) {
-            return '';
-        }
-    }
+    $hideminmaxwarning = optional_param('seenminmaxupgradedgrades', false, PARAM_BOOL) && confirm_sesskey();
+    $showminmaxwarning = get_config('core', 'show_min_max_grades_changed_' . $courseid);
+
+    $useminmaxfromgradeitem = optional_param('useminmaxfromgradeitem', false, PARAM_BOOL) && confirm_sesskey();
+    $useminmaxfromgradegrade = optional_param('useminmaxfromgradegrade', false, PARAM_BOOL) && confirm_sesskey();
+
+    $minmaxtouse = grade_get_setting($courseid, 'minmaxtouse', $CFG->grade_minmaxtouse);
 
     // Hide the warning if the user told it to go away.
     if ($hidenaturalwarning) {
@@ -510,6 +555,26 @@ function print_natural_aggregation_upgrade_notice($courseid, $context, $thispage
     if ($hidesubcatswarning) {
         hide_aggregatesubcats_upgrade_notice($courseid);
     }
+
+    // Hide the min/max warning if the user told it to go away.
+    if ($hideminmaxwarning) {
+        grade_hide_min_max_grade_upgrade_notice($courseid);
+        $showminmaxwarning = false;
+    }
+
+    if ($useminmaxfromgradegrade) {
+        // Revert to the new behaviour, we now use the grade_grade for min/max.
+        grade_upgrade_use_min_max_from_grade_grade($courseid);
+        grade_hide_min_max_grade_upgrade_notice($courseid);
+        $showminmaxwarning = false;
+
+    } else if ($useminmaxfromgradeitem) {
+        // Apply the new logic, we now use the grade_item for min/max.
+        grade_upgrade_use_min_max_from_grade_item($courseid);
+        grade_hide_min_max_grade_upgrade_notice($courseid);
+        $showminmaxwarning = false;
+    }
+
 
     if (!$hidenaturalwarning && $shownaturalwarning) {
         $message = get_string('sumofgradesupgradedgrades', 'grades');
@@ -533,6 +598,51 @@ function print_natural_aggregation_upgrade_notice($courseid, $context, $thispage
         $goawaybutton = $OUTPUT->single_button($goawayurl, $hidemessage, 'get');
         $html .= $OUTPUT->notification($message, 'notifysuccess');
         $html .= $goawaybutton;
+    }
+
+    if ($showminmaxwarning) {
+        $hidemessage = get_string('upgradedgradeshidemessage', 'grades');
+        $urlparams = array( 'id' => $courseid,
+                            'seenminmaxupgradedgrades' => true,
+                            'sesskey' => sesskey());
+
+        $goawayurl = new moodle_url($thispage, $urlparams);
+        $hideminmaxbutton = $OUTPUT->single_button($goawayurl, $hidemessage, 'get');
+        $moreinfo = html_writer::link(get_docs_url(get_string('minmaxtouse_link', 'grades')), get_string('moreinfo'),
+            array('target' => '_blank'));
+
+        if ($minmaxtouse == GRADE_MIN_MAX_FROM_GRADE_ITEM) {
+            // Show the message that there were min/max issues that have been resolved.
+            $message = get_string('minmaxupgradedgrades', 'grades') . ' ' . $moreinfo;
+
+            $revertmessage = get_string('upgradedminmaxrevertmessage', 'grades');
+            $urlparams = array('id' => $courseid,
+                               'useminmaxfromgradegrade' => true,
+                               'sesskey' => sesskey());
+            $reverturl = new moodle_url($thispage, $urlparams);
+            $revertbutton = $OUTPUT->single_button($reverturl, $revertmessage, 'get');
+
+            $html .= $OUTPUT->notification($message, 'notifywarning');
+            $html .= $revertbutton . $hideminmaxbutton;
+
+        } else if ($minmaxtouse == GRADE_MIN_MAX_FROM_GRADE_GRADE) {
+            // Show the warning that there are min/max issues that have not be resolved.
+            $message = get_string('minmaxupgradewarning', 'grades') . ' ' . $moreinfo;
+
+            $fixmessage = get_string('minmaxupgradefixbutton', 'grades');
+            $urlparams = array('id' => $courseid,
+                               'useminmaxfromgradeitem' => true,
+                               'sesskey' => sesskey());
+            $fixurl = new moodle_url($thispage, $urlparams);
+            $fixbutton = $OUTPUT->single_button($fixurl, $fixmessage, 'get');
+
+            $html .= $OUTPUT->notification($message, 'notifywarning');
+            $html .= $fixbutton . $hideminmaxbutton;
+        }
+    }
+
+    if (!empty($html)) {
+        $html = html_writer::tag('div', $html, array('class' => 'core_grades_notices'));
     }
 
     if ($return) {
@@ -818,12 +928,14 @@ class grade_plugin_info {
  * @param boolean $shownavigation should the gradebook navigation drop down (or tabs) be shown?
  * @param string  $headerhelpidentifier The help string identifier if required.
  * @param string  $headerhelpcomponent The component for the help string.
+ * @param stdClass $user The user object for use with the user context header.
  *
  * @return string HTML code or nothing if $return == false
  */
 function print_grade_page_head($courseid, $active_type, $active_plugin=null,
                                $heading = false, $return=false,
-                               $buttons=false, $shownavigation=true, $headerhelpidentifier = null, $headerhelpcomponent = null) {
+                               $buttons=false, $shownavigation=true, $headerhelpidentifier = null, $headerhelpcomponent = null,
+                               $user = null) {
     global $CFG, $OUTPUT, $PAGE;
 
     if ($active_type === 'preferences') {
@@ -870,9 +982,16 @@ function print_grade_page_head($courseid, $active_type, $active_plugin=null,
     }
 
     if ($shownavigation) {
+        $navselector = null;
         if ($courseid != SITEID &&
                 ($CFG->grade_navmethod == GRADE_NAVMETHOD_COMBO || $CFG->grade_navmethod == GRADE_NAVMETHOD_DROPDOWN)) {
-            $returnval .= print_grade_plugin_selector($plugin_info, $active_type, $active_plugin, $return);
+            // It's absolutely essential that this grade plugin selector is shown after the user header. Just ask Fred.
+            $navselector = print_grade_plugin_selector($plugin_info, $active_type, $active_plugin, true);
+            if ($return) {
+                $returnval .= $navselector;
+            } else if (!isset($user)) {
+                echo $navselector;
+            }
         }
 
         $output = '';
@@ -880,7 +999,17 @@ function print_grade_page_head($courseid, $active_type, $active_plugin=null,
         if (isset($headerhelpidentifier)) {
             $output = $OUTPUT->heading_with_help($heading, $headerhelpidentifier, $headerhelpcomponent);
         } else {
-            $output = $OUTPUT->heading($heading);
+            if (isset($user)) {
+                $output = $OUTPUT->context_header(
+                        array(
+                            'heading' => fullname($user),
+                            'user' => $user,
+                            'usercontext' => context_user::instance($user->id)
+                        ), 2
+                    ) . $navselector;
+            } else {
+                $output = $OUTPUT->heading($heading);
+            }
         }
 
         if ($return) {
@@ -1253,7 +1382,7 @@ class grade_structure {
         // Object holding pix_icon information before instantiation.
         $icon = new stdClass();
         $icon->attributes = array(
-            'class' => 'item itemicon'
+            'class' => 'icon itemicon'
         );
         $icon->component = 'moodle';
 
@@ -2618,7 +2747,6 @@ abstract class grade_helper {
      * letter => get_string('letters', 'grades'),
      * export => get_string('export', 'grades'),
      * import => get_string('import'),
-     * preferences => get_string('mypreferences', 'grades'),
      * settings => get_string('settings')
      *
      * @return array
@@ -2722,7 +2850,7 @@ abstract class grade_helper {
             if (file_exists($plugindir.'/preferences.php')) {
                 $url = new moodle_url('/grade/report/'.$plugin.'/preferences.php', array('id'=>$courseid));
                 $gradepreferences[$plugin] = new grade_plugin_info($plugin, $url,
-                    get_string('mypreferences', 'grades') . ': ' . $pluginstr);
+                    get_string('preferences', 'grades') . ': ' . $pluginstr);
             }
         }
         if (count($gradereports) == 0) {

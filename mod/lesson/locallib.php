@@ -715,10 +715,34 @@ abstract class lesson_add_page_form_base extends moodleform {
     protected $standard = true;
 
     /**
+     * Answer format supported by question type.
+     */
+    protected $answerformat = '';
+
+    /**
+     * Response format supported by question type.
+     */
+    protected $responseformat = '';
+
+    /**
      * Each page type can and should override this to add any custom elements to
      * the basic form that they want
      */
     public function custom_definition() {}
+
+    /**
+     * Returns answer format used by question type.
+     */
+    public function get_answer_format() {
+        return $this->answerformat;
+    }
+
+    /**
+     * Returns response format used by question type.
+     */
+    public function get_response_format() {
+        return $this->responseformat;
+    }
 
     /**
      * Used to determine if this is a standard page or a special page
@@ -2496,38 +2520,40 @@ abstract class lesson_page extends lesson_base {
                         $result->feedback = $OUTPUT->box(get_string("secondpluswrong", "lesson"), 'feedback');
                     }
                 } else {
-                    $class = 'response';
-                    if ($result->correctanswer) {
-                        $class .= ' correct'; //CSS over-ride this if they exist (!important)
-                    } else if (!$result->isessayquestion) {
-                        $class .= ' incorrect'; //CSS over-ride this if they exist (!important)
-                    }
-                    $options = new stdClass;
-                    $options->noclean = true;
-                    $options->para = true;
-                    $options->overflowdiv = true;
-                    $options->context = $context;
-
-                    $result->feedback = $OUTPUT->box(format_text($this->get_contents(), $this->properties->contentsformat, $options), 'generalbox boxaligncenter');
-                    if (isset($result->studentanswerformat)) {
-                        // This is the student's answer so it should be cleaned.
-                        $studentanswer = format_text($result->studentanswer, $result->studentanswerformat,
-                                array('context' => $context, 'para' => true));
-                    } else {
-                        $studentanswer = format_string($result->studentanswer);
-                    }
-                    $result->feedback .= '<div class="correctanswer generalbox"><em>'
-                            . get_string("youranswer", "lesson").'</em> : ' . $studentanswer;
-                    if (isset($result->responseformat)) {
-                        $result->response = file_rewrite_pluginfile_urls($result->response, 'pluginfile.php', $context->id,
-                            'mod_lesson', 'page_responses', $result->answerid);
-                        $result->feedback .= $OUTPUT->box(format_text($result->response, $result->responseformat, $options)
-                            , $class);
-                    } else {
-                        $result->feedback .= $OUTPUT->box($result->response, $class);
-                    }
-                    $result->feedback .= '</div>';
+                    $result->feedback = '';
                 }
+                $class = 'response';
+                if ($result->correctanswer) {
+                    $class .= ' correct'; // CSS over-ride this if they exist (!important).
+                } else if (!$result->isessayquestion) {
+                    $class .= ' incorrect'; // CSS over-ride this if they exist (!important).
+                }
+                $options = new stdClass;
+                $options->noclean = true;
+                $options->para = true;
+                $options->overflowdiv = true;
+                $options->context = $context;
+
+                $result->feedback .= $OUTPUT->box(format_text($this->get_contents(), $this->properties->contentsformat, $options),
+                        'generalbox boxaligncenter');
+                if (isset($result->studentanswerformat)) {
+                    // This is the student's answer so it should be cleaned.
+                    $studentanswer = format_text($result->studentanswer, $result->studentanswerformat,
+                            array('context' => $context, 'para' => true));
+                } else {
+                    $studentanswer = format_string($result->studentanswer);
+                }
+                $result->feedback .= '<div class="correctanswer generalbox"><em>'
+                        . get_string("youranswer", "lesson").'</em> : ' . $studentanswer;
+                if (isset($result->responseformat)) {
+                    $result->response = file_rewrite_pluginfile_urls($result->response, 'pluginfile.php', $context->id,
+                            'mod_lesson', 'page_responses', $result->answerid);
+                    $result->feedback .= $OUTPUT->box(format_text($result->response, $result->responseformat, $options)
+                            , $class);
+                } else {
+                    $result->feedback .= $OUTPUT->box($result->response, $class);
+                }
+                $result->feedback .= '</div>';
             }
         }
 

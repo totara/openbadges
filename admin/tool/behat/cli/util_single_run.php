@@ -61,6 +61,9 @@ if ($options['install'] or $options['drop']) {
 $help = "
 Behat utilities to manage the test environment
 
+Usage:
+  php util_single_run.php [--install|--drop|--enable|--disable|--diag|--updatesteps|--help]
+
 Options:
 --install     Installs the test environment for acceptance tests
 --drop        Drops the database tables and the dataroot contents
@@ -196,9 +199,6 @@ if ($options['install']) {
         exit(1);
     }
 
-    // Rewrite config file to ensure we have all the features covered.
-    behat_config_manager::update_config_file();
-
     // Run behat command to get steps in feature files.
     $featurestepscmd = behat_command::get_behat_command(true);
     $featurestepscmd .= ' --config ' . behat_config_manager::get_behat_cli_config_filepath();
@@ -259,6 +259,10 @@ function print_update_step_output($process, $featurestepfile) {
             $step[0] = str_replace($realroot, '', $step[0]);
             $steps[$step[0]] = $step[1];
         }
+    }
+
+    if ($existing = @json_decode(file_get_contents($featurestepfile), true)) {
+        $steps = array_merge($existing, $steps);
     }
     arsort($steps);
 

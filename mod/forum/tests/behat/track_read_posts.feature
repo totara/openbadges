@@ -7,8 +7,8 @@ Feature: A teacher can set one of 3 possible options for tracking read forum pos
   Background:
     Given the following "users" exist:
       | username | firstname | lastname | email | trackforums |
-      | student1 | Student | 1 | student1@asd.com | 1 |
-      | student2 | Student | 2 | student2@asd.com | 0 |
+      | student1 | Student | 1 | student1@example.com | 1 |
+      | student2 | Student | 2 | student2@example.com | 0 |
     And the following "courses" exist:
       | fullname | shortname | category |
       | Course 1 | C1 | 0 |
@@ -17,6 +17,7 @@ Feature: A teacher can set one of 3 possible options for tracking read forum pos
       | student1 | C1 | student |
       | student2 | C1 | student |
     And I log in as "admin"
+    And I am on site homepage
     And I follow "Course 1"
     And I turn editing mode on
 
@@ -84,7 +85,7 @@ Feature: A teacher can set one of 3 possible options for tracking read forum pos
   Scenario: Tracking forum posts forced with user tracking on
     Given the following config values are set as admin:
       | forum_allowforcedreadtracking | 1 |
-    And I follow "Home"
+    And I am on site homepage
     And I follow "Course 1"
     Given I add a "Forum" to section "1" and I fill the form with:
       | Forum name | Test forum name |
@@ -108,7 +109,7 @@ Feature: A teacher can set one of 3 possible options for tracking read forum pos
   Scenario: Tracking forum posts forced with user tracking off
     Given the following config values are set as admin:
       | forum_allowforcedreadtracking | 1 |
-    And I follow "Home"
+    And I am on site homepage
     And I follow "Course 1"
     Given I add a "Forum" to section "1" and I fill the form with:
       | Forum name | Test forum name |
@@ -132,7 +133,7 @@ Feature: A teacher can set one of 3 possible options for tracking read forum pos
   Scenario: Tracking forum posts forced (with force disabled) with user tracking on
     Given the following config values are set as admin:
       | forum_allowforcedreadtracking | 1 |
-    And I follow "Home"
+    And I am on site homepage
     And I follow "Course 1"
     Given I add a "Forum" to section "1" and I fill the form with:
       | Forum name | Test forum name |
@@ -164,7 +165,7 @@ Feature: A teacher can set one of 3 possible options for tracking read forum pos
   Scenario: Tracking forum posts forced (with force disabled) with user tracking off
     Given the following config values are set as admin:
       | forum_allowforcedreadtracking | 1 |
-    And I follow "Home"
+    And I am on site homepage
     And I follow "Course 1"
     Given I add a "Forum" to section "1" and I fill the form with:
       | Forum name | Test forum name |

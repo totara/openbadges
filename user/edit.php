@@ -34,6 +34,7 @@ $PAGE->https_required();
 
 $userid = optional_param('id', $USER->id, PARAM_INT);    // User id.
 $course = optional_param('course', SITEID, PARAM_INT);   // Course id (defaults to Site).
+$returnto = optional_param('returnto', null, PARAM_ALPHA);  // Code determining where to return to after save.
 $cancelemailchange = optional_param('cancelemailchange', 0, PARAM_INT);   // Course id (defaults to Site).
 
 $PAGE->set_url('/user/edit.php', array('course' => $course, 'id' => $userid));
@@ -172,7 +173,7 @@ $filemanageroptions = array('maxbytes'       => $CFG->maxbytes,
 file_prepare_draft_area($draftitemid, $filemanagercontext->id, 'user', 'newicon', 0, $filemanageroptions);
 $user->imagefile = $draftitemid;
 // Create form.
-$userform = new user_edit_form(null, array(
+$userform = new user_edit_form(new moodle_url($PAGE->url, array('returnto' => $returnto)), array(
     'editoroptions' => $editoroptions,
     'filemanageroptions' => $filemanageroptions,
     'user' => $user));
@@ -180,6 +181,17 @@ $userform = new user_edit_form(null, array(
 $emailchanged = false;
 
 if ($usernew = $userform->get_data()) {
+
+    // Deciding where to send the user back in most cases.
+    if ($returnto === 'profile') {
+        if ($course->id != SITEID) {
+            $returnurl = new moodle_url('/user/view.php', array('id' => $user->id, 'course' => $course->id));
+        } else {
+            $returnurl = new moodle_url('/user/profile.php', array('id' => $user->id));
+        }
+    } else {
+        $returnurl = new moodle_url('/user/preferences.php', array('userid' => $user->id));
+    }
 
     $emailchangedhtml = '';
 
@@ -194,7 +206,7 @@ if ($usernew = $userform->get_data()) {
             $a->oldemail = $usernew->email = $user->email;
 
             $emailchangedhtml = $OUTPUT->box(get_string('auth_changingemailaddress', 'auth', $a), 'generalbox', 'notice');
-            $emailchangedhtml .= $OUTPUT->continue_button("$CFG->wwwroot/user/view.php?id=$user->id&amp;course=$course->id");
+            $emailchangedhtml .= $OUTPUT->continue_button($returnurl);
             $emailchanged = true;
         }
     }
@@ -284,7 +296,7 @@ if ($usernew = $userform->get_data()) {
     }
 
     if (!$emailchanged || !$CFG->emailchangeconfirmation) {
-        redirect("$CFG->wwwroot/user/view.php?id=$user->id&course=$course->id");
+        redirect($returnurl);
     }
 }
 
@@ -298,7 +310,7 @@ $strparticipants  = get_string('participants');
 $userfullname     = fullname($user, true);
 
 $PAGE->set_title("$course->shortname: $streditmyprofile");
-$PAGE->set_heading($course->fullname);
+$PAGE->set_heading($userfullname);
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading($userfullname);

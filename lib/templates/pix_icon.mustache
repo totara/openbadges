@@ -15,6 +15,8 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
+    @template core/pix_icon
+
     Moodle pix_icon template.
 
     The purpose of this template is to render a pix_icon.
@@ -27,5 +29,14 @@
 
     Context variables required for this template:
     * attributes Array of name / value pairs.
+
+    Example context (json):
+    {
+        "attributes": [
+            { "name": "src", "value": "http://moodle.com/wp-content/themes/moodle/images/logo-hat2.png" },
+            { "name": "class", "value": "iconsmall" }
+        ]
+    }
+
 }}
 <img {{#attributes}}{{name}}="{{value}}" {{/attributes}}/>

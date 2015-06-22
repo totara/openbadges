@@ -466,8 +466,8 @@ class grade_report_user extends grade_report {
             } else {
                 // The max and min for an aggregation may be different to the grade_item.
                 if (!is_null($gradeval)) {
-                    $grade_grade->grade_item->grademax = $grade_grade->rawgrademax;
-                    $grade_grade->grade_item->grademin = $grade_grade->rawgrademin;
+                    $grade_grade->grade_item->grademax = $grade_grade->get_grade_max();
+                    $grade_grade->grade_item->grademin = $grade_grade->get_grade_min();
                 }
             }
 
@@ -859,7 +859,7 @@ class grade_report_user extends grade_report {
      * Builds the grade item averages.
      */
     function calculate_averages() {
-        global $USER, $DB;
+        global $USER, $DB, $CFG;
 
         if ($this->showaverage) {
             // This settings are actually grader report settings (not user report)
@@ -882,7 +882,11 @@ class grade_report_user extends grade_report {
             list($gradebookrolessql, $gradebookrolesparams) = $DB->get_in_or_equal(explode(',', $this->gradebookroles), SQL_PARAMS_NAMED, 'grbr0');
 
             // Limit to users with an active enrolment.
-            list($enrolledsql, $enrolledparams) = get_enrolled_sql($this->context);
+            $coursecontext = $this->context->get_course_context(true);
+            $defaultgradeshowactiveenrol = !empty($CFG->grade_report_showonlyactiveenrol);
+            $showonlyactiveenrol = get_user_preferences('grade_report_showonlyactiveenrol', $defaultgradeshowactiveenrol);
+            $showonlyactiveenrol = $showonlyactiveenrol || !has_capability('moodle/course:viewsuspendedusers', $coursecontext);
+            list($enrolledsql, $enrolledparams) = get_enrolled_sql($this->context, '', 0, $showonlyactiveenrol);
 
             $params = array_merge($this->groupwheresql_params, $gradebookrolesparams, $enrolledparams, $relatedctxparams);
             $params['courseid'] = $this->courseid;
@@ -1164,8 +1168,6 @@ function grade_report_user_profilereport($course, $user, $viewasuser = false) {
 
         // print the page
         echo '<div class="grade-report-user">'; // css fix to share styles with real report page
-        echo $OUTPUT->heading(get_string('pluginname', 'gradereport_user'). ' - '.fullname($report->user));
-
         if ($report->fill_table()) {
             echo $report->print_table(true);
         }
@@ -1173,4 +1175,47 @@ function grade_report_user_profilereport($course, $user, $viewasuser = false) {
     }
 }
 
+/**
+ * Add nodes to myprofile page.
+ *
+ * @param \core_user\output\myprofile\tree $tree Tree object
+ * @param stdClass $user user object
+ * @param bool $iscurrentuser
+ * @param stdClass $course Course object
+ */
+function gradereport_user_myprofile_navigation(core_user\output\myprofile\tree $tree, $user, $iscurrentuser, $course) {
+    global $CFG, $USER;
+    if (empty($course)) {
+        // We want to display these reports under the site context.
+        $course = get_fast_modinfo(SITEID)->get_course();
+    }
+    $usercontext = context_user::instance($user->id);
+    $anyreport = has_capability('moodle/user:viewuseractivitiesreport', $usercontext);
 
+    // Start capability checks.
+    if ($anyreport || ($course->showreports && $user->id == $USER->id)) {
+        // Add grade hardcoded grade report if necessary.
+        $gradeaccess = false;
+        $coursecontext = context_course::instance($course->id);
+        if (has_capability('moodle/grade:viewall', $coursecontext)) {
+            // Can view all course grades.
+            $gradeaccess = true;
+        } else if ($course->showgrades) {
+            if ($iscurrentuser && has_capability('moodle/grade:view', $coursecontext)) {
+                // Can view own grades.
+                $gradeaccess = true;
+            } else if (has_capability('moodle/grade:viewall', $usercontext)) {
+                // Can view grades of this user - parent most probably.
+                $gradeaccess = true;
+            } else if ($anyreport) {
+                // Can view grades of this user - parent most probably.
+                $gradeaccess = true;
+            }
+        }
+        if ($gradeaccess) {
+            $url = new moodle_url('/course/user.php', array('mode' => 'grade', 'id' => $course->id, 'user' => $user->id));
+            $node = new core_user\output\myprofile\node('reports', 'grade', get_string('grade'), null, $url);
+            $tree->add_node($node);
+        }
+    }
+}

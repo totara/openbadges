@@ -44,10 +44,14 @@ table.message .searchresults td {
     padding: 5px;
 }
 .message .contactselector {
-    width: 24%;
+    @media screen and (min-width: 1000px) {
+        width: 24%;
+    }
     float: left;
+    .dir-rtl & {
+        float:right;
+    }
 }
-
 .message .contactselector .paging {
     z-index: 1;
     position: relative;
@@ -67,7 +71,6 @@ table.message .searchresults td {
             position: absolute;
         }
         .contact {
-            font-weight: bold;
             margin: 0 24% 0 25px;
             text-align: left;
         }
@@ -99,9 +102,14 @@ table.message .searchresults td {
 }
 
 .message .messagearea  {
-    padding-left: 1%;
-    border-left: 1px solid @tableBorder;
-    width: 74%;
+    @media screen and (min-width: 1000px) {
+        width: 74%;
+        border-left: 1px solid @tableBorder;
+        padding-left: 1%;
+    }
+    @media screen and (max-width: 1000px) {
+        width: 100%;
+    }
     float: right;
     min-height: 200px;
 }

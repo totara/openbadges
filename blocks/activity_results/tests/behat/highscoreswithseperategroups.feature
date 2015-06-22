@@ -7,13 +7,13 @@ Feature: The activity results block displays student scores
   Background:
     Given the following "users" exist:
       | username | firstname | lastname | email | idnumber |
-      | teacher1 | Teacher | 1 | teacher1@asd.com | T1 |
-      | student1 | Student | 1 | student1@asd.com | S1 |
-      | student2 | Student | 2 | student2@asd.com | S2 |
-      | student3 | Student | 3 | student3@asd.com | S3 |
-      | student4 | Student | 4 | student4@asd.com | S4 |
-      | student5 | Student | 5 | student5@asd.com | S5 |
-      | student6 | Student | 6 | student6@asd.com | S6 |
+      | teacher1 | Teacher | 1 | teacher1@example.com | T1 |
+      | student1 | Student | 1 | student1@example.com | S1 |
+      | student2 | Student | 2 | student2@example.com | S2 |
+      | student3 | Student | 3 | student3@example.com | S3 |
+      | student4 | Student | 4 | student4@example.com | S4 |
+      | student5 | Student | 5 | student5@example.com | S5 |
+      | student6 | Student | 6 | student6@example.com | S6 |
     And the following "courses" exist:
       | fullname | shortname | category |
       | Course 1 | C1 | 0 |
@@ -40,12 +40,12 @@ Feature: The activity results block displays student scores
     And I follow "Course 1"
     And I expand "Users" node
     And I follow "Groups"
-    And I add "Student 1 (student1@asd.com)" user to "Group 1" group members
-    And I add "Student 2 (student2@asd.com)" user to "Group 1" group members
-    And I add "Student 3 (student3@asd.com)" user to "Group 2" group members
-    And I add "Student 4 (student4@asd.com)" user to "Group 2" group members
-    And I add "Student 5 (student5@asd.com)" user to "Group 3" group members
-    And I add "Student 6 (student6@asd.com)" user to "Group 3" group members
+    And I add "Student 1 (student1@example.com)" user to "Group 1" group members
+    And I add "Student 2 (student2@example.com)" user to "Group 1" group members
+    And I add "Student 3 (student3@example.com)" user to "Group 2" group members
+    And I add "Student 4 (student4@example.com)" user to "Group 2" group members
+    And I add "Student 5 (student5@example.com)" user to "Group 3" group members
+    And I add "Student 6 (student6@example.com)" user to "Group 3" group members
     And I follow "Course 1"
     And I turn editing mode on
     And I add a "Assignment" to section "1" and I fill the form with:
@@ -54,7 +54,7 @@ Feature: The activity results block displays student scores
       | assignsubmission_file_enabled | 0 |
       | Group mode | Separate groups |
     And I follow "Course 1"
-    And I follow "Grades"
+    And I navigate to "Grades" node in "Course administration"
     And I turn editing mode on
     And I give the grade "100.00" to the user "Student 1" for the grade item "Test assignment"
     And I give the grade "90.00" to the user "Student 2" for the grade item "Test assignment"
@@ -83,12 +83,12 @@ Feature: The activity results block displays student scores
     And I follow "Course 1"
     And I expand "Users" node
     And I follow "Groups"
-    And I add "Student 1 (student1@asd.com)" user to "Group 1" group members
-    And I add "Student 2 (student2@asd.com)" user to "Group 1" group members
-    And I add "Student 3 (student3@asd.com)" user to "Group 2" group members
-    And I add "Student 4 (student4@asd.com)" user to "Group 2" group members
-    And I add "Student 5 (student5@asd.com)" user to "Group 3" group members
-    And I add "Student 6 (student6@asd.com)" user to "Group 3" group members
+    And I add "Student 1 (student1@example.com)" user to "Group 1" group members
+    And I add "Student 2 (student2@example.com)" user to "Group 1" group members
+    And I add "Student 3 (student3@example.com)" user to "Group 2" group members
+    And I add "Student 4 (student4@example.com)" user to "Group 2" group members
+    And I add "Student 5 (student5@example.com)" user to "Group 3" group members
+    And I add "Student 6 (student6@example.com)" user to "Group 3" group members
     And I follow "Course 1"
     And I turn editing mode on
     And I add a "Assignment" to section "1" and I fill the form with:
@@ -97,7 +97,7 @@ Feature: The activity results block displays student scores
       | assignsubmission_file_enabled | 0 |
       | Group mode | Separate groups |
     And I follow "Course 1"
-    And I follow "Grades"
+    And I navigate to "Grades" node in "Course administration"
     And I turn editing mode on
     And I give the grade "100.00" to the user "Student 1" for the grade item "Test assignment"
     And I give the grade "90.00" to the user "Student 2" for the grade item "Test assignment"
@@ -130,12 +130,12 @@ Feature: The activity results block displays student scores
     And I follow "Course 1"
     And I expand "Users" node
     And I follow "Groups"
-    And I add "Student 1 (student1@asd.com)" user to "Group 1" group members
-    And I add "Student 2 (student2@asd.com)" user to "Group 1" group members
-    And I add "Student 3 (student3@asd.com)" user to "Group 2" group members
-    And I add "Student 4 (student4@asd.com)" user to "Group 2" group members
-    And I add "Student 5 (student5@asd.com)" user to "Group 3" group members
-    And I add "Student 6 (student6@asd.com)" user to "Group 3" group members
+    And I add "Student 1 (student1@example.com)" user to "Group 1" group members
+    And I add "Student 2 (student2@example.com)" user to "Group 1" group members
+    And I add "Student 3 (student3@example.com)" user to "Group 2" group members
+    And I add "Student 4 (student4@example.com)" user to "Group 2" group members
+    And I add "Student 5 (student5@example.com)" user to "Group 3" group members
+    And I add "Student 6 (student6@example.com)" user to "Group 3" group members
     And I follow "Course 1"
     And I turn editing mode on
     And I add a "Assignment" to section "1" and I fill the form with:
@@ -144,7 +144,7 @@ Feature: The activity results block displays student scores
       | assignsubmission_file_enabled | 0 |
       | Group mode | Separate groups |
     And I follow "Course 1"
-    And I follow "Grades"
+    And I navigate to "Grades" node in "Course administration"
     And I turn editing mode on
     And I give the grade "100.00" to the user "Student 1" for the grade item "Test assignment"
     And I give the grade "90.00" to the user "Student 2" for the grade item "Test assignment"
@@ -177,12 +177,12 @@ Feature: The activity results block displays student scores
     And I follow "Course 1"
     And I expand "Users" node
     And I follow "Groups"
-    And I add "Student 1 (student1@asd.com)" user to "Group 1" group members
-    And I add "Student 2 (student2@asd.com)" user to "Group 1" group members
-    And I add "Student 3 (student3@asd.com)" user to "Group 2" group members
-    And I add "Student 4 (student4@asd.com)" user to "Group 2" group members
-    And I add "Student 5 (student5@asd.com)" user to "Group 3" group members
-    And I add "Student 6 (student6@asd.com)" user to "Group 3" group members
+    And I add "Student 1 (student1@example.com)" user to "Group 1" group members
+    And I add "Student 2 (student2@example.com)" user to "Group 1" group members
+    And I add "Student 3 (student3@example.com)" user to "Group 2" group members
+    And I add "Student 4 (student4@example.com)" user to "Group 2" group members
+    And I add "Student 5 (student5@example.com)" user to "Group 3" group members
+    And I add "Student 6 (student6@example.com)" user to "Group 3" group members
     And I follow "Course 1"
     And I turn editing mode on
     And I add a "Assignment" to section "1" and I fill the form with:
@@ -191,7 +191,7 @@ Feature: The activity results block displays student scores
       | assignsubmission_file_enabled | 0 |
       | Group mode | Separate groups |
     And I follow "Course 1"
-    And I follow "Grades"
+    And I navigate to "Grades" node in "Course administration"
     And I turn editing mode on
     And I give the grade "100.00" to the user "Student 1" for the grade item "Test assignment"
     And I give the grade "90.00" to the user "Student 2" for the grade item "Test assignment"
@@ -231,12 +231,12 @@ Feature: The activity results block displays student scores
     And I follow "Course 1"
     And I expand "Users" node
     And I follow "Groups"
-    And I add "Student 1 (student1@asd.com)" user to "Group 1" group members
-    And I add "Student 2 (student2@asd.com)" user to "Group 1" group members
-    And I add "Student 3 (student3@asd.com)" user to "Group 2" group members
-    And I add "Student 4 (student4@asd.com)" user to "Group 2" group members
-    And I add "Student 5 (student5@asd.com)" user to "Group 3" group members
-    And I add "Student 6 (student6@asd.com)" user to "Group 3" group members
+    And I add "Student 1 (student1@example.com)" user to "Group 1" group members
+    And I add "Student 2 (student2@example.com)" user to "Group 1" group members
+    And I add "Student 3 (student3@example.com)" user to "Group 2" group members
+    And I add "Student 4 (student4@example.com)" user to "Group 2" group members
+    And I add "Student 5 (student5@example.com)" user to "Group 3" group members
+    And I add "Student 6 (student6@example.com)" user to "Group 3" group members
     And I follow "Course 1"
     And I turn editing mode on
     And I add a "Assignment" to section "1" and I fill the form with:
@@ -245,7 +245,7 @@ Feature: The activity results block displays student scores
       | assignsubmission_file_enabled | 0 |
       | Group mode | Separate groups |
     And I follow "Course 1"
-    And I follow "Grades"
+    And I navigate to "Grades" node in "Course administration"
     And I turn editing mode on
     And I give the grade "100.00" to the user "Student 1" for the grade item "Test assignment"
     And I give the grade "90.00" to the user "Student 2" for the grade item "Test assignment"
@@ -284,12 +284,12 @@ Feature: The activity results block displays student scores
     And I follow "Course 1"
     And I expand "Users" node
     And I follow "Groups"
-    And I add "Student 1 (student1@asd.com)" user to "Group 1" group members
-    And I add "Student 2 (student2@asd.com)" user to "Group 1" group members
-    And I add "Student 3 (student3@asd.com)" user to "Group 2" group members
-    And I add "Student 4 (student4@asd.com)" user to "Group 2" group members
-    And I add "Student 5 (student5@asd.com)" user to "Group 3" group members
-    And I add "Student 6 (student6@asd.com)" user to "Group 3" group members
+    And I add "Student 1 (student1@example.com)" user to "Group 1" group members
+    And I add "Student 2 (student2@example.com)" user to "Group 1" group members
+    And I add "Student 3 (student3@example.com)" user to "Group 2" group members
+    And I add "Student 4 (student4@example.com)" user to "Group 2" group members
+    And I add "Student 5 (student5@example.com)" user to "Group 3" group members
+    And I add "Student 6 (student6@example.com)" user to "Group 3" group members
     And I follow "Course 1"
     And I turn editing mode on
     And I add a "Assignment" to section "1" and I fill the form with:
@@ -298,7 +298,7 @@ Feature: The activity results block displays student scores
       | assignsubmission_file_enabled | 0 |
       | Group mode | Separate groups |
     And I follow "Course 1"
-    And I follow "Grades"
+    And I navigate to "Grades" node in "Course administration"
     And I turn editing mode on
     And I give the grade "100.00" to the user "Student 1" for the grade item "Test assignment"
     And I give the grade "90.00" to the user "Student 2" for the grade item "Test assignment"
@@ -337,12 +337,12 @@ Feature: The activity results block displays student scores
     And I follow "Course 1"
     And I expand "Users" node
     And I follow "Groups"
-    And I add "Student 1 (student1@asd.com)" user to "Group 1" group members
-    And I add "Student 2 (student2@asd.com)" user to "Group 1" group members
-    And I add "Student 3 (student3@asd.com)" user to "Group 2" group members
-    And I add "Student 4 (student4@asd.com)" user to "Group 2" group members
-    And I add "Student 5 (student5@asd.com)" user to "Group 3" group members
-    And I add "Student 6 (student6@asd.com)" user to "Group 3" group members
+    And I add "Student 1 (student1@example.com)" user to "Group 1" group members
+    And I add "Student 2 (student2@example.com)" user to "Group 1" group members
+    And I add "Student 3 (student3@example.com)" user to "Group 2" group members
+    And I add "Student 4 (student4@example.com)" user to "Group 2" group members
+    And I add "Student 5 (student5@example.com)" user to "Group 3" group members
+    And I add "Student 6 (student6@example.com)" user to "Group 3" group members
     And I follow "Course 1"
     And I turn editing mode on
     And I add a "Assignment" to section "1" and I fill the form with:
@@ -351,7 +351,7 @@ Feature: The activity results block displays student scores
       | assignsubmission_file_enabled | 0 |
       | Group mode | Separate groups |
     And I follow "Course 1"
-    And I follow "Grades"
+    And I navigate to "Grades" node in "Course administration"
     And I turn editing mode on
     And I give the grade "100.00" to the user "Student 1" for the grade item "Test assignment"
     And I give the grade "90.00" to the user "Student 2" for the grade item "Test assignment"
@@ -388,12 +388,12 @@ Feature: The activity results block displays student scores
     And I follow "Course 1"
     And I expand "Users" node
     And I follow "Groups"
-    And I add "Student 1 (student1@asd.com)" user to "Group 1" group members
-    And I add "Student 2 (student2@asd.com)" user to "Group 1" group members
-    And I add "Student 3 (student3@asd.com)" user to "Group 2" group members
-    And I add "Student 4 (student4@asd.com)" user to "Group 2" group members
-    And I add "Student 5 (student5@asd.com)" user to "Group 3" group members
-    And I add "Student 6 (student6@asd.com)" user to "Group 3" group members
+    And I add "Student 1 (student1@example.com)" user to "Group 1" group members
+    And I add "Student 2 (student2@example.com)" user to "Group 1" group members
+    And I add "Student 3 (student3@example.com)" user to "Group 2" group members
+    And I add "Student 4 (student4@example.com)" user to "Group 2" group members
+    And I add "Student 5 (student5@example.com)" user to "Group 3" group members
+    And I add "Student 6 (student6@example.com)" user to "Group 3" group members
     And I follow "Course 1"
     And I turn editing mode on
     And I add a "Assignment" to section "1" and I fill the form with:
@@ -402,7 +402,7 @@ Feature: The activity results block displays student scores
       | assignsubmission_file_enabled | 0 |
       | Group mode | Separate groups |
     And I follow "Course 1"
-    And I follow "Grades"
+    And I navigate to "Grades" node in "Course administration"
     And I turn editing mode on
     And I give the grade "100.00" to the user "Student 1" for the grade item "Test assignment"
     And I give the grade "90.00" to the user "Student 2" for the grade item "Test assignment"

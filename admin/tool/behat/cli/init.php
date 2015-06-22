@@ -59,6 +59,9 @@ list($options, $unrecognized) = cli_get_params(
 $help = "
 Behat utilities to initialise behat tests
 
+Usage:
+  php init.php [--parallel=value [--maxruns=value] [--fromrun=value --torun=value]] [--help]
+
 Options:
 -j, --parallel Number of parallel behat run to initialise
 -m, --maxruns  Max parallel processes to be executed at one time.
@@ -82,7 +85,7 @@ if (!empty($options['help'])) {
 $utilfile = 'util_single_run.php';
 $paralleloption = "";
 // If parallel run then use utilparallel.
-if ($options['parallel']) {
+if ($options['parallel'] && $options['parallel'] > 1) {
     $utilfile = 'util.php';
     $paralleloption = "";
     foreach ($options as $option => $value) {
@@ -96,24 +99,12 @@ if ($options['parallel']) {
 $cwd = getcwd();
 $output = null;
 
-$installcomposer = true;
 // If behat dependencies not downloaded then do it first, else symfony/process can't be used.
-if ($options['parallel'] && !file_exists(__DIR__ . "/../../../../vendor/autoload.php")) {
-    $installcomposer = false;
-    testing_update_composer_dependencies();
-}
+testing_update_composer_dependencies();
 
+// Check whether the behat test environment needs to be updated.
 chdir(__DIR__);
 exec("php $utilfile --diag $paralleloption", $output, $code);
-
-// Check if composer needs to be updated.
-if ($installcomposer &&
-        ($code == BEHAT_EXITCODE_INSTALL || $code == BEHAT_EXITCODE_REINSTALL || $code == BEHAT_EXITCODE_COMPOSER)) {
-    testing_update_composer_dependencies();
-    // Check again for behat test site and see if it's install or re-install.
-    chdir(__DIR__);
-    exec("php $utilfile --diag $paralleloption", $output, $code);
-}
 
 if ($code == 0) {
     echo "Behat test environment already installed\n";

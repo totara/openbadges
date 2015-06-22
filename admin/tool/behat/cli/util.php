@@ -68,15 +68,18 @@ list($options, $unrecognized) = cli_get_params(
 $help = "
 Behat utilities to manage the test environment
 
+Usage:
+  php util.php [--install|--drop|--enable|--disable|--diag|--updatesteps|--help] [--parallel=value [--maxruns=value]]
+
 Options:
 --install      Installs the test environment for acceptance tests
 --drop         Drops the database tables and the dataroot contents
 --enable       Enables test environment and updates tests list
 --disable      Disables test environment
 --diag         Get behat test environment status code
+--updatesteps  Update feature step file.
 -j, --parallel Number of parallel behat run operation
 -m, --maxruns  Max parallel processes to be executed at one time.
---updatesteps  Update feature step file.
 
 -h, --help     Print out this help
 
@@ -94,7 +97,7 @@ if (!empty($options['help'])) {
 $cwd = getcwd();
 
 // For drop option check if parallel site.
-if ((empty($options['parallel'])) && $options['drop']) {
+if ((empty($options['parallel'])) && ($options['drop']) || $options['updatesteps']) {
     // Get parallel run info from first run.
     $options['parallel'] = behat_config_manager::get_parallel_test_runs($options['fromrun']);
 }
@@ -169,6 +172,26 @@ if ($options['diag'] || $options['enable'] || $options['disable']) {
         }
     }
 
+} else if ($options['updatesteps']) {
+    // Rewrite config file to ensure we have all the features covered.
+    if (empty($options['parallel'])) {
+        behat_config_manager::update_config_file();
+    } else {
+        // Update config file, ensuring we have up-to-date behat.yml.
+        for ($i = $options['fromrun']; $i <= $options['torun']; $i++) {
+            $CFG->behatrunprocess = $i;
+            behat_config_manager::update_config_file();
+        }
+        unset($CFG->behatrunprocess);
+    }
+
+    // Do it sequentially as it's fast and need to be displayed nicely.
+    foreach (array_chunk($cmds, 1, true) as $cmd) {
+        $processes = cli_execute_parallel($cmd, __DIR__);
+        print_sequential_output($processes);
+    }
+    exit(0);
+
 } else {
     // We should never reach here.
     echo $help;
@@ -205,8 +228,12 @@ if ($options['install']) {
 } else if ($options['disable']) {
     echo "Acceptance tests environment disabled for " . $options['parallel'] . " parallel sites" . PHP_EOL;
 
+} else if ($options['diag']) {
+    // Valid option, so nothing to do.
 } else {
     echo $help;
+    chdir($cwd);
+    exit(1);
 }
 
 chdir($cwd);

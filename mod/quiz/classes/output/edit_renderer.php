@@ -82,7 +82,7 @@ class edit_renderer extends \plugin_renderer_base {
 
         $output .= $this->end_section_list();
 
-        // Inialise the JavaScript.
+        // Initialise the JavaScript.
         $this->initialise_editing_javascript($structure, $contexts, $pagevars, $pageurl);
 
         // Include the contents of any other popups required.
@@ -535,9 +535,7 @@ class edit_renderer extends \plugin_renderer_base {
         // Add a new section to the add_menu if possible. This is always added to the HTML
         // then hidden with CSS when no needed, so that as things are re-ordered, etc. with
         // Ajax it can be relevaled again when necessary.
-        $returnurl = new \moodle_url($pageurl, array('addonpage' => $page));
-        $params = array('returnurl' => $returnurl, 'cmid' => $structure->get_cmid(),
-                'addonpage' => $page, 'appendqnumstring' => 'addasection', 'addsection' => '1');
+        $params = array('cmid' => $structure->get_cmid(), 'addsectionatpage' => $page);
 
         $actions['addasection'] = new \action_menu_link_secondary(
                 new \moodle_url($pageurl, $params),
@@ -559,7 +557,11 @@ class edit_renderer extends \plugin_renderer_base {
 
         // Call question bank.
         $icon = new \pix_icon('t/add', $str->questionbank, 'moodle', array('class' => 'iconsmall', 'title' => ''));
-        $title = get_string('addquestionfrombanktopage', 'quiz', $page);
+        if ($page) {
+            $title = get_string('addquestionfrombanktopage', 'quiz', $page);
+        } else {
+            $title = get_string('addquestionfrombankatend', 'quiz');
+        }
         $attributes = array('class' => 'cm-edit-action questionbank',
                 'data-header' => $title, 'data-action' => 'questionbank', 'data-addonpage' => $page);
         $actions['questionbank'] = new \action_menu_link_secondary($pageurl, $icon, $str->questionbank, $attributes);
@@ -570,7 +572,11 @@ class edit_renderer extends \plugin_renderer_base {
         $url = new \moodle_url('/mod/quiz/addrandom.php', $params);
         $icon = new \pix_icon('t/add', $str->addarandomquestion, 'moodle', array('class' => 'iconsmall', 'title' => ''));
         $attributes = array('class' => 'cm-edit-action addarandomquestion', 'data-action' => 'addarandomquestion');
-        $title = get_string('addrandomquestiontopage', 'quiz', $page);
+        if ($page) {
+            $title = get_string('addrandomquestiontopage', 'quiz', $page);
+        } else {
+            $title = get_string('addrandomquestionatend', 'quiz');
+        }
         $attributes = array_merge(array('data-header' => $title, 'data-addonpage' => $page), $attributes);
         $actions['addarandomquestion'] = new \action_menu_link_secondary($url, $icon, $str->addarandomquestion, $attributes);
 

@@ -30,6 +30,9 @@ table.message .searchresults td {padding:5px;}
     width: 24%;
     float: left;
 }
+.dir-rtl .message .contactselector {
+    float: right;
+}
 .message .contactselector .paging {
     z-index: 1;
     position: relative;
@@ -53,7 +56,6 @@ table.message .searchresults td {padding:5px;}
     right: 0;
 }
 .message .message-contacts li .contact {
-    font-weight: bold;
     margin: 0 24% 0 25px;
     text-align: left;
 }
