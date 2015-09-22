@@ -4,7 +4,6 @@ Feature: We can choose what min or max grade to use when aggregating grades.
   As an teacher
   I can update modify a course setting
 
-  @javascript
   Scenario: Changing the min or max grade to use updates the grades accordingly
     Given the following "courses" exist:
       | fullname | shortname | category | groupmode |
@@ -28,7 +27,7 @@ Feature: We can choose what min or max grade to use when aggregating grades.
     And I am on site homepage
     And I follow "C1"
     And I navigate to "Grades" node in "Course administration"
-    And I navigate to "Categories and items" node in "Grade administration > Setup"
+    And I navigate to "Gradebook setup" node in "Grade administration > Setup"
     And I press "Add grade item"
     And I set the following fields to these values:
       | Item name | MI 1 |
@@ -63,7 +62,7 @@ Feature: We can choose what min or max grade to use when aggregating grades.
     And I set the field "Show weightings" to "Show"
     And I set the field "Show contribution to course total" to "Show"
     And I press "Save changes"
-    And I navigate to "Categories and items" node in "Grade administration > Setup"
+    And I navigate to "Gradebook setup" node in "Grade administration > Setup"
     And I set the following settings for grade item "CAT1":
       | Aggregation          | Natural |
     And I log out
@@ -99,7 +98,7 @@ Feature: We can choose what min or max grade to use when aggregating grades.
       | MI 5         | 33.33 %           | 30.00  | 0–100 | 30.00 %    | 10.00 %                      |
       | CAT1 total   | 33.33 %           | 10.00  | 0–100 | 10.00 %    | -                            |
       | Course total | -                 | 60.00  | 0–300 | 20.00 %    | -                            |
-    And I navigate to "Categories and items" node in "Grade administration > Setup"
+    And I navigate to "Gradebook setup" node in "Grade administration > Setup"
     And I set the following settings for grade item "MI 1":
       | Maximum grade          | 50.00 |
       | Minimum grade          | 5.00 |
@@ -127,7 +126,7 @@ Feature: We can choose what min or max grade to use when aggregating grades.
       | MI 5         | 50.00 %           | 30.00  | 0–100 | 30.00 %    | 15.00 %                      |
       | CAT1 total   | 25.00 %           | 10.00  | 0–50  | 20.00 %    | -                            |
       | Course total | -                 | 60.00  | 0–200 | 30.00 %    | -                            |
-    And I navigate to "Categories and items" node in "Grade administration > Setup"
+    And I navigate to "Gradebook setup" node in "Grade administration > Setup"
     And I set the following settings for grade item "MI 5":
       | Maximum grade          | 200.00 |
     And I follow "User report"
@@ -148,20 +147,20 @@ Feature: We can choose what min or max grade to use when aggregating grades.
     And I select "Student 1" from the "Select all or one user" singleselect
     Then the following should exist in the "user-grade" table:
       | Grade item   | Calculated weight | Grade  | Range | Percentage | Contribution to course total |
-      | MI 1         | 20.00 %           | 75.00  | 0–100 | 75.00 %    | 15.00 %                      |
-      | MI 2         | 20.00 %           | 25.00  | 0–100 | 25.00 %    | 5.00 %                       |
-      | MI 3         | 50.00 %           | 50.00  | 0–100 | 50.00 %    | 10.00 %                      |
-      | MI 4         | 50.00 %           | 100.00 | 0–100 | 100.00 %   | 20.00 %                      |
-      | MI 5         | 20.00 %           | 150.00 | 0–100 | 100.00 %   | 30.00 %                      |
-      | CAT1 total   | 40.00 %           | 150.00 | 0–200 | 75.00 %    | -                            |
-      | Course total | -                 | 400.00 | 0–500 | 80.00 %    | -                            |
+      | MI 1         | 16.67 %           | 75.00  | 0–100 | 75.00 %    | 12.50 %                      |
+      | MI 2         | 16.67 %           | 25.00  | 0–100 | 25.00 %    | 4.17 %                       |
+      | MI 3         | 50.00 %           | 50.00  | 0–100 | 50.00 %    | 8.33 %                       |
+      | MI 4         | 50.00 %           | 100.00 | 0–100 | 100.00 %   | 16.67 %                      |
+      | MI 5         | 33.33 %           | 150.00 | 0–200 | 75.00 %    | 25.00 %                      |
+      | CAT1 total   | 33.33 %           | 150.00 | 0–200 | 75.00 %    | -                            |
+      | Course total | -                 | 400.00 | 0–600 | 66.67 %    | -                            |
     And I select "Student 2" from the "Select all or one user" singleselect
     And the following should exist in the "user-grade" table:
       | Grade item   | Calculated weight | Grade  | Range | Percentage | Contribution to course total |
-      | MI 1         | 33.33 %           | 20.00  | 0–100 | 20.00 %    | 6.67 %                       |
+      | MI 1         | 25.00 %           | 20.00  | 0–100 | 20.00 %    | 5.00 %                       |
       | MI 2         | 0.00 %            | -      | 0–100 | -          | 0.00 %                       |
-      | MI 3         | 100.00 %          | 10.00  | 0–100 | 10.00 %    | 3.33 %                       |
+      | MI 3         | 100.00 %          | 10.00  | 0–100 | 10.00 %    | 2.50 %                       |
       | MI 4         | 0.00 %            | -      | 0–100 | -          | 0.00 %                       |
-      | MI 5         | 33.33 %           | 30.00  | 0–100 | 30.00 %    | 10.00 %                      |
-      | CAT1 total   | 33.33 %           | 10.00  | 0–100 | 10.00 %    | -                            |
-      | Course total | -                 | 60.00  | 0–300 | 20.00 %    | -                            |
+      | MI 5         | 50.00 %           | 30.00  | 0–200 | 15.00 %    | 7.50 %                       |
+      | CAT1 total   | 25.00 %           | 10.00  | 0–100 | 10.00 %    | -                            |
+      | Course total | -                 | 60.00  | 0–400 | 15.00 %    | -                            |

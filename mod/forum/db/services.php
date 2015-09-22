@@ -68,7 +68,7 @@ $functions = array(
         'classname' => 'mod_forum_external',
         'methodname' => 'view_forum',
         'classpath' => 'mod/forum/externallib.php',
-        'description' => 'Simulate the view.php web interface page: trigger events, completion, etc...',
+        'description' => 'Trigger the course module viewed event and update the module completion status.',
         'type' => 'write',
         'capabilities' => 'mod/forum:viewdiscussion'
     ),
@@ -77,8 +77,26 @@ $functions = array(
         'classname' => 'mod_forum_external',
         'methodname' => 'view_forum_discussion',
         'classpath' => 'mod/forum/externallib.php',
-        'description' => 'Simulate the forum/discuss.php web interface page: trigger events, completion, etc...',
+        'description' => 'Trigger the forum discussion viewed event.',
         'type' => 'write',
         'capabilities' => 'mod/forum:viewdiscussion'
+    ),
+
+    'mod_forum_add_discussion_post' => array(
+        'classname' => 'mod_forum_external',
+        'methodname' => 'add_discussion_post',
+        'classpath' => 'mod/forum/externallib.php',
+        'description' => 'Create new posts into an existing discussion.',
+        'type' => 'write',
+        'capabilities' => 'mod/forum:replypost'
+    ),
+
+    'mod_forum_add_discussion' => array(
+        'classname' => 'mod_forum_external',
+        'methodname' => 'add_discussion',
+        'classpath' => 'mod/forum/externallib.php',
+        'description' => 'Add a new discussion into an existing forum.',
+        'type' => 'write',
+        'capabilities' => 'mod/forum:startdiscussion'
     ),
 );
