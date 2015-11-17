@@ -2599,33 +2599,38 @@ class global_navigation extends navigation_node {
             return true;
         }
 
+        $sitecontext = context_system::instance();
+
         // Hidden node that we use to determine if the front page navigation is loaded.
         // This required as there are not other guaranteed nodes that may be loaded.
         $coursenode->add('frontpageloaded', null, self::TYPE_CUSTOM, null, 'frontpageloaded')->display = false;
 
-        //Participants
-        if (has_capability('moodle/site:viewparticipants',  context_system::instance())) {
+        // Participants.
+        // If this is the site course, they need to have moodle/site:viewparticipants at the site level.
+        // If no, then they need to have moodle/course:viewparticipants at the course level.
+        if ((($course->id == SITEID) && has_capability('moodle/site:viewparticipants', $sitecontext)) ||
+                has_capability('moodle/course:viewparticipants', context_course::instance($course->id))) {
             $coursenode->add(get_string('participants'), new moodle_url('/user/index.php?id='.$course->id), self::TYPE_CUSTOM, get_string('participants'), 'participants');
         }
 
-        // Blogs
+        // Blogs.
         if (!empty($CFG->enableblogs)
           and ($CFG->bloglevel == BLOG_GLOBAL_LEVEL or ($CFG->bloglevel == BLOG_SITE_LEVEL and (isloggedin() and !isguestuser())))
-          and has_capability('moodle/blog:view', context_system::instance())) {
+          and has_capability('moodle/blog:view', $sitecontext)) {
             $blogsurls = new moodle_url('/blog/index.php');
             $coursenode->add(get_string('blogssite', 'blog'), $blogsurls->out(), self::TYPE_SYSTEM, null, 'siteblog');
         }
 
         $filterselect = 0;
 
-        //Badges
-        if (!empty($CFG->enablebadges) && has_capability('moodle/badges:viewbadges', $this->page->context)) {
+        // Badges.
+        if (!empty($CFG->enablebadges) && has_capability('moodle/badges:viewbadges', $sitecontext)) {
             $url = new moodle_url($CFG->wwwroot . '/badges/view.php', array('type' => 1));
             $coursenode->add(get_string('sitebadges', 'badges'), $url, navigation_node::TYPE_CUSTOM);
         }
 
-        // Notes
-        if (!empty($CFG->enablenotes) && (has_capability('moodle/notes:manage', $this->page->context) || has_capability('moodle/notes:view', $this->page->context))) {
+        // Notes.
+        if (!empty($CFG->enablenotes) && has_any_capability(array('moodle/notes:manage', 'moodle/notes:view'), $sitecontext)) {
             $coursenode->add(get_string('notes', 'notes'), new moodle_url('/notes/index.php',
                 array('filtertype' => 'course', 'filterselect' => $filterselect)), self::TYPE_SETTING, null, 'notes');
         }
@@ -3928,6 +3933,10 @@ class settings_navigation extends navigation_node {
         // Let plugins hook into course navigation.
         $pluginsfunction = get_plugins_with_function('extend_navigation_course', 'lib.php');
         foreach ($pluginsfunction as $plugintype => $plugins) {
+            // Ignore the report plugin as it was already loaded above.
+            if ($plugintype == 'report') {
+                continue;
+            }
             foreach ($plugins as $pluginfunction) {
                 $pluginfunction($coursenode, $course, $coursecontext);
             }
@@ -4616,6 +4625,14 @@ class settings_navigation extends navigation_node {
             $categorynode->add(get_string('restorecourse', 'admin'), $url, self::TYPE_SETTING, null, 'restorecourse', new pix_icon('i/restore', ''));
         }
 
+        // Let plugins hook into category settings navigation.
+        $pluginsfunction = get_plugins_with_function('extend_navigation_category_settings', 'lib.php');
+        foreach ($pluginsfunction as $plugintype => $plugins) {
+            foreach ($plugins as $pluginfunction) {
+                $pluginfunction($categorynode, $catcontext);
+            }
+        }
+
         return $categorynode;
     }
 
@@ -4772,6 +4789,33 @@ class settings_navigation extends navigation_node {
      */
     public function clear_cache() {
         $this->cache->volatile();
+    }
+
+    /**
+     * Checks to see if there are child nodes available in the specific user's preference node.
+     * If so, then they have the appropriate permissions view this user's preferences.
+     *
+     * @since Moodle 2.9.3
+     * @param int $userid The user's ID.
+     * @return bool True if child nodes exist to view, otherwise false.
+     */
+    public function can_view_user_preferences($userid) {
+        if (is_siteadmin()) {
+            return true;
+        }
+        // See if any nodes are present in the preferences section for this user.
+        $preferencenode = $this->find('userviewingsettings' . $userid, null);
+        if ($preferencenode && $preferencenode->has_children()) {
+            // Run through each child node.
+            foreach ($preferencenode->children as $childnode) {
+                // If the child node has children then this user has access to a link in the preferences page.
+                if ($childnode->has_children()) {
+                    return true;
+                }
+            }
+        }
+        // No links found for the user to access on the preferences page.
+        return false;
     }
 }
 

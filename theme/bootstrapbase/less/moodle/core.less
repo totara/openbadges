@@ -871,56 +871,6 @@ tr.flagged-tag a {
 .tag-management-table tr:hover td.tageditingon .tagnameedit img {
     opacity: 0.2;
 }
-#relatedtags-autocomplete-container {
-    margin-left: auto;
-    margin-right: auto;
-    min-height: 4.6em;
-    width: 100%;
-}
-#relatedtags-autocomplete {
-    position: relative;
-    display: block;
-    width: 60%;
-    margin-left: auto;
-    margin-right: auto;
-}
-#relatedtags-autocomplete .yui-ac-content {
-    position: absolute;
-    width: 420px;
-    left: 20%;
-    border: 1px solid @dropdownBorder;
-    background: @dropdownBackground;
-    overflow: hidden;
-    z-index: 9050;
-}
-#relatedtags-autocomplete .ysearchquery {
-    position: absolute;
-    right: 10px;
-    color: #808080;
-    z-index: 10;
-}
-#relatedtags-autocomplete .yui-ac-shadow {
-    position: absolute;
-    margin: .3em;
-    width: 100%;
-    background: #a0a0a0;
-    z-index: 9049;
-}
-#relatedtags-autocomplete ul {
-    padding: 0;
-    width: 100%;
-    margin: 0;
-    list-style-type: none;
-}
-#relatedtags-autocomplete li {
-    padding: 0 5px;
-    cursor: default;
-    white-space: nowrap;
-}
-#relatedtags-autocomplete li.yui-ac-highlight{
-    background: @dropdownLinkBackgroundHover;
-    color: @dropdownLinkColorHover;
-}
 h2.tag-heading,
 div#tag-description,
 div#tag-blogs,
@@ -1940,7 +1890,7 @@ ul.badges {
 .badges li {
     position: relative;
     display: inline-block;
-    padding-bottom: 2em;
+    padding-top: 1em;
     text-align: center;
     vertical-align: top;
     width: 150px;
@@ -2173,10 +2123,8 @@ img#persona_signin {
         float: right;
         margin-left: 1em;
     }
-
-    .header-button-group{
+    .header-button-group {
         float: left;
-        right: -15px;
     }
 }
 
@@ -2191,6 +2139,14 @@ img#persona_signin {
     padding: 0;
     margin: 0;
     list-style-type: none;
+}
+
+.section_action_menu .moodle-actionmenu ul.menubar {
+    margin: 0;
+}
+
+.section_action_menu .moodle-actionmenu ul.menu {
+    margin: 0 10px 10px 0;
 }
 
 .moodle-actionmenu .toggle-display,
@@ -2421,4 +2377,12 @@ dd:after {
 }
 dd:after {
   clear: both;
+}
+
+// Active tabs with links should have a different
+// cursor to indicate they are clickable.
+.nav-tabs > .active > a[href],
+.nav-tabs > .active > a[href]:hover,
+.nav-tabs > .active > a[href]:focus {
+    cursor: pointer;
 }

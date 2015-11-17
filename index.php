@@ -205,9 +205,9 @@ foreach (explode(',', $frontpagelayout) as $v) {
                 $newsforumcontext = context_module::instance($newsforumcm->id, MUST_EXIST);
 
                 $forumname = format_string($newsforum->name, true, array('context' => $newsforumcontext));
-                echo html_writer::tag('a',
+                echo html_writer::link('#skipsitenews',
                     get_string('skipa', 'access', core_text::strtolower(strip_tags($forumname))),
-                    array('href' => '#skipsitenews', 'class' => 'skip-block'));
+                    array('class' => 'skip-block skip'));
 
                 // Wraps site news forum in div container.
                 echo html_writer::start_tag('div', array('id' => 'site-news-forum'));
@@ -241,9 +241,9 @@ foreach (explode(',', $frontpagelayout) as $v) {
         case FRONTPAGEENROLLEDCOURSELIST:
             $mycourseshtml = $courserenderer->frontpage_my_courses();
             if (!empty($mycourseshtml)) {
-                echo html_writer::tag('a',
+                echo html_writer::link('#skipmycourses',
                     get_string('skipa', 'access', core_text::strtolower(get_string('mycourses'))),
-                    array('href' => '#skipmycourses', 'class' => 'skip-block'));
+                    array('class' => 'skip skip-block'));
 
                 // Wrap frontpage course list in div container.
                 echo html_writer::start_tag('div', array('id' => 'frontpage-course-list'));
@@ -262,9 +262,9 @@ foreach (explode(',', $frontpagelayout) as $v) {
         case FRONTPAGEALLCOURSELIST:
             $availablecourseshtml = $courserenderer->frontpage_available_courses();
             if (!empty($availablecourseshtml)) {
-                echo html_writer::tag('a',
+                echo html_writer::link('#skipavailablecourses',
                     get_string('skipa', 'access', core_text::strtolower(get_string('availablecourses'))),
-                    array('href' => '#skipavailablecourses', 'class' => 'skip-block'));
+                    array('class' => 'skip skip-block'));
 
                 // Wrap frontpage course list in div container.
                 echo html_writer::start_tag('div', array('id' => 'frontpage-course-list'));
@@ -280,9 +280,9 @@ foreach (explode(',', $frontpagelayout) as $v) {
         break;
 
         case FRONTPAGECATEGORYNAMES:
-            echo html_writer::tag('a',
+            echo html_writer::link('#skipcategories',
                 get_string('skipa', 'access', core_text::strtolower(get_string('categories'))),
-                array('href' => '#skipcategories', 'class' => 'skip-block'));
+                array('class' => 'skip skip-block'));
 
             // Wrap frontpage category names in div container.
             echo html_writer::start_tag('div', array('id' => 'frontpage-category-names'));
@@ -297,9 +297,9 @@ foreach (explode(',', $frontpagelayout) as $v) {
         break;
 
         case FRONTPAGECATEGORYCOMBO:
-            echo html_writer::tag('a',
+            echo html_writer::link('#skipcourses',
                 get_string('skipa', 'access', core_text::strtolower(get_string('courses'))),
-                array('href' => '#skipcourses', 'class' => 'skip-block'));
+                array('class' => 'skip skip-block'));
 
             // Wrap frontpage category combo in div container.
             echo html_writer::start_tag('div', array('id' => 'frontpage-category-combo'));

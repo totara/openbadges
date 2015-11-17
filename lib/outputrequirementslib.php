@@ -556,6 +556,8 @@ class page_requirements_manager {
                 $path = realpath("$componentdir/jquery/$file");
                 if (strpos($path, $CFG->dirroot) === 0) {
                     $url = $CFG->httpswwwroot.preg_replace('/^'.preg_quote($CFG->dirroot, '/').'/', '', $path);
+                    // Replace all occurences of backslashes characters in url to forward slashes.
+                    $url = str_replace('\\', '/', $url);
                     $url = new moodle_url($url);
                 } else {
                     // Bad luck, fix your server!
@@ -1537,12 +1539,12 @@ class page_requirements_manager {
     public function get_top_of_body_code() {
         // First the skip links.
         $links = '';
-        $attributes = array('class'=>'skip');
+        $attributes = array('class' => 'skip');
         foreach ($this->skiplinks as $url => $text) {
-            $attributes['href'] = '#' . $url;
-            $links .= html_writer::tag('a', $text, $attributes);
+            $links .= html_writer::link('#'.$url, $text, $attributes);
         }
         $output = html_writer::tag('div', $links, array('class'=>'skiplinks')) . "\n";
+        $this->js_init_call('M.util.init_skiplink');
 
         // YUI3 JS needs to be loaded early in the body. It should be cached well by the browser.
         $output .= $this->get_yui3lib_headcode();
@@ -1636,8 +1638,8 @@ class page_requirements_manager {
         $jsinit = $this->get_javascript_init_code();
         $handlersjs = $this->get_event_handler_code();
 
-        // There is no global Y, make sure it is available in your scope.
-        $js = "YUI().use('node', function(Y) {\n{$inyuijs}{$ondomreadyjs}{$jsinit}{$handlersjs}\n});";
+        // There is a global Y, make sure it is available in your scope.
+        $js = "(function() {{$inyuijs}{$ondomreadyjs}{$jsinit}{$handlersjs}})();";
 
         $output .= html_writer::script($js);
 

@@ -1224,7 +1224,8 @@ class core_group_external extends external_api {
 
         // Validate course and user. get_course throws an exception if the course does not exists.
         $course = get_course($courseid);
-        $user = core_user::get_user($userid, 'id', MUST_EXIST);
+        $user = core_user::get_user($userid, '*', MUST_EXIST);
+        core_user::require_active_user($user);
 
         // Security checks.
         $context = context_course::instance($course->id);
@@ -1309,7 +1310,7 @@ class core_group_external extends external_api {
         return new external_function_parameters(
             array(
                 'cmid' => new external_value(PARAM_INT, 'course module id'),
-                'userid' => new external_value(PARAM_INT, 'id of user, empty for current user', VALUE_OPTIONAL, 0)
+                'userid' => new external_value(PARAM_INT, 'id of user, empty for current user', VALUE_DEFAULT, 0)
             )
         );
     }
@@ -1348,13 +1349,8 @@ class core_group_external extends external_api {
             $userid = $USER->id;
         }
 
-        $user = core_user::get_user($userid, 'id, deleted', MUST_EXIST);
-        if ($user->deleted) {
-            throw new moodle_exception('userdeleted');
-        }
-        if (isguestuser($user)) {
-            throw new moodle_exception('invaliduserid');
-        }
+        $user = core_user::get_user($userid, '*', MUST_EXIST);
+        core_user::require_active_user($user);
 
          // Check if we have permissions for retrieve the information.
         if ($user->id != $USER->id) {
@@ -1363,13 +1359,14 @@ class core_group_external extends external_api {
             }
 
             // Validate if the user is enrolled in the course.
-            if (!is_enrolled($coursecontext, $user->id)) {
+            $course = get_course($cm->course);
+            if (!can_access_course($course, $user, '', true)) {
                 // We return a warning because the function does not fail for not enrolled users.
                 $warning = array();
                 $warning['item'] = 'course';
                 $warning['itemid'] = $cm->course;
                 $warning['warningcode'] = '1';
-                $warning['message'] = "User $user->id is not enrolled in course $cm->course";
+                $warning['message'] = "User $user->id cannot access course $cm->course";
                 $warnings[] = $warning;
             }
         }

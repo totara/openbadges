@@ -160,5 +160,47 @@ class mod_forum_renderer extends plugin_renderer_base {
         return $output;
     }
 
+    /**
+     * Generate the HTML for an icon to be displayed beside the subject of a timed discussion.
+     *
+     * @param object $discussion
+     * @param bool $visiblenow Indicicates that the discussion is currently
+     * visible to all users.
+     * @return string
+     */
+    public function timed_discussion_tooltip($discussion, $visiblenow) {
+        $dates = array();
+        if ($discussion->timestart) {
+            $dates[] = get_string('displaystart', 'mod_forum').': '.userdate($discussion->timestart);
+        }
+        if ($discussion->timeend) {
+            $dates[] = get_string('displayend', 'mod_forum').': '.userdate($discussion->timeend);
+        }
 
+        $str = $visiblenow ? 'timedvisible' : 'timedhidden';
+        $dates[] = get_string($str, 'mod_forum');
+
+        $tooltip = implode("\n", $dates);
+        return $this->pix_icon('i/calendar', $tooltip, 'moodle', array('class' => 'smallicon timedpost'));
+    }
+
+    /**
+     * Display a forum post in the relevant context.
+     *
+     * @param \mod_forum\output\forum_post $post The post to display.
+     * @return string
+     */
+    public function render_forum_post_email(\mod_forum\output\forum_post_email $post) {
+        $data = $post->export_for_template($this);
+        return $this->render_from_template('mod_forum/' . $this->forum_post_template(), $data);
+    }
+
+    /**
+     * The template name for this renderer.
+     *
+     * @return string
+     */
+    public function forum_post_template() {
+        return 'forum_post';
+    }
 }

@@ -466,7 +466,7 @@ class core_notes_external extends external_api {
         return new external_function_parameters(
             array(
                 'courseid' => new external_value(PARAM_INT, 'course id, 0 for SITE'),
-                'userid'   => new external_value(PARAM_INT, 'user id', VALUE_OPTIONAL),
+                'userid'   => new external_value(PARAM_INT, 'user id', VALUE_DEFAULT, 0),
             )
         );
     }
@@ -526,7 +526,8 @@ class core_notes_external extends external_api {
         }
         $user = null;
         if (!empty($params['userid'])) {
-            $user = core_user::get_user($params['userid'], 'id', MUST_EXIST);
+            $user = core_user::get_user($params['userid'], '*', MUST_EXIST);
+            core_user::require_active_user($user);
         }
 
         $course = get_course($params['courseid']);
@@ -680,17 +681,10 @@ class core_notes_external extends external_api {
         require_capability('moodle/notes:view', $context);
 
         if (!empty($params['userid'])) {
-            $user = core_user::get_user($params['userid'], 'id, deleted', MUST_EXIST);
+            $user = core_user::get_user($params['userid'], '*', MUST_EXIST);
+            core_user::require_active_user($user);
 
-            if ($user->deleted) {
-                throw new moodle_exception('userdeleted');
-            }
-
-            if (isguestuser($user)) {
-                throw new moodle_exception('invaliduserid');
-            }
-
-            if ($course->id != SITEID and !is_enrolled($context, $user, '', true)) {
+            if ($course->id != SITEID and !can_access_course($course, $user, '', true)) {
                 throw new moodle_exception('notenrolledprofile');
             }
         }

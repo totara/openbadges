@@ -79,11 +79,13 @@ define('LTI_SETTING_ALWAYS', 1);
 define('LTI_SETTING_DELEGATE', 2);
 
 /**
- * Prints a Basic LTI activity
+ * Return the launch data required for opening the external tool.
  *
- * $param int $basicltiid       Basic LTI activity id
+ * @param  stdClass $instance the external tool activity settings
+ * @return array the endpoint URL and parameters (including the signature)
+ * @since  Moodle 3.0
  */
-function lti_view($instance) {
+function lti_get_launch_data($instance) {
     global $PAGE, $CFG;
 
     if (empty($instance->typeid)) {
@@ -245,6 +247,18 @@ function lti_view($instance) {
         $parms = $requestparams;
     }
 
+    return array($endpoint, $parms);
+}
+
+/**
+ * Launch an external tool activity.
+ *
+ * @param  stdClass $instance the external tool activity settings
+ * @return string The HTML code containing the javascript code for the launch
+ */
+function lti_launch_tool($instance) {
+
+    list($endpoint, $parms) = lti_get_launch_data($instance);
     $debuglaunch = ( $instance->debuglaunch == 1 );
 
     $content = lti_post_launch_html($parms, $endpoint, $debuglaunch);
@@ -362,6 +376,12 @@ function lti_build_request($instance, $typeconfig, $course, $typeid = null, $isl
         'context_label' => $course->shortname,
         'context_title' => $course->fullname,
     );
+    if (!empty($instance->id)) {
+        $requestparams['resource_link_id'] = $instance->id;
+    }
+    if (!empty($instance->resource_link_id)) {
+        $requestparams['resource_link_id'] = $instance->resource_link_id;
+    }
     if ($course->format == 'site') {
         $requestparams['context_type'] = 'Group';
     } else {
@@ -370,7 +390,7 @@ function lti_build_request($instance, $typeconfig, $course, $typeid = null, $isl
     }
     $placementsecret = $instance->servicesalt;
 
-    if ( isset($placementsecret) && ($islti2 ||
+    if ( !empty($instance->id) && isset($placementsecret) && ($islti2 ||
          $typeconfig['acceptgrades'] == LTI_SETTING_ALWAYS ||
          ($typeconfig['acceptgrades'] == LTI_SETTING_DELEGATE && $instance->instructorchoiceacceptgrades == LTI_SETTING_ALWAYS))) {
 
@@ -910,7 +930,7 @@ function lti_get_ims_role($user, $cmid, $courseid, $islti2) {
         // a real LTI instance.
         $coursecontext = context_course::instance($courseid);
 
-        if (has_capability('moodle/course:manageactivities', $coursecontext)) {
+        if (has_capability('moodle/course:manageactivities', $coursecontext, $user)) {
             array_push($roles, 'Instructor');
         } else {
             array_push($roles, 'Learner');

@@ -4558,5 +4558,53 @@ function xmldb_main_upgrade($oldversion) {
         upgrade_main_savepoint(true, 2015090801.00);
     }
 
+    if ($oldversion < 2015092200.00) {
+        // Define index qtype (not unique) to be added to question.
+        $table = new xmldb_table('question');
+        $index = new xmldb_index('qtype', XMLDB_INDEX_NOTUNIQUE, array('qtype'));
+
+        // Conditionally launch add index qtype.
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2015092200.00);
+    }
+
+    if ($oldversion < 2015092900.00) {
+        // Rename backup_auto_keep setting to backup_auto_max_kept.
+        $keep = get_config('backup', 'backup_auto_keep');
+        if ($keep !== false) {
+            set_config('backup_auto_max_kept', $keep, 'backup');
+            unset_config('backup_auto_keep', 'backup');
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2015092900.00);
+    }
+
+    if ($oldversion < 2015100600.00) {
+
+        // Define index notification (not unique) to be added to message_read.
+        $table = new xmldb_table('message_read');
+        $index = new xmldb_index('notificationtimeread', XMLDB_INDEX_NOTUNIQUE, array('notification', 'timeread'));
+
+        // Conditionally launch add index notification.
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2015100600.00);
+    }
+
+    if ($oldversion < 2015100800.01) {
+        // The only flag for preventing all plugins installation features is
+        // now $CFG->disableupdateautodeploy in config.php.
+        unset_config('updateautodeploy');
+        upgrade_main_savepoint(true, 2015100800.01);
+    }
+
     return true;
 }

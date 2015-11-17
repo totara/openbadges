@@ -3,6 +3,12 @@ information provided here is intended especially for developers.
 
 === 3.0 ===
 
+* Minify updated to 2.2.1
+* htmlpurifier upgraded to 4.7.0
+* Less.php upgraded to 1.7.0.9
+* The horde library has been updated to version 5.2.7.
+* Google libraries (lib/google) updated to 1.1.5
+* Html2Text library has been updated to the latest version of the library.
 * External functions x_is_allowed_from_ajax() methods have been deprecated. Define 'ajax' => true in db/services.php instead.
 * External functions can be called without a session if they define 'loginrequired' => true in db/services.php.
 * All plugins are required to declare their frankenstyle component name via
@@ -10,6 +16,7 @@ information provided here is intended especially for developers.
   https://docs.moodle.org/dev/version.php for details (MDL-48494).
 * PHPUnit is upgraded to 4.7. Some tests using deprecated assertions etc may need changes to work correctly.
 * Users of the text editor API to manually create a text editor should call set_text before calling use_editor.
+* Javascript - SimpleYUI and the Y instance used for modules have been merged. Y is now always the same instance of Y.
 * get_referer() has been deprecated, please use the get_local_referer function instead.
 * \core\progress\null is renamed to \core\progress\none for improved PHP7 compatibility as null is a reserved word (see MDL-50453).
 * \webservice_xmlrpc_client now respects proxy server settings. If your XMLRPC server is available on your local network and not via your proxy server, you may need to add it to the list of proxy
@@ -138,6 +145,12 @@ information provided here is intended especially for developers.
 * external_api::validate_context now is public, it can be called from other classes.
 * rss_error() now supports returning of correct HTTP status of error and will return '404 Not Found'
   unless other status is specified.
+* Plugins can extend the navigation for categories settings by declaring the following callback:
+  <frankenstyle>_extend_navigation_category_settings(navigation_node, context_coursecat)
+* The clilib.php provides two new functions cli_write() and cli_writeln() that should be used for outputting texts from the command
+  line interface scripts.
+* External function core_course_external::get_course_contents returned parameter "name" has been changed to PARAM_RAW,
+  this is because the new external_format_string function may return raw data if the global moodlewssettingraw parameter is used.
 
 === 2.9.1 ===
 

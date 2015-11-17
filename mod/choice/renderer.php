@@ -378,7 +378,6 @@ class mod_choice_renderer extends plugin_renderer_base {
 
         $header = html_writer::tag('h3',format_string(get_string("responses", "choice")));
         $html .= html_writer::tag('div', $header, array('class'=>'responseheader'));
-        $html .= html_writer::tag('a', get_string('skipresultgraph', 'choice'), array('href'=>'#skipresultgraph', 'class'=>'skip-block'));
         $html .= html_writer::tag('div', html_writer::table($table), array('class'=>'response'));
 
         return $html;

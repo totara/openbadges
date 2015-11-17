@@ -32,14 +32,14 @@
     <location>lessphp</location>
     <name>less.php</name>
     <license>Apache</license>
-    <version>1.7.0.3</version>
+    <version>1.7.0.9</version>
     <licenseversion>2.0</licenseversion>
   </library>
   <library>
     <location>phpexcel</location>
     <name>PHPExcel</name>
     <license>LGPL</license>
-    <version>1.8.0</version>
+    <version>1.8.1</version>
     <licenseversion>2.1+</licenseversion>
   </library>
   <library>
@@ -53,14 +53,14 @@
     <location>google</location>
     <name>Google APIs Client Library</name>
     <license>Apache</license>
-    <version>1.1.2</version>
+    <version>1.1.5</version>
     <licenseversion>2.0</licenseversion>
   </library>
   <library>
     <location>htmlpurifier</location>
     <name>HTML Purifier</name>
     <license>LGPL</license>
-    <version>4.6.0</version>
+    <version>4.7.0</version>
     <licenseversion>2.1+</licenseversion>
   </library>
   <library>
@@ -74,7 +74,7 @@
     <location>minify</location>
     <name>Minify</name>
     <license>BSD</license>
-    <version>2.1.7</version>
+    <version>2.2.1</version>
     <licenseversion></licenseversion>
   </library>
   <library>
@@ -95,7 +95,7 @@
     <location>pear/Auth/RADIUS.php</location>
     <name>Pear_Auth_Radius</name>
     <license>BSD</license>
-    <version>1.1</version>
+    <version>1.1.0</version>
     <licenseversion></licenseversion>
   </library>
   <library>
@@ -137,7 +137,7 @@
     <location>phpmailer</location>
     <name>PHPMailer</name>
     <license>LGPL</license>
-    <version>5.2.9</version>
+    <version>5.2.13</version>
     <licenseversion>2.1</licenseversion>
   </library>
   <library>
@@ -151,7 +151,7 @@
     <location>tcpdf</location>
     <name>TCPDF</name>
     <license>LGPL</license>
-    <version>6.2.6</version>
+    <version>6.2.12</version>
     <licenseversion>3</licenseversion>
   </library>
   <library>
@@ -179,7 +179,7 @@
     <location>jquery</location>
     <name>jQuery</name>
     <license>MIT</license>
-    <version>1.11.2</version>
+    <version>1.11.3</version>
     <licenseversion></licenseversion>
   </library>
   <library>
@@ -200,15 +200,15 @@
     <location>zend</location>
     <name>Zend Framework</name>
     <license>BSD</license>
-    <version>1.10.6</version>
+    <version>1.12.16</version>
     <licenseversion></licenseversion>
   </library>
   <library>
     <location>html2text.php</location>
     <name>HTML2Text</name>
     <license>GPL</license>
-    <version>1.0.0</version>
-    <licenseversion>3.0+</licenseversion>
+    <version>3.0.0</version>
+    <licenseversion>2.0+</licenseversion>
   </library>
   <library>
     <location>markdown</location>
@@ -242,21 +242,21 @@
     <location>horde</location>
     <name>Horde</name>
     <license>LGPL/BSD</license>
-    <version>5.2.1</version>
+    <version>5.2.7</version>
     <licenseversion>2.1</licenseversion>
   </library>
   <library>
     <location>requirejs</location>
     <name>RequireJS</name>
     <license>MIT</license>
-    <version>2.1.15</version>
+    <version>2.1.20</version>
     <licenseversion></licenseversion>
   </library>
   <library>
     <location>amd/src/loglevel.js</location>
     <name>loglevel.js</name>
     <license>MIT</license>
-    <version>1.2.0</version>
+    <version>1.4.0</version>
   </library>
   <library>
     <location>mustache</location>
@@ -269,5 +269,11 @@
     <name>Mustache.js</name>
     <license>MIT</license>
     <version>2.1.3</version>
+  </library>
+  <library>
+    <location>graphlib.php</location>
+    <name>Graph Class</name>
+    <license>GPL</license>
+    <version>1.6.3</version>
   </library>
 </libraries>

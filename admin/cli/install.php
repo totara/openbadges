@@ -74,6 +74,7 @@ Options:
 --adminpass=PASSWORD  Password for the moodle admin account,
                       required in non-interactive mode.
 --adminemail=STRING   Email address for the moodle admin account.
+--upgradekey=STRING   The upgrade key to be set in the config.php, leave empty to not set it.
 --non-interactive     No interactive questions, installation fails if any
                       problem encountered.
 --agree-license       Indicates agreement with software license,
@@ -258,6 +259,7 @@ list($options, $unrecognized) = cli_get_params(
         'adminuser'         => 'admin',
         'adminpass'         => '',
         'adminemail'        => '',
+        'upgradekey'        => '',
         'non-interactive'   => false,
         'agree-license'     => false,
         'allow-unstable'    => false,
@@ -273,7 +275,8 @@ $interactive = empty($options['non-interactive']);
 
 // set up language
 $lang = clean_param($options['lang'], PARAM_SAFEDIR);
-if (file_exists($CFG->dirroot.'/install/lang/'.$lang)) {
+$languages = get_string_manager()->get_list_of_translations();
+if (array_key_exists($lang, $languages)) {
     $CFG->lang = $lang;
 }
 
@@ -295,23 +298,34 @@ echo get_string('cliinstallheader', 'install', $CFG->target_release)."\n";
 //Fist select language
 if ($interactive) {
     cli_separator();
-    $languages = get_string_manager()->get_list_of_translations();
     // Do not put the langs into columns because it is not compatible with RTL.
-    $langlist = implode("\n", $languages);
     $default = $CFG->lang;
-    cli_heading(get_string('availablelangs', 'install'));
-    echo $langlist."\n";
+    cli_heading(get_string('chooselanguagehead', 'install'));
+    if (array_key_exists($default, $languages)) {
+        echo $default.' - '.$languages[$default]."\n";
+    }
+    if ($default !== 'en') {
+        echo 'en - English (en)'."\n";
+    }
+    echo '? - '.get_string('availablelangs', 'install')."\n";
     $prompt = get_string('clitypevaluedefault', 'admin', $CFG->lang);
     $error = '';
     do {
         echo $error;
         $input = cli_input($prompt, $default);
-        $input = clean_param($input, PARAM_SAFEDIR);
 
-        if (!file_exists($CFG->dirroot.'/install/lang/'.$input)) {
-            $error = get_string('cliincorrectvalueretry', 'admin')."\n";
+        if ($input === '?') {
+            echo implode("\n", $languages)."\n";
+            $error = "\n";
+
         } else {
-            $error = '';
+            $input = clean_param($input, PARAM_SAFEDIR);
+
+            if (!array_key_exists($input, $languages)) {
+                $error = get_string('cliincorrectvalueretry', 'admin')."\n";
+            } else {
+                $error = '';
+            }
         }
     } while ($error !== '');
     $CFG->lang = $input;
@@ -708,6 +722,24 @@ if ($interactive) {
 if (!empty($options['adminemail']) && !validate_email($options['adminemail'])) {
     $a = (object) array('option' => 'adminemail', 'value' => $options['adminemail']);
     cli_error(get_string('cliincorrectvalueerror', 'admin', $a));
+}
+
+// Ask for the upgrade key.
+if ($interactive) {
+    cli_separator();
+    cli_heading(get_string('upgradekeyset', 'admin'));
+    if ($options['upgradekey'] !== '') {
+        $prompt = get_string('clitypevaluedefault', 'admin', $options['upgradekey']);
+        $options['upgradekey'] = cli_input($prompt, $options['upgradekey']);
+    } else {
+        $prompt = get_string('clitypevalue', 'admin');
+        $options['upgradekey'] = cli_input($prompt);
+    }
+}
+
+// Set the upgrade key if it was provided.
+if ($options['upgradekey'] !== '') {
+    $CFG->upgradekey = $options['upgradekey'];
 }
 
 if ($interactive) {

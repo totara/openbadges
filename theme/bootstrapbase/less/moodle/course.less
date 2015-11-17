@@ -2,9 +2,14 @@
 /* COURSE CONTENT */
 .section_add_menus {
     text-align: right;
+    clear: both;
+}
+.section-modchooser {
+    clear: both;
 }
 .dir-rtl .section_add_menus {
     text-align: left;
+    clear: both;
 }
 .section_add_menus .horizontal div,
 .section_add_menus .horizontal form {
@@ -41,6 +46,14 @@
     margin: 1em;
 }
 .section {
+    .side {
+        &.left {
+            float: left;
+        }
+        &.right {
+            float: right;
+        }
+    }
     .spinner {
         height: 16px;
         width: 16px;
@@ -130,6 +143,14 @@
 }
 
 .dir-rtl .section {
+    .side {
+        &.left {
+            float: right;
+        }
+        &.right {
+            float: left;
+        }
+    }
     .activity {
         .spinner {
             left: auto;
@@ -317,7 +338,7 @@
     margin-top: 0;
 }
 .course-content ul li.section.hidden {
-    .sectionname,
+    .sectionname > span,
     .content > div,  /* All the divs but the activities which are in a UL. */
     .activity .activityinstance {
         opacity: .5;

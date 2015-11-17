@@ -146,6 +146,12 @@ class assign {
     /** @var array cached list of user groups when team submissions are enabled. The cache key will be the user. */
     private $usersubmissiongroups = array();
 
+    /** @var array cached list of user groups. The cache key will be the user. */
+    private $usergroups = array();
+
+    /** @var array cached list of IDs of users who share group membership with the user. The cache key will be the user. */
+    private $sharedgroupmembers = array();
+
     /**
      * Constructor for the base assign class.
      *
@@ -508,7 +514,7 @@ class assign {
         }
 
         $returnparams = array('rownum'=>optional_param('rownum', 0, PARAM_INT),
-                              'useridlistid'=>optional_param('useridlistid', 0, PARAM_INT));
+                              'useridlistid' => optional_param('useridlistid', time(), PARAM_INT));
         $this->register_return_link($action, $returnparams);
 
         // Now show the right view page.
@@ -1518,7 +1524,7 @@ class assign {
                         s.assignment = :assignid AND
                         s.timemodified IS NOT NULL AND
                         s.status = :submitted AND
-                        (s.timemodified > g.timemodified OR g.timemodified IS NULL OR g.grade IS NULL)';
+                        (s.timemodified >= g.timemodified OR g.timemodified IS NULL OR g.grade IS NULL)';
 
         return $DB->count_records_sql($sql, $params);
     }
@@ -2301,8 +2307,7 @@ class assign {
             return $this->usersubmissiongroups[$userid];
         }
 
-        $grouping = $this->get_instance()->teamsubmissiongroupingid;
-        $groups = groups_get_all_groups($this->get_course()->id, $userid, $grouping);
+        $groups = $this->get_all_groups($userid);
         if (count($groups) != 1) {
             $return = false;
         } else {
@@ -2311,6 +2316,25 @@ class assign {
 
         // Cache the user submission group.
         $this->usersubmissiongroups[$userid] = $return;
+
+        return $return;
+    }
+
+    /**
+     * Gets all groups the user is a member of.
+     *
+     * @param int $userid Teh id of the user who's groups we are checking
+     * @return array The group objects
+     */
+    public function get_all_groups($userid) {
+        if (isset($this->usergroups[$userid])) {
+            return $this->usergroups[$userid];
+        }
+
+        $grouping = $this->get_instance()->teamsubmissiongroupingid;
+        $return = groups_get_all_groups($this->get_course()->id, $userid, $grouping);
+
+        $this->usergroups[$userid] = $return;
 
         return $return;
     }
@@ -2596,6 +2620,9 @@ class assign {
 
         // More efficient to load this here.
         require_once($CFG->libdir.'/filelib.php');
+
+        // Increase the server timeout to handle the creation and sending of large zip files.
+        core_php_time_limit::raise();
 
         $this->require_view_grades();
 
@@ -2890,9 +2917,10 @@ class assign {
         if (!$userid) {
             $userid = $USER->id;
         }
+        $submission = null;
 
         $params = array('assignment'=>$this->get_instance()->id, 'userid'=>$userid);
-        if ($attemptnumber < 0) {
+        if ($attemptnumber < 0 || $create) {
             // Make sure this grade matches the latest submission attempt.
             if ($this->get_instance()->teamsubmission) {
                 $submission = $this->get_group_submission($userid, 0, true);
@@ -2918,7 +2946,14 @@ class assign {
             $grade->assignment   = $this->get_instance()->id;
             $grade->userid       = $userid;
             $grade->timecreated = time();
-            $grade->timemodified = $grade->timecreated;
+            // If we are "auto-creating" a grade - and there is a submission
+            // the new grade should not have a more recent timemodified value
+            // than the submission.
+            if ($submission) {
+                $grade->timemodified = $submission->timemodified;
+            } else {
+                $grade->timemodified = $grade->timecreated;
+            }
             $grade->grade = -1;
             $grade->grader = $USER->id;
             if ($attemptnumber >= 0) {
@@ -2995,6 +3030,11 @@ class assign {
         if ($rownum == count($useridlist) - 1) {
             $last = true;
         }
+        // This variation on the url will link direct to this student, with no next/previous links.
+        // The benefit is the url will be the same every time for this student, so Atto autosave drafts can match up.
+        $returnparams = array('userid' => $userid, 'rownum' => 0, 'useridlistid' => 0);
+        $this->register_return_link('grade', $returnparams);
+
         $user = $DB->get_record('user', array('id' => $userid));
         if ($user) {
             $viewfullnames = has_capability('moodle/site:viewfullnames', $this->get_course_context());
@@ -3033,6 +3073,7 @@ class assign {
             }
             $showedit = $this->submissions_open($userid) && ($this->is_any_submission_plugin_enabled());
             $viewfullnames = has_capability('moodle/site:viewfullnames', $this->get_course_context());
+            $usergroups = $this->get_all_groups($user->id);
 
             $submissionstatus = new assign_submission_status($instance->allowsubmissionsfromdate,
                                                              $instance->alwaysshowdescription,
@@ -3062,7 +3103,8 @@ class assign {
                                                              $instance->attemptreopenmethod,
                                                              $instance->maxattempts,
                                                              $this->get_grading_status($userid),
-                                                             $instance->preventsubmissionnotingroup);
+                                                             $instance->preventsubmissionnotingroup,
+                                                             $usergroups);
             $o .= $this->get_renderer()->render($submissionstatus);
         }
 
@@ -3939,6 +3981,7 @@ class assign {
             $viewfullnames = has_capability('moodle/site:viewfullnames', $this->get_course_context());
 
             $gradingstatus = $this->get_grading_status($user->id);
+            $usergroups = $this->get_all_groups($user->id);
             $submissionstatus = new assign_submission_status($instance->allowsubmissionsfromdate,
                                                               $instance->alwaysshowdescription,
                                                               $submission,
@@ -3967,7 +4010,8 @@ class assign {
                                                               $instance->attemptreopenmethod,
                                                               $instance->maxattempts,
                                                               $gradingstatus,
-                                                              $instance->preventsubmissionnotingroup);
+                                                              $instance->preventsubmissionnotingroup,
+                                                              $usergroups);
             if (has_capability('mod/assign:submit', $this->get_context(), $user)) {
                 $o .= $this->get_renderer()->render($submissionstatus);
             }
@@ -4640,13 +4684,30 @@ class assign {
 
         $cm = $this->get_course_module();
         if (groups_get_activity_groupmode($cm) == SEPARATEGROUPS) {
-            // These arrays are indexed by groupid.
-            $studentgroups = array_keys(groups_get_activity_allowed_groups($cm, $userid));
-            $gradergroups = array_keys(groups_get_activity_allowed_groups($cm, $graderid));
-
-            return count(array_intersect($studentgroups, $gradergroups)) > 0;
+            $sharedgroupmembers = $this->get_shared_group_members($cm, $graderid);
+            return in_array($userid, $sharedgroupmembers);
         }
         return true;
+    }
+
+    /**
+     * Returns IDs of the users who share group membership with the specified user.
+     *
+     * @param stdClass|cm_info $cm Course-module
+     * @param int $userid User ID
+     * @return array An array of ID of users.
+     */
+    public function get_shared_group_members($cm, $userid) {
+        if (!isset($this->sharedgroupmembers[$userid])) {
+            $this->sharedgroupmembers[$userid] = array();
+            $groupsids = array_keys(groups_get_activity_allowed_groups($cm, $userid));
+            foreach ($groupsids as $groupid) {
+                $members = array_keys(groups_get_members($groupid, 'u.id'));
+                $this->sharedgroupmembers[$userid] = array_merge($this->sharedgroupmembers[$userid], $members);
+            }
+        }
+
+        return $this->sharedgroupmembers[$userid];
     }
 
     /**
@@ -5547,7 +5608,7 @@ class assign {
         require_once($CFG->dirroot . '/mod/assign/gradingoptionsform.php');
 
         // Need submit permission to submit an assignment.
-        require_capability('mod/assign:grade', $this->context);
+        $this->require_view_grades();
         require_sesskey();
 
         // Is advanced grading enabled?
@@ -6670,6 +6731,7 @@ class assign {
         global $USER, $CFG, $DB;
 
         $grade = $this->get_user_grade($userid, true, $attemptnumber);
+        $originalgrade = $grade->grade;
         $gradingdisabled = $this->grading_disabled($userid);
         $gradinginstance = $this->get_grading_instance($userid, $grade, $gradingdisabled);
         if (!$gradingdisabled) {
@@ -6714,7 +6776,12 @@ class assign {
                 }
             }
         }
-        $this->update_grade($grade, !empty($formdata->addattempt));
+        // We do not want to update the timemodified if no grade was added.
+        if (!empty($formdata->addattempt) ||
+                ($originalgrade !== null && $originalgrade != -1) ||
+                ($grade->grade !== null && $grade->grade != -1)) {
+            $this->update_grade($grade, !empty($formdata->addattempt));
+        }
         // Note the default if not provided for this option is true (e.g. webservices).
         // This is for backwards compatibility.
         if (!isset($formdata->sendstudentnotifications) || $formdata->sendstudentnotifications) {

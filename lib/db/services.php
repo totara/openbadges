@@ -742,6 +742,21 @@ $functions = array(
         'type'        => 'write'
     ),
 
+    'core_course_get_course_module' => array(
+        'classname'   => 'core_course_external',
+        'methodname'  => 'get_course_module',
+        'classpath'   => 'course/externallib.php',
+        'description' => 'Return information about a course module',
+        'type'        => 'read'
+    ),
+
+    'core_course_get_course_module_by_instance' => array(
+        'classname'   => 'core_course_external',
+        'methodname'  => 'get_course_module_by_instance',
+        'classpath'   => 'course/externallib.php',
+        'description' => 'Return information about a given module name and instance id',
+        'type'        => 'read'
+    ),
 
     // === course category related functions ===
 
@@ -1143,6 +1158,8 @@ $services = array(
             'core_calendar_get_calendar_events',
             'core_enrol_get_users_courses',
             'core_enrol_get_enrolled_users',
+            'core_enrol_get_course_enrolment_methods',
+            'enrol_self_enrol_user',
             'core_user_get_users_by_id',
             'core_webservice_get_site_info',
             'core_notes_create_notes',
@@ -1192,6 +1209,8 @@ $services = array(
             'mod_forum_view_forum',
             'core_course_view_course',
             'core_course_search_courses',
+            'core_course_get_course_module',
+            'core_course_get_course_module_by_instance',
             'core_completion_get_activities_completion_status',
             'core_notes_get_course_notes',
             'core_completion_get_course_completion_status',
@@ -1212,6 +1231,11 @@ $services = array(
             'mod_scorm_insert_scorm_tracks',
             'mod_scorm_get_scorm_sco_tracks',
             'mod_scorm_get_scorm_attempt_count',
+            'mod_scorm_get_scorms_by_courses',
+            'mod_survey_get_surveys_by_courses',
+            'mod_survey_view_survey',
+            'mod_survey_get_questions',
+            'mod_survey_submit_answers',
             'mod_page_view_page',
             'mod_resource_view_resource',
             'mod_folder_view_folder',
@@ -1222,11 +1246,18 @@ $services = array(
             'mod_chat_view_chat',
             'mod_chat_get_chats_by_courses',
             'mod_book_view_book',
+            'mod_book_get_books_by_courses',
             'mod_choice_get_choice_results',
             'mod_choice_get_choice_options',
             'mod_choice_submit_choice_response',
             'mod_choice_view_choice',
+            'mod_choice_get_choices_by_courses',
+            'mod_choice_delete_choice_responses',
+            'mod_lti_get_tool_launch_data',
+            'mod_lti_get_ltis_by_courses',
+            'mod_lti_view_lti',
             'mod_imscp_view_imscp',
+            'mod_imscp_get_imscps_by_courses',
             ),
         'enabled' => 0,
         'restrictedusers' => 0,

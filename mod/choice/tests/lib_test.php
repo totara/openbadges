@@ -131,6 +131,28 @@ class mod_choice_lib_testcase extends externallib_advanced_testcase {
 
     }
 
+    public function test_choice_user_submit_response_validation() {
+        global $USER;
+
+        $this->resetAfterTest();
+
+        $this->setAdminUser();
+        // Setup test data.
+        $course = $this->getDataGenerator()->create_course();
+        $choice1 = $this->getDataGenerator()->create_module('choice', array('course' => $course->id));
+        $choice2 = $this->getDataGenerator()->create_module('choice', array('course' => $course->id));
+        $cm = get_coursemodule_from_instance('choice', $choice1->id);
+
+        $choicewithoptions1 = choice_get_choice($choice1->id);
+        $choicewithoptions2 = choice_get_choice($choice2->id);
+        $optionids1 = array_keys($choicewithoptions1->option);
+        $optionids2 = array_keys($choicewithoptions2->option);
+
+        // Make sure we cannot submit options from a different choice instance.
+        $this->setExpectedException('moodle_exception');
+        choice_user_submit_response($optionids2[0], $choice1, $USER->id, $course, $cm);
+    }
+
     /**
      * Test choice_get_my_response
      * @return void
@@ -170,6 +192,68 @@ class mod_choice_lib_testcase extends externallib_advanced_testcase {
         foreach ($responses as $resp) {
             $this->assertContains($resp->optionid, $optionids);
         }
+    }
+
+    /**
+     * Test choice_get_availability_status
+     * @return void
+     */
+    public function test_choice_get_availability_status() {
+        global $USER;
+
+        $this->resetAfterTest();
+
+        $this->setAdminUser();
+        // Setup test data.
+        $course = $this->getDataGenerator()->create_course();
+        $choice = $this->getDataGenerator()->create_module('choice', array('course' => $course->id));
+
+        // No time restrictions and updates allowed.
+        list($status, $warnings) = choice_get_availability_status($choice, false);
+        $this->assertEquals(true, $status);
+        $this->assertCount(0, $warnings);
+
+        // No updates allowed, but haven't answered yet.
+        $choice->allowupdate = false;
+        list($status, $warnings) = choice_get_availability_status($choice, false);
+        $this->assertEquals(true, $status);
+        $this->assertCount(0, $warnings);
+
+        // No updates allowed and have answered.
+        $cm = get_coursemodule_from_instance('choice', $choice->id);
+        $choicewithoptions = choice_get_choice($choice->id);
+        $optionids = array_keys($choicewithoptions->option);
+        choice_user_submit_response($optionids[0], $choice, $USER->id, $course, $cm);
+        list($status, $warnings) = choice_get_availability_status($choice, false);
+        $this->assertEquals(false, $status);
+        $this->assertCount(1, $warnings);
+        $this->assertEquals('choicesaved', array_keys($warnings)[0]);
+
+        $choice->allowupdate = true;
+
+        // With time restrictions, still open.
+        $choice->timeopen = time() - DAYSECS;
+        $choice->timeclose = time() + DAYSECS;
+        list($status, $warnings) = choice_get_availability_status($choice, false);
+        $this->assertEquals(true, $status);
+        $this->assertCount(0, $warnings);
+
+        // Choice not open yet.
+        $choice->timeopen = time() + DAYSECS;
+        $choice->timeclose = $choice->timeopen + DAYSECS;
+        list($status, $warnings) = choice_get_availability_status($choice, false);
+        $this->assertEquals(false, $status);
+        $this->assertCount(1, $warnings);
+        $this->assertEquals('notopenyet', array_keys($warnings)[0]);
+
+        // Choice closed.
+        $choice->timeopen = time() - DAYSECS;
+        $choice->timeclose = time() - 1;
+        list($status, $warnings) = choice_get_availability_status($choice, false);
+        $this->assertEquals(false, $status);
+        $this->assertCount(1, $warnings);
+        $this->assertEquals('expired', array_keys($warnings)[0]);
+
     }
 
 }

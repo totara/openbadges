@@ -822,23 +822,23 @@ class mod_forum_lib_testcase extends advanced_testcase {
         $disc5 = $forumgen->create_discussion($record);
 
         // Getting the neighbours.
-        $neighbours = forum_get_discussion_neighbours($cm, $disc1);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc1, $forum);
         $this->assertEmpty($neighbours['prev']);
         $this->assertEquals($disc2->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc2);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc2, $forum);
         $this->assertEquals($disc1->id, $neighbours['prev']->id);
         $this->assertEquals($disc3->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc3);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc3, $forum);
         $this->assertEquals($disc2->id, $neighbours['prev']->id);
         $this->assertEquals($disc4->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc4);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc4, $forum);
         $this->assertEquals($disc3->id, $neighbours['prev']->id);
         $this->assertEquals($disc5->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc5);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc5, $forum);
         $this->assertEquals($disc4->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
 
@@ -848,28 +848,235 @@ class mod_forum_lib_testcase extends advanced_testcase {
         $disc1->timemodified = time();
         $DB->update_record('forum_discussions', $disc1);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc5);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc5, $forum);
         $this->assertEquals($disc4->id, $neighbours['prev']->id);
         $this->assertEquals($disc1->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc2);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc2, $forum);
         $this->assertEmpty($neighbours['prev']);
         $this->assertEquals($disc3->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc1);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc1, $forum);
         $this->assertEquals($disc5->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
 
         // After some discussions were created.
         sleep(1);
         $disc6 = $forumgen->create_discussion($record);
-        $neighbours = forum_get_discussion_neighbours($cm, $disc6);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc6, $forum);
         $this->assertEquals($disc1->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
 
         sleep(1);
         $disc7 = $forumgen->create_discussion($record);
-        $neighbours = forum_get_discussion_neighbours($cm, $disc7);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc7, $forum);
+        $this->assertEquals($disc6->id, $neighbours['prev']->id);
+        $this->assertEmpty($neighbours['next']);
+
+        // Adding timed discussions.
+        $CFG->forum_enabletimedposts = true;
+        $now = time();
+        $past = $now - 60;
+        $future = $now + 60;
+
+        $record = new stdClass();
+        $record->course = $course->id;
+        $record->userid = $user->id;
+        $record->forum = $forum->id;
+        $record->timestart = $past;
+        $record->timeend = $future;
+        sleep(1);
+        $disc8 = $forumgen->create_discussion($record);
+        sleep(1);
+        $record->timestart = $future;
+        $record->timeend = 0;
+        $disc9 = $forumgen->create_discussion($record);
+        sleep(1);
+        $record->timestart = 0;
+        $record->timeend = 0;
+        $disc10 = $forumgen->create_discussion($record);
+        sleep(1);
+        $record->timestart = 0;
+        $record->timeend = $past;
+        $disc11 = $forumgen->create_discussion($record);
+        sleep(1);
+        $record->timestart = $past;
+        $record->timeend = $future;
+        $disc12 = $forumgen->create_discussion($record);
+        sleep(1);
+        $record->timestart = $future + 1; // Should be last post for those that can see it.
+        $record->timeend = 0;
+        $disc13 = $forumgen->create_discussion($record);
+
+        // Admin user ignores the timed settings of discussions.
+        // Post ordering taking into account timestart:
+        //  8 = t
+        // 10 = t+3
+        // 11 = t+4
+        // 12 = t+5
+        //  9 = t+60
+        // 13 = t+61.
+        $this->setAdminUser();
+        $neighbours = forum_get_discussion_neighbours($cm, $disc8, $forum);
+        $this->assertEquals($disc7->id, $neighbours['prev']->id);
+        $this->assertEquals($disc10->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc9, $forum);
+        $this->assertEquals($disc12->id, $neighbours['prev']->id);
+        $this->assertEquals($disc13->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc10, $forum);
+        $this->assertEquals($disc8->id, $neighbours['prev']->id);
+        $this->assertEquals($disc11->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc11, $forum);
+        $this->assertEquals($disc10->id, $neighbours['prev']->id);
+        $this->assertEquals($disc12->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc12, $forum);
+        $this->assertEquals($disc11->id, $neighbours['prev']->id);
+        $this->assertEquals($disc9->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc13, $forum);
+        $this->assertEquals($disc9->id, $neighbours['prev']->id);
+        $this->assertEmpty($neighbours['next']);
+
+        // Normal user can see their own timed discussions.
+        $this->setUser($user);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc8, $forum);
+        $this->assertEquals($disc7->id, $neighbours['prev']->id);
+        $this->assertEquals($disc10->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc9, $forum);
+        $this->assertEquals($disc12->id, $neighbours['prev']->id);
+        $this->assertEquals($disc13->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc10, $forum);
+        $this->assertEquals($disc8->id, $neighbours['prev']->id);
+        $this->assertEquals($disc11->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc11, $forum);
+        $this->assertEquals($disc10->id, $neighbours['prev']->id);
+        $this->assertEquals($disc12->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc12, $forum);
+        $this->assertEquals($disc11->id, $neighbours['prev']->id);
+        $this->assertEquals($disc9->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc13, $forum);
+        $this->assertEquals($disc9->id, $neighbours['prev']->id);
+        $this->assertEmpty($neighbours['next']);
+
+        // Normal user does not ignore timed settings.
+        $this->setUser($user2);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc8, $forum);
+        $this->assertEquals($disc7->id, $neighbours['prev']->id);
+        $this->assertEquals($disc10->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc10, $forum);
+        $this->assertEquals($disc8->id, $neighbours['prev']->id);
+        $this->assertEquals($disc12->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc12, $forum);
+        $this->assertEquals($disc10->id, $neighbours['prev']->id);
+        $this->assertEmpty($neighbours['next']);
+
+        // Reset to normal mode.
+        $CFG->forum_enabletimedposts = false;
+        $this->setAdminUser();
+
+        // Two discussions with identical timemodified ignore each other.
+        sleep(1);
+        $now = time();
+        $DB->update_record('forum_discussions', (object) array('id' => $disc3->id, 'timemodified' => $now));
+        $DB->update_record('forum_discussions', (object) array('id' => $disc2->id, 'timemodified' => $now));
+        $disc2 = $DB->get_record('forum_discussions', array('id' => $disc2->id));
+        $disc3 = $DB->get_record('forum_discussions', array('id' => $disc3->id));
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc2, $forum);
+        $this->assertEquals($disc13->id, $neighbours['prev']->id);
+        $this->assertEmpty($neighbours['next']);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc3, $forum);
+        $this->assertEquals($disc13->id, $neighbours['prev']->id);
+        $this->assertEmpty($neighbours['next']);
+    }
+
+    /**
+     * Test getting the neighbour threads of a blog-like forum.
+     */
+    public function test_forum_get_neighbours_blog() {
+        global $CFG, $DB;
+        $this->resetAfterTest();
+
+        // Setup test data.
+        $forumgen = $this->getDataGenerator()->get_plugin_generator('mod_forum');
+        $course = $this->getDataGenerator()->create_course();
+        $user = $this->getDataGenerator()->create_user();
+        $user2 = $this->getDataGenerator()->create_user();
+
+        $forum = $this->getDataGenerator()->create_module('forum', array('course' => $course->id, 'type' => 'blog'));
+        $cm = get_coursemodule_from_instance('forum', $forum->id);
+        $context = context_module::instance($cm->id);
+
+        $record = new stdClass();
+        $record->course = $course->id;
+        $record->userid = $user->id;
+        $record->forum = $forum->id;
+        $disc1 = $forumgen->create_discussion($record);
+        sleep(1);
+        $disc2 = $forumgen->create_discussion($record);
+        sleep(1);
+        $disc3 = $forumgen->create_discussion($record);
+        sleep(1);
+        $disc4 = $forumgen->create_discussion($record);
+        sleep(1);
+        $disc5 = $forumgen->create_discussion($record);
+
+        // Getting the neighbours.
+        $neighbours = forum_get_discussion_neighbours($cm, $disc1, $forum);
+        $this->assertEmpty($neighbours['prev']);
+        $this->assertEquals($disc2->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc2, $forum);
+        $this->assertEquals($disc1->id, $neighbours['prev']->id);
+        $this->assertEquals($disc3->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc3, $forum);
+        $this->assertEquals($disc2->id, $neighbours['prev']->id);
+        $this->assertEquals($disc4->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc4, $forum);
+        $this->assertEquals($disc3->id, $neighbours['prev']->id);
+        $this->assertEquals($disc5->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc5, $forum);
+        $this->assertEquals($disc4->id, $neighbours['prev']->id);
+        $this->assertEmpty($neighbours['next']);
+
+        // Make sure that the thread's timemodified does not affect the order.
+        sleep(1);
+        $disc1->timemodified = time();
+        $DB->update_record('forum_discussions', $disc1);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc1, $forum);
+        $this->assertEmpty($neighbours['prev']);
+        $this->assertEquals($disc2->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm, $disc2, $forum);
+        $this->assertEquals($disc1->id, $neighbours['prev']->id);
+        $this->assertEquals($disc3->id, $neighbours['next']->id);
+
+        // Add another blog post.
+        sleep(1);
+        $disc6 = $forumgen->create_discussion($record);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc6, $forum);
+        $this->assertEquals($disc5->id, $neighbours['prev']->id);
+        $this->assertEmpty($neighbours['next']);
+
+        sleep(1);
+        $disc7 = $forumgen->create_discussion($record);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc7, $forum);
         $this->assertEquals($disc6->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
 
@@ -906,59 +1113,59 @@ class mod_forum_lib_testcase extends advanced_testcase {
 
         // Admin user ignores the timed settings of discussions.
         $this->setAdminUser();
-        $neighbours = forum_get_discussion_neighbours($cm, $disc8);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc8, $forum);
         $this->assertEquals($disc7->id, $neighbours['prev']->id);
         $this->assertEquals($disc9->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc9);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc9, $forum);
         $this->assertEquals($disc8->id, $neighbours['prev']->id);
         $this->assertEquals($disc10->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc10);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc10, $forum);
         $this->assertEquals($disc9->id, $neighbours['prev']->id);
         $this->assertEquals($disc11->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc11);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc11, $forum);
         $this->assertEquals($disc10->id, $neighbours['prev']->id);
         $this->assertEquals($disc12->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc12);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc12, $forum);
         $this->assertEquals($disc11->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
 
         // Normal user can see their own timed discussions.
         $this->setUser($user);
-        $neighbours = forum_get_discussion_neighbours($cm, $disc8);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc8, $forum);
         $this->assertEquals($disc7->id, $neighbours['prev']->id);
         $this->assertEquals($disc9->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc9);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc9, $forum);
         $this->assertEquals($disc8->id, $neighbours['prev']->id);
         $this->assertEquals($disc10->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc10);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc10, $forum);
         $this->assertEquals($disc9->id, $neighbours['prev']->id);
         $this->assertEquals($disc11->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc11);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc11, $forum);
         $this->assertEquals($disc10->id, $neighbours['prev']->id);
         $this->assertEquals($disc12->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc12);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc12, $forum);
         $this->assertEquals($disc11->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
 
         // Normal user does not ignore timed settings.
         $this->setUser($user2);
-        $neighbours = forum_get_discussion_neighbours($cm, $disc8);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc8, $forum);
         $this->assertEquals($disc7->id, $neighbours['prev']->id);
         $this->assertEquals($disc10->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc10);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc10, $forum);
         $this->assertEquals($disc8->id, $neighbours['prev']->id);
         $this->assertEquals($disc12->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc12);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc12, $forum);
         $this->assertEquals($disc10->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
 
@@ -966,19 +1173,17 @@ class mod_forum_lib_testcase extends advanced_testcase {
         $CFG->forum_enabletimedposts = false;
         $this->setAdminUser();
 
-        // Two discussions with identical timemodified ignore each other.
+        // Two blog posts with identical creation time ignore each other.
         sleep(1);
         $now = time();
-        $DB->update_record('forum_discussions', (object) array('id' => $disc3->id, 'timemodified' => $now));
-        $DB->update_record('forum_discussions', (object) array('id' => $disc2->id, 'timemodified' => $now));
-        $disc2 = $DB->get_record('forum_discussions', array('id' => $disc2->id));
-        $disc3 = $DB->get_record('forum_discussions', array('id' => $disc3->id));
+        $DB->update_record('forum_posts', (object) array('id' => $disc2->firstpost, 'created' => $now));
+        $DB->update_record('forum_posts', (object) array('id' => $disc3->firstpost, 'created' => $now));
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc2);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc2, $forum);
         $this->assertEquals($disc12->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
 
-        $neighbours = forum_get_discussion_neighbours($cm, $disc3);
+        $neighbours = forum_get_discussion_neighbours($cm, $disc3, $forum);
         $this->assertEquals($disc12->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
     }
@@ -1051,38 +1256,38 @@ class mod_forum_lib_testcase extends advanced_testcase {
 
         // Admin user can see all groups.
         $this->setAdminUser();
-        $neighbours = forum_get_discussion_neighbours($cm1, $disc11);
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc11, $forum1);
         $this->assertEmpty($neighbours['prev']);
         $this->assertEquals($disc12->id, $neighbours['next']->id);
-        $neighbours = forum_get_discussion_neighbours($cm2, $disc21);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc21, $forum2);
         $this->assertEmpty($neighbours['prev']);
         $this->assertEquals($disc22->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm1, $disc12);
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc12, $forum1);
         $this->assertEquals($disc11->id, $neighbours['prev']->id);
         $this->assertEquals($disc13->id, $neighbours['next']->id);
-        $neighbours = forum_get_discussion_neighbours($cm2, $disc22);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc22, $forum2);
         $this->assertEquals($disc21->id, $neighbours['prev']->id);
         $this->assertEquals($disc23->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm1, $disc13);
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc13, $forum1);
         $this->assertEquals($disc12->id, $neighbours['prev']->id);
         $this->assertEquals($disc14->id, $neighbours['next']->id);
-        $neighbours = forum_get_discussion_neighbours($cm2, $disc23);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc23, $forum2);
         $this->assertEquals($disc22->id, $neighbours['prev']->id);
         $this->assertEquals($disc24->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm1, $disc14);
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc14, $forum1);
         $this->assertEquals($disc13->id, $neighbours['prev']->id);
         $this->assertEquals($disc15->id, $neighbours['next']->id);
-        $neighbours = forum_get_discussion_neighbours($cm2, $disc24);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc24, $forum2);
         $this->assertEquals($disc23->id, $neighbours['prev']->id);
         $this->assertEquals($disc25->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm1, $disc15);
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc15, $forum1);
         $this->assertEquals($disc14->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
-        $neighbours = forum_get_discussion_neighbours($cm2, $disc25);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc25, $forum2);
         $this->assertEquals($disc24->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
 
@@ -1091,24 +1296,24 @@ class mod_forum_lib_testcase extends advanced_testcase {
         $this->assertEquals($group1->id, groups_get_activity_group($cm1, true));
         $this->assertEquals($group1->id, groups_get_activity_group($cm2, true));
 
-        $neighbours = forum_get_discussion_neighbours($cm1, $disc11);
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc11, $forum1);
         $this->assertEmpty($neighbours['prev']);
         $this->assertEquals($disc13->id, $neighbours['next']->id);
-        $neighbours = forum_get_discussion_neighbours($cm2, $disc21);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc21, $forum2);
         $this->assertEmpty($neighbours['prev']);
         $this->assertEquals($disc23->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm1, $disc13);
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc13, $forum1);
         $this->assertEquals($disc11->id, $neighbours['prev']->id);
         $this->assertEquals($disc15->id, $neighbours['next']->id);
-        $neighbours = forum_get_discussion_neighbours($cm2, $disc23);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc23, $forum2);
         $this->assertEquals($disc21->id, $neighbours['prev']->id);
         $this->assertEquals($disc25->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm1, $disc15);
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc15, $forum1);
         $this->assertEquals($disc13->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
-        $neighbours = forum_get_discussion_neighbours($cm2, $disc25);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc25, $forum2);
         $this->assertEquals($disc23->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
 
@@ -1118,10 +1323,10 @@ class mod_forum_lib_testcase extends advanced_testcase {
         $this->assertEquals(0, groups_get_activity_group($cm1, true));
 
         // They can see anything in visible groups.
-        $neighbours = forum_get_discussion_neighbours($cm1, $disc12);
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc12, $forum1);
         $this->assertEquals($disc11->id, $neighbours['prev']->id);
         $this->assertEquals($disc13->id, $neighbours['next']->id);
-        $neighbours = forum_get_discussion_neighbours($cm1, $disc13);
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc13, $forum1);
         $this->assertEquals($disc12->id, $neighbours['prev']->id);
         $this->assertEquals($disc14->id, $neighbours['next']->id);
 
@@ -1130,15 +1335,15 @@ class mod_forum_lib_testcase extends advanced_testcase {
         $_POST['group'] = 0;
         $this->assertEquals(0, groups_get_activity_group($cm2, true));
 
-        $neighbours = forum_get_discussion_neighbours($cm2, $disc23);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc23, $forum2);
         $this->assertEmpty($neighbours['prev']);
         $this->assertEmpty($neighbours['next']);
 
-        $neighbours = forum_get_discussion_neighbours($cm2, $disc22);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc22, $forum2);
         $this->assertEmpty($neighbours['prev']);
         $this->assertEquals($disc23->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm2, $disc24);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc24, $forum2);
         $this->assertEquals($disc23->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
 
@@ -1149,30 +1354,224 @@ class mod_forum_lib_testcase extends advanced_testcase {
         $this->assertEquals($group1->id, groups_get_activity_group($cm2, true));
 
         // They can see non-grouped or same group.
-        $neighbours = forum_get_discussion_neighbours($cm1, $disc11);
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc11, $forum1);
         $this->assertEmpty($neighbours['prev']);
         $this->assertEquals($disc13->id, $neighbours['next']->id);
-        $neighbours = forum_get_discussion_neighbours($cm2, $disc21);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc21, $forum2);
         $this->assertEmpty($neighbours['prev']);
         $this->assertEquals($disc23->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm1, $disc13);
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc13, $forum1);
         $this->assertEquals($disc11->id, $neighbours['prev']->id);
         $this->assertEquals($disc15->id, $neighbours['next']->id);
-        $neighbours = forum_get_discussion_neighbours($cm2, $disc23);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc23, $forum2);
         $this->assertEquals($disc21->id, $neighbours['prev']->id);
         $this->assertEquals($disc25->id, $neighbours['next']->id);
 
-        $neighbours = forum_get_discussion_neighbours($cm1, $disc15);
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc15, $forum1);
         $this->assertEquals($disc13->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
-        $neighbours = forum_get_discussion_neighbours($cm2, $disc25);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc25, $forum2);
         $this->assertEquals($disc23->id, $neighbours['prev']->id);
         $this->assertEmpty($neighbours['next']);
 
         // Querying the neighbours of a discussion passing the wrong CM.
         $this->setExpectedException('coding_exception');
-        forum_get_discussion_neighbours($cm2, $disc11);
+        forum_get_discussion_neighbours($cm2, $disc11, $forum2);
+    }
+
+    /**
+     * Test getting the neighbour threads of a blog-like forum with groups involved.
+     */
+    public function test_forum_get_neighbours_with_groups_blog() {
+        $this->resetAfterTest();
+
+        // Setup test data.
+        $forumgen = $this->getDataGenerator()->get_plugin_generator('mod_forum');
+        $course = $this->getDataGenerator()->create_course();
+        $group1 = $this->getDataGenerator()->create_group(array('courseid' => $course->id));
+        $group2 = $this->getDataGenerator()->create_group(array('courseid' => $course->id));
+        $user1 = $this->getDataGenerator()->create_user();
+        $user2 = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($user1->id, $course->id);
+        $this->getDataGenerator()->enrol_user($user2->id, $course->id);
+        $this->getDataGenerator()->create_group_member(array('userid' => $user1->id, 'groupid' => $group1->id));
+
+        $forum1 = $this->getDataGenerator()->create_module('forum', array('course' => $course->id, 'type' => 'blog',
+                'groupmode' => VISIBLEGROUPS));
+        $forum2 = $this->getDataGenerator()->create_module('forum', array('course' => $course->id, 'type' => 'blog',
+                'groupmode' => SEPARATEGROUPS));
+        $cm1 = get_coursemodule_from_instance('forum', $forum1->id);
+        $cm2 = get_coursemodule_from_instance('forum', $forum2->id);
+        $context1 = context_module::instance($cm1->id);
+        $context2 = context_module::instance($cm2->id);
+
+        // Creating blog posts in both forums.
+        $record = new stdClass();
+        $record->course = $course->id;
+        $record->userid = $user1->id;
+        $record->forum = $forum1->id;
+        $record->groupid = $group1->id;
+        $disc11 = $forumgen->create_discussion($record);
+        $record->forum = $forum2->id;
+        $disc21 = $forumgen->create_discussion($record);
+
+        sleep(1);
+        $record->userid = $user2->id;
+        $record->forum = $forum1->id;
+        $record->groupid = $group2->id;
+        $disc12 = $forumgen->create_discussion($record);
+        $record->forum = $forum2->id;
+        $disc22 = $forumgen->create_discussion($record);
+
+        sleep(1);
+        $record->userid = $user1->id;
+        $record->forum = $forum1->id;
+        $record->groupid = null;
+        $disc13 = $forumgen->create_discussion($record);
+        $record->forum = $forum2->id;
+        $disc23 = $forumgen->create_discussion($record);
+
+        sleep(1);
+        $record->userid = $user2->id;
+        $record->forum = $forum1->id;
+        $record->groupid = $group2->id;
+        $disc14 = $forumgen->create_discussion($record);
+        $record->forum = $forum2->id;
+        $disc24 = $forumgen->create_discussion($record);
+
+        sleep(1);
+        $record->userid = $user1->id;
+        $record->forum = $forum1->id;
+        $record->groupid = $group1->id;
+        $disc15 = $forumgen->create_discussion($record);
+        $record->forum = $forum2->id;
+        $disc25 = $forumgen->create_discussion($record);
+
+        // Admin user can see all groups.
+        $this->setAdminUser();
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc11, $forum1);
+        $this->assertEmpty($neighbours['prev']);
+        $this->assertEquals($disc12->id, $neighbours['next']->id);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc21, $forum2);
+        $this->assertEmpty($neighbours['prev']);
+        $this->assertEquals($disc22->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc12, $forum1);
+        $this->assertEquals($disc11->id, $neighbours['prev']->id);
+        $this->assertEquals($disc13->id, $neighbours['next']->id);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc22, $forum2);
+        $this->assertEquals($disc21->id, $neighbours['prev']->id);
+        $this->assertEquals($disc23->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc13, $forum1);
+        $this->assertEquals($disc12->id, $neighbours['prev']->id);
+        $this->assertEquals($disc14->id, $neighbours['next']->id);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc23, $forum2);
+        $this->assertEquals($disc22->id, $neighbours['prev']->id);
+        $this->assertEquals($disc24->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc14, $forum1);
+        $this->assertEquals($disc13->id, $neighbours['prev']->id);
+        $this->assertEquals($disc15->id, $neighbours['next']->id);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc24, $forum2);
+        $this->assertEquals($disc23->id, $neighbours['prev']->id);
+        $this->assertEquals($disc25->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc15, $forum1);
+        $this->assertEquals($disc14->id, $neighbours['prev']->id);
+        $this->assertEmpty($neighbours['next']);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc25, $forum2);
+        $this->assertEquals($disc24->id, $neighbours['prev']->id);
+        $this->assertEmpty($neighbours['next']);
+
+        // Admin user is only viewing group 1.
+        $_POST['group'] = $group1->id;
+        $this->assertEquals($group1->id, groups_get_activity_group($cm1, true));
+        $this->assertEquals($group1->id, groups_get_activity_group($cm2, true));
+
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc11, $forum1);
+        $this->assertEmpty($neighbours['prev']);
+        $this->assertEquals($disc13->id, $neighbours['next']->id);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc21, $forum2);
+        $this->assertEmpty($neighbours['prev']);
+        $this->assertEquals($disc23->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc13, $forum1);
+        $this->assertEquals($disc11->id, $neighbours['prev']->id);
+        $this->assertEquals($disc15->id, $neighbours['next']->id);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc23, $forum2);
+        $this->assertEquals($disc21->id, $neighbours['prev']->id);
+        $this->assertEquals($disc25->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc15, $forum1);
+        $this->assertEquals($disc13->id, $neighbours['prev']->id);
+        $this->assertEmpty($neighbours['next']);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc25, $forum2);
+        $this->assertEquals($disc23->id, $neighbours['prev']->id);
+        $this->assertEmpty($neighbours['next']);
+
+        // Normal user viewing non-grouped posts (this is only possible in visible groups).
+        $this->setUser($user1);
+        $_POST['group'] = 0;
+        $this->assertEquals(0, groups_get_activity_group($cm1, true));
+
+        // They can see anything in visible groups.
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc12, $forum1);
+        $this->assertEquals($disc11->id, $neighbours['prev']->id);
+        $this->assertEquals($disc13->id, $neighbours['next']->id);
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc13, $forum1);
+        $this->assertEquals($disc12->id, $neighbours['prev']->id);
+        $this->assertEquals($disc14->id, $neighbours['next']->id);
+
+        // Normal user, orphan of groups, can only see non-grouped posts in separate groups.
+        $this->setUser($user2);
+        $_POST['group'] = 0;
+        $this->assertEquals(0, groups_get_activity_group($cm2, true));
+
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc23, $forum2);
+        $this->assertEmpty($neighbours['prev']);
+        $this->assertEmpty($neighbours['next']);
+
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc22, $forum2);
+        $this->assertEmpty($neighbours['prev']);
+        $this->assertEquals($disc23->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc24, $forum2);
+        $this->assertEquals($disc23->id, $neighbours['prev']->id);
+        $this->assertEmpty($neighbours['next']);
+
+        // Switching to viewing group 1.
+        $this->setUser($user1);
+        $_POST['group'] = $group1->id;
+        $this->assertEquals($group1->id, groups_get_activity_group($cm1, true));
+        $this->assertEquals($group1->id, groups_get_activity_group($cm2, true));
+
+        // They can see non-grouped or same group.
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc11, $forum1);
+        $this->assertEmpty($neighbours['prev']);
+        $this->assertEquals($disc13->id, $neighbours['next']->id);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc21, $forum2);
+        $this->assertEmpty($neighbours['prev']);
+        $this->assertEquals($disc23->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc13, $forum1);
+        $this->assertEquals($disc11->id, $neighbours['prev']->id);
+        $this->assertEquals($disc15->id, $neighbours['next']->id);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc23, $forum2);
+        $this->assertEquals($disc21->id, $neighbours['prev']->id);
+        $this->assertEquals($disc25->id, $neighbours['next']->id);
+
+        $neighbours = forum_get_discussion_neighbours($cm1, $disc15, $forum1);
+        $this->assertEquals($disc13->id, $neighbours['prev']->id);
+        $this->assertEmpty($neighbours['next']);
+        $neighbours = forum_get_discussion_neighbours($cm2, $disc25, $forum2);
+        $this->assertEquals($disc23->id, $neighbours['prev']->id);
+        $this->assertEmpty($neighbours['next']);
+
+        // Querying the neighbours of a discussion passing the wrong CM.
+        $this->setExpectedException('coding_exception');
+        forum_get_discussion_neighbours($cm2, $disc11, $forum2);
     }
 
     public function test_count_discussion_replies_basic() {
@@ -1498,4 +1897,121 @@ class mod_forum_lib_testcase extends advanced_testcase {
 
     }
 
+    /**
+     * Test forum_get_discussions
+     */
+    public function test_forum_get_discussions_with_groups() {
+        global $DB;
+
+        $this->resetAfterTest(true);
+
+        // Create course to add the module.
+        $course = self::getDataGenerator()->create_course(array('groupmode' => VISIBLEGROUPS, 'groupmodeforce' => 0));
+        $user1 = self::getDataGenerator()->create_user();
+        $user2 = self::getDataGenerator()->create_user();
+        $user3 = self::getDataGenerator()->create_user();
+
+        $role = $DB->get_record('role', array('shortname' => 'student'), '*', MUST_EXIST);
+        self::getDataGenerator()->enrol_user($user1->id, $course->id, $role->id);
+        self::getDataGenerator()->enrol_user($user2->id, $course->id, $role->id);
+        self::getDataGenerator()->enrol_user($user3->id, $course->id, $role->id);
+
+        // Forum forcing separate gropus.
+        $record = new stdClass();
+        $record->course = $course->id;
+        $forum = self::getDataGenerator()->create_module('forum', $record, array('groupmode' => SEPARATEGROUPS));
+        $cm = get_coursemodule_from_instance('forum', $forum->id);
+
+        // Create groups.
+        $group1 = self::getDataGenerator()->create_group(array('courseid' => $course->id));
+        $group2 = self::getDataGenerator()->create_group(array('courseid' => $course->id));
+        $group3 = self::getDataGenerator()->create_group(array('courseid' => $course->id));
+
+        // Add the user1 to g1 and g2 groups.
+        groups_add_member($group1->id, $user1->id);
+        groups_add_member($group2->id, $user1->id);
+
+        // Add the user 2 and 3 to only one group.
+        groups_add_member($group1->id, $user2->id);
+        groups_add_member($group3->id, $user3->id);
+
+        // Add a few discussions.
+        $record = array();
+        $record['course'] = $course->id;
+        $record['forum'] = $forum->id;
+        $record['userid'] = $user1->id;
+        $record['groupid'] = $group1->id;
+        $discussiong1u1 = self::getDataGenerator()->get_plugin_generator('mod_forum')->create_discussion($record);
+
+        $record['groupid'] = $group2->id;
+        $discussiong2u1 = self::getDataGenerator()->get_plugin_generator('mod_forum')->create_discussion($record);
+
+        $record['userid'] = $user2->id;
+        $record['groupid'] = $group1->id;
+        $discussiong1u2 = self::getDataGenerator()->get_plugin_generator('mod_forum')->create_discussion($record);
+
+        $record['userid'] = $user3->id;
+        $record['groupid'] = $group3->id;
+        $discussiong3u3 = self::getDataGenerator()->get_plugin_generator('mod_forum')->create_discussion($record);
+
+        self::setUser($user1);
+        // Test retrieve discussions not passing the groupid parameter. We will receive only first group discussions.
+        $discussions = forum_get_discussions($cm);
+        self::assertCount(2, $discussions);
+        foreach ($discussions as $discussion) {
+            self::assertEquals($group1->id, $discussion->groupid);
+        }
+
+        // Get all my discussions.
+        $discussions = forum_get_discussions($cm, '', true, -1, -1, false, -1, 0, 0);
+        self::assertCount(3, $discussions);
+
+        // Get all my g1 discussions.
+        $discussions = forum_get_discussions($cm, '', true, -1, -1, false, -1, 0, $group1->id);
+        self::assertCount(2, $discussions);
+        foreach ($discussions as $discussion) {
+            self::assertEquals($group1->id, $discussion->groupid);
+        }
+
+        // Get all my g2 discussions.
+        $discussions = forum_get_discussions($cm, '', true, -1, -1, false, -1, 0, $group2->id);
+        self::assertCount(1, $discussions);
+        $discussion = array_shift($discussions);
+        self::assertEquals($group2->id, $discussion->groupid);
+        self::assertEquals($user1->id, $discussion->userid);
+        self::assertEquals($discussiong2u1->id, $discussion->discussion);
+
+        // Get all my g3 discussions (I'm not enrolled in that group).
+        $discussions = forum_get_discussions($cm, '', true, -1, -1, false, -1, 0, $group3->id);
+        self::assertCount(0, $discussions);
+
+        // This group does not exist.
+        $discussions = forum_get_discussions($cm, '', true, -1, -1, false, -1, 0, $group3->id + 1000);
+        self::assertCount(0, $discussions);
+
+        self::setUser($user2);
+
+        // Test retrieve discussions not passing the groupid parameter. We will receive only first group discussions.
+        $discussions = forum_get_discussions($cm);
+        self::assertCount(2, $discussions);
+        foreach ($discussions as $discussion) {
+            self::assertEquals($group1->id, $discussion->groupid);
+        }
+
+        // Get all my viewable discussions.
+        $discussions = forum_get_discussions($cm, '', true, -1, -1, false, -1, 0, 0);
+        self::assertCount(2, $discussions);
+        foreach ($discussions as $discussion) {
+            self::assertEquals($group1->id, $discussion->groupid);
+        }
+
+        // Get all my g2 discussions (I'm not enrolled in that group).
+        $discussions = forum_get_discussions($cm, '', true, -1, -1, false, -1, 0, $group2->id);
+        self::assertCount(0, $discussions);
+
+        // Get all my g3 discussions (I'm not enrolled in that group).
+        $discussions = forum_get_discussions($cm, '', true, -1, -1, false, -1, 0, $group3->id);
+        self::assertCount(0, $discussions);
+
+    }
 }

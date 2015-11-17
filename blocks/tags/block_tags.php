@@ -31,10 +31,6 @@ class block_tags extends block_base {
         return true;
     }
 
-    public function has_config() {
-        return true;
-    }
-
     public function applicable_formats() {
         return array('all' => true);
     }
@@ -72,10 +68,6 @@ class block_tags extends block_base {
 
         if (empty($this->config->numberoftags)) {
             $this->config->numberoftags = 80;
-        }
-
-        if (empty($this->config->tagtype)) {
-            $this->config->tagtype = '';
         }
 
         if ($this->content !== NULL) {

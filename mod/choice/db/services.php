@@ -59,4 +59,21 @@ $functions = array(
         'type'          => 'write',
         'capabilities'  => ''
     ),
+
+    'mod_choice_get_choices_by_courses' => array(
+        'classname'     => 'mod_choice_external',
+        'methodname'    => 'get_choices_by_courses',
+        'description'   => 'Returns a list of choice instances in a provided set of courses,
+                            if no courses are provided then all the choice instances the user has access to will be returned.',
+        'type'          => 'read',
+        'capabilities'  => ''
+    ),
+
+    'mod_choice_delete_choice_responses' => array(
+        'classname'     => 'mod_choice_external',
+        'methodname'    => 'delete_choice_responses',
+        'description'   => 'Delete the given submitted responses in a choice',
+        'type'          => 'write',
+        'capabilities'  => 'mod/choice:choose'
+    ),
 );

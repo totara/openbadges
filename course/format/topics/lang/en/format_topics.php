@@ -24,6 +24,7 @@
  */
 
 $string['currentsection'] = 'This topic';
+$string['editsection'] = 'Edit topic';
 $string['deletesection'] = 'Delete topic';
 $string['sectionname'] = 'Topic';
 $string['pluginname'] = 'Topics format';

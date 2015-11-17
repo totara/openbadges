@@ -66,7 +66,7 @@ if ($deletesection) {
             echo $OUTPUT->box_start('noticebox');
             $optionsyes = array('id' => $id, 'confirm' => 1, 'delete' => 1, 'sesskey' => sesskey());
             $deleteurl = new moodle_url('/course/editsection.php', $optionsyes);
-            $formcontinue = new single_button($deleteurl, get_string('continue'));
+            $formcontinue = new single_button($deleteurl, get_string('delete'));
             $formcancel = new single_button($cancelurl, get_string('cancel'), 'get');
             echo $OUTPUT->confirm(get_string('confirmdeletesection', '',
                 get_section_name($course, $sectioninfo)), $formcontinue, $formcancel);
@@ -80,8 +80,17 @@ if ($deletesection) {
 }
 
 $editoroptions = array('context'=>$context ,'maxfiles' => EDITOR_UNLIMITED_FILES, 'maxbytes'=>$CFG->maxbytes, 'trusttext'=>false, 'noclean'=>true);
-$mform = course_get_format($course->id)->editsection_form($PAGE->url,
-        array('cs' => $sectioninfo, 'editoroptions' => $editoroptions));
+
+$courseformat = course_get_format($course);
+$defaultsectionname = $courseformat->get_default_section_name($section);
+
+$customdata = array(
+    'cs' => $sectioninfo,
+    'editoroptions' => $editoroptions,
+    'defaultsectionname' => $defaultsectionname
+);
+$mform = $courseformat->editsection_form($PAGE->url, $customdata);
+
 // set current value, make an editable copy of section_info object
 // this will retrieve all format-specific options as well
 $initialdata = convert_to_array($sectioninfo);

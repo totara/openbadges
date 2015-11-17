@@ -238,16 +238,16 @@ class core_course_external extends external_api {
 
                         $module = array();
 
+                        $modcontext = context_module::instance($cm->id);
+
                         //common info (for people being able to see the module or availability dates)
                         $module['id'] = $cm->id;
-                        $module['name'] = format_string($cm->name, true);
+                        $module['name'] = external_format_string($cm->name, $modcontext->id);
                         $module['instance'] = $cm->instance;
                         $module['modname'] = $cm->modname;
                         $module['modplural'] = $cm->modplural;
                         $module['modicon'] = $cm->get_icon_url()->out(false);
                         $module['indent'] = $cm->indent;
-
-                        $modcontext = context_module::instance($cm->id);
 
                         if (!empty($cm->showdescription) or $cm->modname == 'label') {
                             // We want to use the external format. However from reading get_formatted_content(), $cm->content format is always FORMAT_HTML.
@@ -2316,6 +2316,156 @@ class core_course_external extends external_api {
             )
         );
     }
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     * @since Moodle 3.0
+     */
+    public static function get_course_module_parameters() {
+        return new external_function_parameters(
+            array(
+                'cmid' => new external_value(PARAM_INT, 'The course module id')
+            )
+        );
+    }
+
+    /**
+     * Return information about a course module.
+     *
+     * @param int $cmid the course module id
+     * @return array of warnings and the course module
+     * @since Moodle 3.0
+     * @throws moodle_exception
+     */
+    public static function get_course_module($cmid) {
+
+        $params = self::validate_parameters(self::get_course_module_parameters(),
+                                            array(
+                                                'cmid' => $cmid,
+                                            ));
+
+        $warnings = array();
+
+        $cm = get_coursemodule_from_id(null, $params['cmid'], 0, true, MUST_EXIST);
+        $context = context_module::instance($cm->id);
+        self::validate_context($context);
+
+        // If the user has permissions to manage the activity, return all the information.
+        if (has_capability('moodle/course:manageactivities', $context)) {
+            $info = $cm;
+        } else {
+            // Return information is safe to show to any user.
+            $info = new stdClass();
+            $info->id = $cm->id;
+            $info->course = $cm->course;
+            $info->module = $cm->module;
+            $info->modname = $cm->modname;
+            $info->instance = $cm->instance;
+            $info->section = $cm->section;
+            $info->sectionnum = $cm->sectionnum;
+            $info->groupmode = $cm->groupmode;
+            $info->groupingid = $cm->groupingid;
+            $info->completion = $cm->completion;
+        }
+        // Format name.
+        $info->name = external_format_string($cm->name, $context->id);
+
+        $result = array();
+        $result['cm'] = $info;
+        $result['warnings'] = $warnings;
+        return $result;
+    }
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_description
+     * @since Moodle 3.0
+     */
+    public static function get_course_module_returns() {
+        return new external_single_structure(
+            array(
+                'cm' => new external_single_structure(
+                    array(
+                        'id' => new external_value(PARAM_INT, 'The course module id'),
+                        'course' => new external_value(PARAM_INT, 'The course id'),
+                        'module' => new external_value(PARAM_INT, 'The module type id'),
+                        'name' => new external_value(PARAM_RAW, 'The activity name'),
+                        'modname' => new external_value(PARAM_COMPONENT, 'The module component name (forum, assign, etc..)'),
+                        'instance' => new external_value(PARAM_INT, 'The activity instance id'),
+                        'section' => new external_value(PARAM_INT, 'The module section id'),
+                        'sectionnum' => new external_value(PARAM_INT, 'The module section number'),
+                        'groupmode' => new external_value(PARAM_INT, 'Group mode'),
+                        'groupingid' => new external_value(PARAM_INT, 'Grouping id'),
+                        'completion' => new external_value(PARAM_INT, 'If completion is enabled'),
+                        'idnumber' => new external_value(PARAM_RAW, 'Module id number', VALUE_OPTIONAL),
+                        'added' => new external_value(PARAM_INT, 'Time added', VALUE_OPTIONAL),
+                        'score' => new external_value(PARAM_INT, 'Score', VALUE_OPTIONAL),
+                        'indent' => new external_value(PARAM_INT, 'Indentation', VALUE_OPTIONAL),
+                        'visible' => new external_value(PARAM_INT, 'If visible', VALUE_OPTIONAL),
+                        'visibleold' => new external_value(PARAM_INT, 'Visible old', VALUE_OPTIONAL),
+                        'completiongradeitemnumber' => new external_value(PARAM_INT, 'Completion grade item', VALUE_OPTIONAL),
+                        'completionview' => new external_value(PARAM_INT, 'Completion view setting', VALUE_OPTIONAL),
+                        'completionexpected' => new external_value(PARAM_INT, 'Completion time expected', VALUE_OPTIONAL),
+                        'showdescription' => new external_value(PARAM_INT, 'If the description is showed', VALUE_OPTIONAL),
+                        'availability' => new external_value(PARAM_RAW, 'Availability settings', VALUE_OPTIONAL),
+                    )
+                ),
+                'warnings' => new external_warnings()
+            )
+        );
+    }
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     * @since Moodle 3.0
+     */
+    public static function get_course_module_by_instance_parameters() {
+        return new external_function_parameters(
+            array(
+                'module' => new external_value(PARAM_COMPONENT, 'The module name'),
+                'instance' => new external_value(PARAM_INT, 'The module instance id')
+            )
+        );
+    }
+
+    /**
+     * Return information about a course module.
+     *
+     * @param string $module the module name
+     * @param int $instance the activity instance id
+     * @return array of warnings and the course module
+     * @since Moodle 3.0
+     * @throws moodle_exception
+     */
+    public static function get_course_module_by_instance($module, $instance) {
+
+        $params = self::validate_parameters(self::get_course_module_by_instance_parameters(),
+                                            array(
+                                                'module' => $module,
+                                                'instance' => $instance,
+                                            ));
+
+        $warnings = array();
+        $cm = get_coursemodule_from_instance($params['module'], $params['instance'], 0, false, MUST_EXIST);
+
+        return self::get_course_module($cm->id);
+    }
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_description
+     * @since Moodle 3.0
+     */
+    public static function get_course_module_by_instance_returns() {
+        return self::get_course_module_returns();
+    }
+
 }
 
 /**

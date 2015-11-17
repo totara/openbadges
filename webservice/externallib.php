@@ -71,14 +71,16 @@ class core_webservice_external extends external_api {
      * @since Moodle 2.2
      */
     public static function get_site_info($serviceshortnames = array()) {
-        global $USER, $SITE, $CFG, $DB;
+        global $USER, $SITE, $CFG, $DB, $PAGE;
 
         $params = self::validate_parameters(self::get_site_info_parameters(),
                       array('serviceshortnames'=>$serviceshortnames));
 
         $context = context_user::instance($USER->id);
-        $profileimageurl = moodle_url::make_pluginfile_url(
-                $context->id, 'user', 'icon', null, '/', 'f1');
+
+        $userpicture = new user_picture($USER);
+        $userpicture->size = 1; // Size f1.
+        $profileimageurl = $userpicture->get_url($PAGE);
 
         // Site information.
         $siteinfo =  array(
@@ -140,6 +142,7 @@ class core_webservice_external extends external_api {
                 if (is_readable($versionpath)) {
                     // We store the component version once retrieved (so we don't load twice the version.php).
                     if (!isset($componentversions[$function->component])) {
+                        $plugin = new stdClass();
                         include($versionpath);
                         $componentversions[$function->component] = $plugin->version;
                         $version = $plugin->version;

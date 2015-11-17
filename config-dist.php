@@ -447,15 +447,12 @@ $CFG->admin = 'admin';
 //
 //      $CFG->disableupdatenotifications = true;
 //
-// Use the following flag to completely disable the Automatic updates deployment
-// feature and hide it from the server administration UI.
+// Use the following flag to completely disable the installation of plugins
+// (new plugins, available updates and missing dependencies) and related
+// features (such as cancelling the plugin installation or upgrade) via the
+// server administration web interface.
 //
 //      $CFG->disableupdateautodeploy = true;
-//
-// Use the following flag to completely disable the On-click add-on installation
-// feature and hide it from the server administration UI.
-//
-//      $CFG->disableonclickaddoninstall = true;
 //
 // Use the following flag to disable modifications to scheduled tasks
 // whilst still showing the state of tasks.
@@ -529,6 +526,19 @@ $CFG->admin = 'admin';
 // The extension, icon, and type fields are required. The icon field can refer to
 // any icon inside the pix/f folder. You can also set the customdescription field
 // (shown above) and (for advanced use) the groups, string, and defaulticon fields.
+//
+// Upgrade key
+//
+// If the upgrade key is defined here, then the value must be provided every time
+// the site is being upgraded though the web interface, regardless of whether the
+// administrator is logged in or not. This prevents anonymous access to the upgrade
+// screens where the real authentication and authorization mechanisms can not be
+// relied on.
+//
+// It is strongly recommended to use a value different from your real account
+// password.
+//
+//      $CFG->upgradekey = 'put_some_password-like_value_here';
 //
 //=========================================================================
 // 7. SETTINGS FOR DEVELOPMENT SERVERS - not intended for production use!!!

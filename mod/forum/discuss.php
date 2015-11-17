@@ -169,7 +169,7 @@ if ($move > 0 and confirm_sesskey()) {
     forum_rss_delete_file($forum);
     forum_rss_delete_file($forumto);
 
-    redirect($return.'&moved=-1&sesskey='.sesskey());
+    redirect($return.'&move=-1&sesskey='.sesskey());
 }
 
 // Trigger discussion viewed event.
@@ -266,7 +266,7 @@ if (!$canreply and $forum->type !== 'news') {
 }
 
 // Output the links to neighbour discussions.
-$neighbours = forum_get_discussion_neighbours($cm, $discussion);
+$neighbours = forum_get_discussion_neighbours($cm, $discussion, $forum);
 $neighbourlinks = $renderer->neighbouring_discussion_navigation($neighbours['prev'], $neighbours['next']);
 echo $neighbourlinks;
 
@@ -325,8 +325,8 @@ if ($forum->type != 'single'
         if (!empty($forummenu)) {
             echo '<div class="movediscussionoption">';
             $select = new url_select($forummenu, '',
-                    array(''=>get_string("movethisdiscussionto", "forum")),
-                    'forummenu');
+                    array('/mod/forum/discuss.php?d=' . $discussion->id => get_string("movethisdiscussionto", "forum")),
+                    'forummenu', get_string('move'));
             echo $OUTPUT->render($select);
             echo "</div>";
         }
@@ -349,7 +349,7 @@ if ($forum->type == 'qanda' && !has_capability('mod/forum:viewqandawithoutpostin
 }
 
 if ($move == -1 and confirm_sesskey()) {
-    echo $OUTPUT->notification(get_string('discussionmoved', 'forum', format_string($forum->name,true)));
+    echo $OUTPUT->notification(get_string('discussionmoved', 'forum', format_string($forum->name,true)), 'notifysuccess');
 }
 
 $canrate = has_capability('mod/forum:rate', $modcontext);

@@ -23,6 +23,8 @@
  */
 
 $string['canntenrol'] = 'Enrolment is disabled or inactive';
+$string['canntenrolearly'] = 'You cannot enrol yet; enrolment starts on {$a}.';
+$string['canntenrollate'] = 'You cannot enrol any more, since enrolment ended on {$a}.';
 $string['cohortnonmemberinfo'] = 'Only members of cohort \'{$a}\' can self-enrol.';
 $string['cohortonly'] = 'Only cohort members';
 $string['cohortonly_help'] = 'Self enrolment may be restricted to members of a specified cohort only. Note that changing this setting has no effect on existing enrolments.';
@@ -99,9 +101,9 @@ $string['sendcoursewelcomemessage'] = 'Send course welcome message';
 $string['sendcoursewelcomemessage_help'] = 'If enabled, users receive a welcome message via email when they self-enrol in a course.';
 $string['showhint'] = 'Show hint';
 $string['showhint_desc'] = 'Show first letter of the guest access key.';
-$string['status'] = 'Enable existing enrolments';
+$string['status'] = 'Allow existing enrolments';
 $string['status_desc'] = 'Enable self enrolment method in new courses.';
-$string['status_help'] = 'If disabled all existing self enrolments are suspended and new users can not enrol.';
+$string['status_help'] = 'If enabled together with \'Allow new enrolments\' disabled, only users who self enrolled previously can access the course. If disabled, this self enrolment method is effectively disabled, since all existing self enrolments are suspended and new users cannot self enrol.';
 $string['unenrol'] = 'Unenrol user';
 $string['unenrolselfconfirm'] = 'Do you really want to unenrol yourself from course "{$a}"?';
 $string['unenroluser'] = 'Do you really want to unenrol "{$a->user}" from course "{$a->course}"?';

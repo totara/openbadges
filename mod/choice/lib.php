@@ -269,6 +269,12 @@ function choice_user_submit_response($formanswer, $choice, $userid, $course, $cm
         $formanswers = array($formanswer);
     }
 
+    $options = $DB->get_records('choice_options', array('choiceid' => $choice->id), '', 'id');
+    foreach ($formanswers as $key => $val) {
+        if (!isset($options[$val])) {
+            print_error('cannotsubmit', 'choice', $continueurl);
+        }
+    }
     // Start lock to prevent synchronous access to the same data
     // before it's updated, if using limits.
     if ($choice->limitanswers) {
@@ -935,6 +941,20 @@ function choice_get_my_response($choice) {
     return $DB->get_records('choice_answers', array('choiceid' => $choice->id, 'userid' => $USER->id));
 }
 
+
+/**
+ * Get all the responses on a given choice.
+ *
+ * @param stdClass $choice Choice record
+ * @return array of choice answers records
+ * @since  Moodle 3.0
+ */
+function choice_get_all_responses($choice) {
+    global $DB;
+    return $DB->get_records('choice_answers', array('choiceid' => $choice->id));
+}
+
+
 /**
  * Return true if we are allowd to view the choice results.
  *
@@ -992,4 +1012,34 @@ function choice_view($choice, $course, $cm, $context) {
     // Completion.
     $completion = new completion_info($course);
     $completion->set_module_viewed($cm);
+}
+
+/**
+ * Check if a choice is available for the current user.
+ *
+ * @param  stdClass  $choice            choice record
+ * @return array                       status (available or not and possible warnings)
+ */
+function choice_get_availability_status($choice) {
+    $available = true;
+    $warnings = array();
+
+    if ($choice->timeclose != 0) {
+        $timenow = time();
+
+        if ($choice->timeopen > $timenow) {
+            $available = false;
+            $warnings['notopenyet'] = userdate($choice->timeopen);
+        } else if ($timenow > $choice->timeclose) {
+            $available = false;
+            $warnings['expired'] = userdate($choice->timeclose);
+        }
+    }
+    if (!$choice->allowupdate && choice_get_my_response($choice)) {
+        $available = false;
+        $warnings['choicesaved'] = '';
+    }
+
+    // Choice is available.
+    return array($available, $warnings);
 }

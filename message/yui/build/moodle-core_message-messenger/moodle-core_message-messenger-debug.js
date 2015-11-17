@@ -114,6 +114,21 @@ Y.namespace('M.core_message.messenger').Manager = Y.extend(MANAGER, Y.Base, {
     },
 
     /**
+     * Pop up an alert dialogue to notify the logged in user that they are blocked from
+     * messaging the target user.
+     *
+     * @method alertBlocked
+     * @param  {String} blockedString The identifier to retrieve the blocked user message.
+     * @param  {String} fullName The target user's full name.
+     */
+    alertBlocked: function(blockedString, fullName) {
+        new M.core.alert({
+            title: M.util.get_string('error', 'core'),
+            message: M.util.get_string(blockedString, 'message', fullName)
+        });
+    },
+
+    /**
      * Register the events.
      *
      * @method _setEvents.
@@ -122,7 +137,8 @@ Y.namespace('M.core_message.messenger').Manager = Y.extend(MANAGER, Y.Base, {
         var captureEvent = function(e) {
             var target = e.currentTarget,
                 userid = parseInt(target.getData('userid'), 10),
-                fullname = target.getData('fullname');
+                fullname = target.getData('fullname'),
+                blockedString = target.getData('blocked-string');
 
             if (!userid || !fullname) {
                 return;
@@ -130,7 +146,11 @@ Y.namespace('M.core_message.messenger').Manager = Y.extend(MANAGER, Y.Base, {
 
             // Pass the validation before preventing defaults.
             e.preventDefault();
-            this.sendMessage(userid, fullname, e);
+            if (blockedString) {
+                this.alertBlocked(blockedString, fullname);
+            } else {
+                this.sendMessage(userid, fullname, e);
+            }
         };
 
         this._events.push(Y.delegate('click', captureEvent, 'body', SELECTORS.MANAGER.SENDMESSAGE, this));
@@ -225,7 +245,7 @@ Y.namespace('M.core_message.messenger').sendMessage = Y.extend(SENDMSGDIALOG, M.
 
     _bb: null,
     _sendLock: false,
-
+    _hide: null,
     /**
      * Initializer.
      *
@@ -236,10 +256,11 @@ Y.namespace('M.core_message.messenger').sendMessage = Y.extend(SENDMSGDIALOG, M.
             content;
 
         this._bb = this.get('boundingBox');
+        this._hide = this.hide;
 
         // Prepare the content area.
         tpl = Y.Handlebars.compile(
-            '<form action="#">' +
+            '<form action="#" id="messageform">' +
                 '<div class="{{CSSR.INPUTAREA}}">' +
                     '<label class="{{CSSR.ACCESSHIDE}}" for="{{id}}">{{labelStr}}</label>' +
                     '<textarea class="{{CSSR.INPUT}}" id="{{id}}"></textarea>' +
@@ -296,6 +317,11 @@ Y.namespace('M.core_message.messenger').sendMessage = Y.extend(SENDMSGDIALOG, M.
 
         // Set the content as empty and lock send.
         this._bb.one(SELECTORS.SENDMSGDIALOG.INPUT).set('value', '');
+
+        // Register form with formchangechecker
+        Y.use('moodle-core-formchangechecker', function() {
+            M.core_formchangechecker.init({formid: "messageform"});
+        });
     },
 
     /**
@@ -366,6 +392,33 @@ Y.namespace('M.core_message.messenger').sendMessage = Y.extend(SENDMSGDIALOG, M.
                 }
             },
             context: this
+        });
+    },
+
+    /**
+     * Override the default hide function.
+     * @method hide
+     */
+    hide: function() {
+        var self = this;
+
+        if (!M.core_formchangechecker.get_form_dirty_state()) {
+            return SENDMSGDIALOG.superclass.hide.call(this, arguments);
+        }
+
+        Y.use('moodle-core-notification-confirm', function() {
+            var confirm = new M.core.confirm({
+                title : M.util.get_string('confirm', 'moodle'),
+                question : M.util.get_string('changesmadereallygoaway', 'moodle'),
+                yesLabel : M.util.get_string('confirm', 'moodle'),
+                noLabel : M.util.get_string('cancel', 'moodle')
+            });
+            confirm.on('complete-yes', function() {
+                M.core_formchangechecker.reset_form_dirty_state();
+                confirm.hide();
+                confirm.destroy();
+                return SENDMSGDIALOG.superclass.hide.call(this, arguments);
+            }, self);
         });
     },
 
