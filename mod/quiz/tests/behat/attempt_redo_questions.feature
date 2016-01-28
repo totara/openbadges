@@ -63,19 +63,19 @@ Feature: Allow students to redo questions in a practice quiz, without starting a
     And I press "Attempt quiz now"
     And I click on "False" "radio" in the "First question" "question"
     And I click on "Check" "button" in the "First question" "question"
-    And I press "Next"
+    And I press "Finish attempt ..."
     And I press "Submit all and finish"
     And I click on "Submit all and finish" "button" in the "Confirmation" "dialogue"
     Then "Redo question" "button" should not exist
 
-  @javascript
+  @javascript @_switch_window
   Scenario: Teachers reviewing can see all the qestions attempted in a slot
     When I follow "Quiz 1"
     And I press "Attempt quiz now"
     And I click on "False" "radio" in the "First question" "question"
     And I click on "Check" "button" in the "First question" "question"
     And I press "Redo question"
-    And I press "Next"
+    And I press "Finish attempt ..."
     And I press "Submit all and finish"
     And I click on "Submit all and finish" "button" in the "Confirmation" "dialogue"
     And I log out

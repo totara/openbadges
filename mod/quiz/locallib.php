@@ -36,7 +36,8 @@ require_once($CFG->dirroot . '/mod/quiz/accessmanager.php');
 require_once($CFG->dirroot . '/mod/quiz/accessmanager_form.php');
 require_once($CFG->dirroot . '/mod/quiz/renderer.php');
 require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
-require_once($CFG->libdir  . '/eventslib.php');
+require_once($CFG->libdir . '/completionlib.php');
+require_once($CFG->libdir . '/eventslib.php');
 require_once($CFG->libdir . '/filelib.php');
 require_once($CFG->libdir . '/questionlib.php');
 
@@ -1415,8 +1416,6 @@ function quiz_get_review_options($quiz, $attempt, $context) {
  *
  * @param object $quiz the quiz instance.
  * @param array $attempts an array of attempt objects.
- * @param $context the roles and permissions context,
- *          normally the context for the quiz module instance.
  *
  * @return array of two options objects, one showing which options are true for
  *          at least one of the attempts, the other showing which options are true
@@ -1550,7 +1549,8 @@ function quiz_send_notification_messages($course, $quiz, $attempt, $context, $cm
     }
 
     // Check for notifications required.
-    $notifyfields = 'u.id, u.username, u.idnumber, u.email, u.emailstop, u.lang, u.timezone, u.mailformat, u.maildisplay, ';
+    $notifyfields = 'u.id, u.username, u.idnumber, u.email, u.emailstop, u.lang,
+            u.timezone, u.mailformat, u.maildisplay, u.auth, u.suspended, u.deleted, ';
     $notifyfields .= get_all_user_name_fields(true, 'u');
     $groups = groups_get_all_groups($course->id, $submitter->id, $cm->groupingid);
     if (is_array($groups) && count($groups) > 0) {

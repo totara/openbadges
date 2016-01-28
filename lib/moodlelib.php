@@ -2026,7 +2026,7 @@ function get_user_preferences($name = null, $default = null, $user = null) {
 // FUNCTIONS FOR HANDLING TIME.
 
 /**
- * Given date parts in user time produce a GMT timestamp.
+ * Given Gregorian date parts in user time produce a GMT timestamp.
  *
  * @package core
  * @category time
@@ -2208,7 +2208,7 @@ function date_format_string($date, $format, $tz = 99) {
 
 /**
  * Given a $time timestamp in GMT (seconds since epoch),
- * returns an array that represents the date in user time
+ * returns an array that represents the Gregorian date in user time
  *
  * @package core
  * @category time
@@ -3264,7 +3264,7 @@ function fullname($user, $override=false) {
     $allnames = get_all_user_name_fields();
     if ($CFG->debugdeveloper) {
         foreach ($allnames as $allname) {
-            if (!array_key_exists($allname, $user)) {
+            if (!property_exists($user, $allname)) {
                 // If all the user name fields are not set in the user object, then notify the programmer that it needs to be fixed.
                 debugging('You need to update your sql to include additional name fields in the user object.', DEBUG_DEVELOPER);
                 // Message has been sent, no point in sending the message multiple times.
@@ -3901,7 +3901,6 @@ function delete_user(stdClass $user) {
     require_once($CFG->libdir.'/grouplib.php');
     require_once($CFG->libdir.'/gradelib.php');
     require_once($CFG->dirroot.'/message/lib.php');
-    require_once($CFG->dirroot.'/tag/lib.php');
     require_once($CFG->dirroot.'/user/lib.php');
 
     // Make sure nobody sends bogus record type as parameter.
@@ -3944,7 +3943,7 @@ function delete_user(stdClass $user) {
     // TODO: remove from cohorts using standard API here.
 
     // Remove user tags.
-    tag_set('user', $user->id, array(), 'core', $usercontext->id);
+    core_tag_tag::remove_all_item_tags('core', 'user', $user->id);
 
     // Unconditionally unenrol from all courses.
     enrol_user_delete($user);
@@ -4735,7 +4734,6 @@ function remove_course_contents($courseid, $showfeedback = true, array $options 
     require_once($CFG->libdir.'/questionlib.php');
     require_once($CFG->libdir.'/gradelib.php');
     require_once($CFG->dirroot.'/group/lib.php');
-    require_once($CFG->dirroot.'/tag/lib.php');
     require_once($CFG->dirroot.'/comment/lib.php');
     require_once($CFG->dirroot.'/rating/lib.php');
     require_once($CFG->dirroot.'/notes/lib.php');
@@ -4910,7 +4908,7 @@ function remove_course_contents($courseid, $showfeedback = true, array $options 
     $rm->delete_ratings($delopt);
 
     // Delete course tags.
-    tag_set('course', $course->id, array(), 'core', $coursecontext->id);
+    core_tag_tag::remove_all_item_tags('core', 'course', $course->id);
 
     // Delete calendar events.
     $DB->delete_records('event', array('courseid' => $course->id));
@@ -4936,7 +4934,6 @@ function remove_course_contents($courseid, $showfeedback = true, array $options 
     $oldcourse->summary          = '';
     $oldcourse->cacherev         = 0;
     $oldcourse->legacyfiles      = 0;
-    $oldcourse->enablecompletion = 0;
     if (!empty($options['keep_groups_and_groupings'])) {
         $oldcourse->defaultgroupingid = 0;
     }
@@ -7692,6 +7689,18 @@ function shorten_text($text, $ideal=30, $exact = false, $ending='...') {
                             'tag'  => core_text::strtolower($tagmatchings[1]),
                             'pos'  => core_text::strlen($truncate),
                         );
+                } else if (preg_match('/^<!--\[if\s.*?\]>$/s', $linematchings[1], $tagmatchings)) {
+                    $tagdetails[] = (object) array(
+                            'open' => true,
+                            'tag'  => core_text::strtolower('if'),
+                            'pos'  => core_text::strlen($truncate),
+                    );
+                } else if (preg_match('/^<!--<!\[endif\]-->$/s', $linematchings[1], $tagmatchings)) {
+                    $tagdetails[] = (object) array(
+                            'open' => false,
+                            'tag'  => core_text::strtolower('if'),
+                            'pos'  => core_text::strlen($truncate),
+                    );
                 }
             }
             // Add html-tag to $truncate'd text.
@@ -7777,7 +7786,11 @@ function shorten_text($text, $ideal=30, $exact = false, $ending='...') {
 
     // Close all unclosed html-tags.
     foreach ($opentags as $tag) {
-        $truncate .= '</' . $tag . '>';
+        if ($tag === 'if') {
+            $truncate .= '<!--<![endif]-->';
+        } else {
+            $truncate .= '</' . $tag . '>';
+        }
     }
 
     return $truncate;

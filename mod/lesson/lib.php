@@ -302,25 +302,48 @@ function lesson_delete_course($course, $feedback=true) {
  * @return object
  */
 function lesson_user_outline($course, $user, $mod, $lesson) {
-    global $CFG;
+    global $CFG, $DB;
 
     require_once("$CFG->libdir/gradelib.php");
     $grades = grade_get_grades($course->id, 'mod', 'lesson', $lesson->id, $user->id);
-
     $return = new stdClass();
+
     if (empty($grades->items[0]->grades)) {
-        $return->info = get_string("no")." ".get_string("attempts", "lesson");
+        $return->info = get_string("nolessonattempts", "lesson");
     } else {
         $grade = reset($grades->items[0]->grades);
-        $return->info = get_string("grade") . ': ' . $grade->str_long_grade;
+        if (empty($grade->grade)) {
 
-        //datesubmitted == time created. dategraded == time modified or time overridden
-        //if grade was last modified by the user themselves use date graded. Otherwise use date submitted
-        //TODO: move this copied & pasted code somewhere in the grades API. See MDL-26704
-        if ($grade->usermodified == $user->id || empty($grade->datesubmitted)) {
-            $return->time = $grade->dategraded;
+            // Check to see if it an ungraded / incomplete attempt.
+            $sql = "SELECT *
+                      FROM {lesson_timer}
+                     WHERE lessonid = :lessonid
+                       AND userid = :userid
+                  ORDER BY starttime DESC";
+            $params = array('lessonid' => $lesson->id, 'userid' => $user->id);
+
+            if ($attempts = $DB->get_records_sql($sql, $params, 0, 1)) {
+                $attempt = reset($attempts);
+                if ($attempt->completed) {
+                    $return->info = get_string("completed", "lesson");
+                } else {
+                    $return->info = get_string("notyetcompleted", "lesson");
+                }
+                $return->time = $attempt->lessontime;
+            } else {
+                $return->info = get_string("nolessonattempts", "lesson");
+            }
         } else {
-            $return->time = $grade->datesubmitted;
+            $return->info = get_string("grade") . ': ' . $grade->str_long_grade;
+
+            // Datesubmitted == time created. dategraded == time modified or time overridden.
+            // If grade was last modified by the user themselves use date graded. Otherwise use date submitted.
+            // TODO: move this copied & pasted code somewhere in the grades API. See MDL-26704.
+            if ($grade->usermodified == $user->id || empty($grade->datesubmitted)) {
+                $return->time = $grade->dategraded;
+            } else {
+                $return->time = $grade->datesubmitted;
+            }
         }
     }
     return $return;
@@ -343,41 +366,80 @@ function lesson_user_complete($course, $user, $mod, $lesson) {
     require_once("$CFG->libdir/gradelib.php");
 
     $grades = grade_get_grades($course->id, 'mod', 'lesson', $lesson->id, $user->id);
-    if (!empty($grades->items[0]->grades)) {
+
+    // Display the grade and feedback.
+    if (empty($grades->items[0]->grades)) {
+        echo $OUTPUT->container(get_string("nolessonattempts", "lesson"));
+    } else {
         $grade = reset($grades->items[0]->grades);
-        echo $OUTPUT->container(get_string('grade').': '.$grade->str_long_grade);
+        if (empty($grade->grade)) {
+            // Check to see if it an ungraded / incomplete attempt.
+            $sql = "SELECT *
+                      FROM {lesson_timer}
+                     WHERE lessonid = :lessonid
+                       AND userid = :userid
+                     ORDER by starttime desc";
+            $params = array('lessonid' => $lesson->id, 'userid' => $user->id);
+
+            if ($attempt = $DB->get_record_sql($sql, $params, IGNORE_MULTIPLE)) {
+                if ($attempt->completed) {
+                    $status = get_string("completed", "lesson");
+                } else {
+                    $status = get_string("notyetcompleted", "lesson");
+                }
+            } else {
+                $status = get_string("nolessonattempts", "lesson");
+            }
+        } else {
+            $status = get_string("grade") . ': ' . $grade->str_long_grade;
+        }
+
+        // Display the grade or lesson status if there isn't one.
+        echo $OUTPUT->container($status);
+
         if ($grade->str_feedback) {
             echo $OUTPUT->container(get_string('feedback').': '.$grade->str_feedback);
         }
     }
 
+    // Display the lesson progress.
+    // Attempt, pages viewed, questions answered, correct answers, time.
     $params = array ("lessonid" => $lesson->id, "userid" => $user->id);
-    if ($attempts = $DB->get_records_select("lesson_attempts", "lessonid = :lessonid AND userid = :userid", $params,
-                "retry, timeseen")) {
+    $attempts = $DB->get_records_select("lesson_attempts", "lessonid = :lessonid AND userid = :userid", $params, "retry, timeseen");
+    $branches = $DB->get_records_select("lesson_branch", "lessonid = :lessonid AND userid = :userid", $params, "retry, timeseen");
+    if (!empty($attempts) or !empty($branches)) {
         echo $OUTPUT->box_start();
         $table = new html_table();
-        $table->head = array (get_string("attemptheader", "lesson"),  get_string("numberofpagesviewedheader", "lesson"),
-            get_string("numberofcorrectanswersheader", "lesson"), get_string("time"));
+        // Table Headings.
+        $table->head = array (get_string("attemptheader", "lesson"),
+            get_string("totalpagesviewedheader", "lesson"),
+            get_string("numberofpagesviewedheader", "lesson"),
+            get_string("numberofcorrectanswersheader", "lesson"),
+            get_string("time"));
         $table->width = "100%";
-        $table->align = array ("center", "center", "center", "center");
-        $table->size = array ("*", "*", "*", "*");
+        $table->align = array ("center", "center", "center", "center", "center");
+        $table->size = array ("*", "*", "*", "*", "*");
         $table->cellpadding = 2;
         $table->cellspacing = 0;
 
         $retry = 0;
+        $nquestions = 0;
         $npages = 0;
         $ncorrect = 0;
 
+        // Filter question pages (from lesson_attempts).
         foreach ($attempts as $attempt) {
             if ($attempt->retry == $retry) {
                 $npages++;
+                $nquestions++;
                 if ($attempt->correct) {
                     $ncorrect++;
                 }
                 $timeseen = $attempt->timeseen;
             } else {
-                $table->data[] = array($retry + 1, $npages, $ncorrect, userdate($timeseen));
+                $table->data[] = array($retry + 1, $npages, $nquestions, $ncorrect, userdate($timeseen));
                 $retry++;
+                $nquestions = 1;
                 $npages = 1;
                 if ($attempt->correct) {
                     $ncorrect = 1;
@@ -386,8 +448,21 @@ function lesson_user_complete($course, $user, $mod, $lesson) {
                 }
             }
         }
-        if ($npages) {
-                $table->data[] = array($retry + 1, $npages, $ncorrect, userdate($timeseen));
+
+        // Filter content pages (from lesson_branch).
+        foreach ($branches as $branch) {
+            if ($branch->retry == $retry) {
+                $npages++;
+
+                $timeseen = $branch->timeseen;
+            } else {
+                $table->data[] = array($retry + 1, $npages, $nquestions, $ncorrect, userdate($timeseen));
+                $retry++;
+                $npages = 1;
+            }
+        }
+        if ($npages > 0) {
+                $table->data[] = array($retry + 1, $npages, $nquestions, $ncorrect, userdate($timeseen));
         }
         echo html_writer::table($table);
         echo $OUTPUT->box_end();

@@ -1163,8 +1163,6 @@ function wiki_delete_pages($context, $pageids = null, $subwikiid = null) {
         return;
     }
 
-    require_once($CFG->dirroot . '/tag/lib.php');
-
     /// Delete page and all it's relevent data
     foreach ($pageids as $pageid) {
         if (is_object($pageid)) {
@@ -1178,10 +1176,7 @@ function wiki_delete_pages($context, $pageids = null, $subwikiid = null) {
         }
 
         //Delete page tags
-        $tags = tag_get_tags_array('wiki_pages', $pageid);
-        foreach ($tags as $tagid => $tagvalue) {
-            tag_delete_instance('wiki_pages', $pageid, $tagid);
-        }
+        core_tag_tag::remove_all_item_tags('mod_wiki', 'wiki_pages', $pageid);
 
         //Delete Synonym
         wiki_delete_synonym($subwikiid, $pageid);
@@ -1386,18 +1381,8 @@ function wiki_print_page_content($page, $context, $subwikiid) {
     $html = format_text($html, FORMAT_MOODLE, array('overflowdiv'=>true, 'allowid'=>true));
     echo $OUTPUT->box($html);
 
-    if (!empty($CFG->usetags)) {
-        $tags = tag_get_tags_array('wiki_pages', $page->id);
-        echo $OUTPUT->container_start('wiki-tags');
-        echo '<span class="wiki-tags-title">'.get_string('tags').': </span>';
-        $links = array();
-        foreach ($tags as $tagid=>$tag) {
-            $url = new moodle_url('/tag/index.php', array('tag'=>$tag));
-            $links[] = html_writer::link($url, $tag, array('title'=>get_string('tagtitle', 'wiki', $tag)));
-        }
-        echo join($links, ", ");
-        echo $OUTPUT->container_end();
-    }
+    echo $OUTPUT->tag_list(core_tag_tag::get_item_tags('mod_wiki', 'wiki_pages', $page->id),
+            null, 'wiki-tags');
 
     wiki_increment_pageviews($page);
 }
@@ -1565,4 +1550,15 @@ function wiki_get_updated_pages_by_subwiki($swid) {
             WHERE subwikiid = ? AND timemodified > ?
             ORDER BY timemodified DESC";
     return $DB->get_records_sql($sql, array($swid, $USER->lastlogin));
+}
+
+/**
+ * Check if the user can create pages in a certain wiki.
+ * @param context $context Wiki's context.
+ * @param integer|stdClass $user A user id or object. By default (null) checks the permissions of the current user.
+ * @return bool True if user can create pages, false otherwise.
+ * @since Moodle 3.1
+ */
+function wiki_can_create_pages($context, $user = null) {
+    return has_capability('mod/wiki:createpage', $context, $user);
 }

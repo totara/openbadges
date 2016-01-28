@@ -3341,6 +3341,39 @@ EOD;
     }
 
     /**
+     * Renders a breadcrumb navigation node object.
+     *
+     * @param breadcrumb_navigation_node $item The navigation node to render.
+     * @return string HTML fragment
+     */
+    protected function render_breadcrumb_navigation_node(breadcrumb_navigation_node $item) {
+
+        if ($item->action instanceof moodle_url) {
+            $content = $item->get_content();
+            $title = $item->get_title();
+            $attributes = array();
+            $attributes['itemprop'] = 'url';
+            if ($title !== '') {
+                $attributes['title'] = $title;
+            }
+            if ($item->hidden) {
+                $attributes['class'] = 'dimmed_text';
+            }
+            $content = html_writer::tag('span', $content, array('itemprop' => 'title'));
+            $content = html_writer::link($item->action, $content, $attributes);
+
+            $attributes = array();
+            $attributes['itemscope'] = '';
+            $attributes['itemtype'] = 'http://data-vocabulary.org/Breadcrumb';
+            $content = html_writer::tag('span', $content, $attributes);
+
+        } else {
+            $content = $this->render_navigation_node($item);
+        }
+        return $content;
+    }
+
+    /**
      * Renders a navigation node object.
      *
      * @param navigation_node $item The navigation node to render.
@@ -3671,32 +3704,34 @@ EOD;
             return $str;
         }
 
-        // Print subtree
-        $str .= html_writer::start_tag('ul', array('class' => 'tabrow'. $tabobject->level));
-        $cnt = 0;
-        foreach ($tabobject->subtree as $tab) {
-            $liclass = '';
-            if (!$cnt) {
-                $liclass .= ' first';
-            }
-            if ($cnt == count($tabobject->subtree) - 1) {
-                $liclass .= ' last';
-            }
-            if ((empty($tab->subtree)) && (!empty($tab->selected))) {
-                $liclass .= ' onerow';
-            }
+        // Print subtree.
+        if ($tabobject->level == 0 || $tabobject->selected || $tabobject->activated) {
+            $str .= html_writer::start_tag('ul', array('class' => 'tabrow'. $tabobject->level));
+            $cnt = 0;
+            foreach ($tabobject->subtree as $tab) {
+                $liclass = '';
+                if (!$cnt) {
+                    $liclass .= ' first';
+                }
+                if ($cnt == count($tabobject->subtree) - 1) {
+                    $liclass .= ' last';
+                }
+                if ((empty($tab->subtree)) && (!empty($tab->selected))) {
+                    $liclass .= ' onerow';
+                }
 
-            if ($tab->selected) {
-                $liclass .= ' here selected';
-            } else if ($tab->activated) {
-                $liclass .= ' here active';
-            }
+                if ($tab->selected) {
+                    $liclass .= ' here selected';
+                } else if ($tab->activated) {
+                    $liclass .= ' here active';
+                }
 
-            // This will recursively call function render_tabobject() for each item in subtree
-            $str .= html_writer::tag('li', $this->render($tab), array('class' => trim($liclass)));
-            $cnt++;
+                // This will recursively call function render_tabobject() for each item in subtree.
+                $str .= html_writer::tag('li', $this->render($tab), array('class' => trim($liclass)));
+                $cnt++;
+            }
+            $str .= html_writer::end_tag('ul');
         }
-        $str .= html_writer::end_tag('ul');
 
         return $str;
     }
@@ -4067,6 +4102,23 @@ EOD;
         $html .= html_writer::tag('div', $this->course_header(), array('id' => 'course-header'));
         $html .= html_writer::end_tag('header');
         return $html;
+    }
+
+    /**
+     * Displays the list of tags associated with an entry
+     *
+     * @param array $tags list of instances of core_tag or stdClass
+     * @param string $label label to display in front, by default 'Tags' (get_string('tags')), set to null
+     *               to use default, set to '' (empty string) to omit the label completely
+     * @param string $classes additional classes for the enclosing div element
+     * @param int $limit limit the number of tags to display, if size of $tags is more than this limit the "more" link
+     *               will be appended to the end, JS will toggle the rest of the tags
+     * @param context $pagecontext specify if needed to overwrite the current page context for the view tag link
+     * @return string
+     */
+    public function tag_list($tags, $label = null, $classes = '', $limit = 10, $pagecontext = null) {
+        $list = new \core_tag\output\taglist($tags, $label, $classes, $limit, $pagecontext);
+        return $this->render_from_template('core_tag/taglist', $list->export_for_template($this));
     }
 }
 

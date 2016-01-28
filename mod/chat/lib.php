@@ -413,7 +413,7 @@ function chat_refresh_events($courseid = 0) {
     $moduleid = $DB->get_field('modules', 'id', array('name' => 'chat'));
 
     foreach ($chats as $chat) {
-        $cm = get_coursemodule_from_id('chat', $chat->id);
+        $cm = get_coursemodule_from_instance('chat', $chat->id, $chat->course);
         $event = new stdClass();
         $event->name        = $chat->name;
         $event->description = format_module_intro('chat', $chat, $cm->id);
@@ -634,7 +634,7 @@ function chat_update_chat_times($chatid=0) {
         $event = new stdClass(); // Update calendar too.
 
         $cond = "modulename='chat' AND instance = :chatid AND timestart <> :chattime";
-        $params = array('chattime' => $chat->chattime, 'chatid' => $chatid);
+        $params = array('chattime' => $chat->chattime, 'chatid' => $chat->id);
 
         if ($event->id = $DB->get_field_select('event', 'id', $cond, $params)) {
             $event->timestart   = $chat->chattime;
@@ -1265,7 +1265,7 @@ function chat_extend_settings_navigation(settings_navigation $settings, navigati
     if ($chat->chattime && $chat->schedule) {
         $nextsessionnode = $chatnode->add(get_string('nextsession', 'chat').
                                           ': '.userdate($chat->chattime).
-                                          ' ('.usertimezone($USER->timezone));
+                                          ' ('.usertimezone($USER->timezone).')');
         $nextsessionnode->add_class('note');
     }
 

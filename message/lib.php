@@ -2571,14 +2571,19 @@ function message_mark_message_read($message, $timeread, $messageworkingempty=fal
  *
  * @param bool $ready only return ready-to-use processors
  * @param bool $reset Reset list of message processors (used in unit tests)
+ * @param bool $resetonly Just reset, then exit
  * @return mixed $processors array of objects containing information on message processors
  */
-function get_message_processors($ready = false, $reset = false) {
+function get_message_processors($ready = false, $reset = false, $resetonly = false) {
     global $DB, $CFG;
 
     static $processors;
     if ($reset) {
         $processors = array();
+
+        if ($resetonly) {
+            return $processors;
+        }
     }
 
     if (empty($processors)) {
@@ -2750,6 +2755,7 @@ function message_page_type_list($pagetype, $parentcontext, $currentcontext) {
 
 /**
  * Get messages sent or/and received by the specified users.
+ * Please note that this function return deleted messages too.
  *
  * @param  int      $useridto       the user id who received the message
  * @param  int      $useridfrom     the user id who sent the message. -10 or -20 for no-reply or support user

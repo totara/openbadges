@@ -906,6 +906,15 @@ $functions = array(
         'capabilities'  => '',
     ),
 
+    'core_message_delete_message' => array(
+        'classname'     => 'core_message_external',
+        'methodname'    => 'delete_message',
+        'classpath'     => 'message/externallib.php',
+        'description'   => 'Deletes a message.',
+        'type'          => 'write',
+        'capabilities'  => 'moodle/site:deleteownmessage',
+    ),
+
     // === notes related functions ===
 
     'moodle_notes_create_notes' => array(
@@ -1123,7 +1132,7 @@ $functions = array(
     ),
 
     // Tag functions.
-   'core_tag_update_tags' => array(
+    'core_tag_update_tags' => array(
         'classname'   => 'core_tag_external',
         'methodname'  => 'update_tags',
         'description' => 'Updates tags',
@@ -1135,6 +1144,14 @@ $functions = array(
         'classname'   => 'core_tag_external',
         'methodname'  => 'get_tags',
         'description' => 'Gets tags by their ids',
+        'type'        => 'read',
+        'ajax'        => true
+    ),
+
+    'core_tag_get_tagindex' => array(
+        'classname'   => 'core_tag_external',
+        'methodname'  => 'get_tagindex',
+        'description' => 'Gets tag index page for one tag and one tag area',
         'type'        => 'read',
         'ajax'        => true
     ),
@@ -1159,10 +1176,13 @@ $services = array(
             'core_enrol_get_users_courses',
             'core_enrol_get_enrolled_users',
             'core_enrol_get_course_enrolment_methods',
+            'enrol_guest_get_instance_info',
             'enrol_self_enrol_user',
+            'enrol_self_get_instance_info',
             'core_user_get_users_by_id',
             'core_webservice_get_site_info',
             'core_notes_create_notes',
+            'core_notes_delete_notes',
             'core_user_get_course_user_profiles',
             'core_message_send_instant_messages',
             'mod_assign_get_grades',
@@ -1187,6 +1207,7 @@ $services = array(
             'mod_forum_get_forum_discussion_posts',
             'mod_forum_add_discussion_post',
             'mod_forum_add_discussion',
+            'mod_forum_can_add_discussion',
             'core_files_get_files',
             'core_message_get_messages',
             'core_message_create_contacts',
@@ -1216,6 +1237,7 @@ $services = array(
             'core_completion_get_course_completion_status',
             'core_user_view_user_list',
             'core_message_mark_message_read',
+            'core_message_delete_message',
             'core_notes_view_notes',
             'mod_forum_view_forum_discussion',
             'core_user_view_user_profile',
@@ -1232,6 +1254,7 @@ $services = array(
             'mod_scorm_get_scorm_sco_tracks',
             'mod_scorm_get_scorm_attempt_count',
             'mod_scorm_get_scorms_by_courses',
+            'mod_scorm_launch_sco',
             'mod_survey_get_surveys_by_courses',
             'mod_survey_view_survey',
             'mod_survey_get_questions',
@@ -1258,6 +1281,23 @@ $services = array(
             'mod_lti_view_lti',
             'mod_imscp_view_imscp',
             'mod_imscp_get_imscps_by_courses',
+            'mod_glossary_get_glossaries_by_courses',
+            'mod_wiki_get_wikis_by_courses',
+            'mod_wiki_view_wiki',
+            'mod_wiki_view_page',
+            'mod_glossary_view_glossary',
+            'mod_glossary_view_entry',
+            'mod_glossary_get_entries_by_letter',
+            'mod_glossary_get_entries_by_date',
+            'mod_glossary_get_categories',
+            'mod_glossary_get_entries_by_category',
+            'mod_glossary_get_authors',
+            'mod_glossary_get_entries_by_author',
+            'mod_glossary_get_entries_by_author_id',
+            'mod_glossary_get_entries_by_search',
+            'mod_glossary_get_entries_by_term',
+            'mod_glossary_get_entries_to_approve',
+            'mod_glossary_get_entry_by_id',
             ),
         'enabled' => 0,
         'restrictedusers' => 0,

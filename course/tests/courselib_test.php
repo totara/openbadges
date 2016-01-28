@@ -29,7 +29,6 @@ global $CFG;
 require_once($CFG->dirroot . '/course/lib.php');
 require_once($CFG->dirroot . '/course/tests/fixtures/course_capability_assignment.php');
 require_once($CFG->dirroot . '/enrol/imsenterprise/tests/imsenterprise_test.php');
-require_once($CFG->dirroot . '/tag/lib.php');
 
 class core_course_courselib_testcase extends advanced_testcase {
 
@@ -1501,6 +1500,7 @@ class core_course_courselib_testcase extends advanced_testcase {
      */
     public function test_course_delete_module($type, $options) {
         global $DB;
+
         $this->resetAfterTest(true);
         $this->setAdminUser();
 
@@ -1521,7 +1521,7 @@ class core_course_courselib_testcase extends advanced_testcase {
         switch ($type) {
             case 'assign':
                 // Add some tags to this assignment.
-                tag_set('assign', $module->id, array('Tag 1', 'Tag 2', 'Tag 3'), 'mod_assign', $modcontext->id);
+                core_tag_tag::set_item_tags('mod_assign', 'assign', $module->id, $modcontext, array('Tag 1', 'Tag 2', 'Tag 3'));
 
                 // Confirm the tag instances were added.
                 $criteria = array('component' => 'mod_assign', 'contextid' => $modcontext->id);
@@ -2005,6 +2005,44 @@ class core_course_courselib_testcase extends advanced_testcase {
         $id = $section->id;
         $sectionnum = $section->section;
         $expectedlegacydata = array($course->id, "course", "editsection", 'editsection.php?id=' . $id, $sectionnum);
+        $this->assertEventLegacyLogData($expectedlegacydata, $event);
+        $this->assertEventContextNotUsed($event);
+    }
+
+    /**
+     * Test that triggering a course_section_deleted event works as expected.
+     */
+    public function test_course_section_deleted_event() {
+        global $USER, $DB;
+        $this->resetAfterTest();
+        $sink = $this->redirectEvents();
+
+        // Create the course with sections.
+        $course = $this->getDataGenerator()->create_course(array('numsections' => 10), array('createsections' => true));
+        $sections = $DB->get_records('course_sections', array('course' => $course->id));
+        $coursecontext = context_course::instance($course->id);
+        $section = array_pop($sections);
+        course_delete_section($course, $section);
+        $events = $sink->get_events();
+        $event = array_pop($events); // Delete section event.
+        $sink->close();
+
+        // Validate event data.
+        $this->assertInstanceOf('\core\event\course_section_deleted', $event);
+        $this->assertEquals('course_sections', $event->objecttable);
+        $this->assertEquals($section->id, $event->objectid);
+        $this->assertEquals($course->id, $event->courseid);
+        $this->assertEquals($coursecontext->id, $event->contextid);
+        $this->assertEquals($section->section, $event->other['sectionnum']);
+        $expecteddesc = "The user with id '{$event->userid}' deleted section number '{$event->other['sectionnum']}' " .
+                "(section name '{$event->other['sectionname']}') for the course with id '{$event->courseid}'";
+        $this->assertEquals($expecteddesc, $event->get_description());
+        $this->assertEquals($section, $event->get_record_snapshot('course_sections', $event->objectid));
+        $this->assertNull($event->get_url());
+
+        // Test legacy data.
+        $sectionnum = $section->section;
+        $expectedlegacydata = array($course->id, "course", "delete section", 'view.php?id=' . $course->id, $sectionnum);
         $this->assertEventLegacyLogData($expectedlegacydata, $event);
         $this->assertEventContextNotUsed($event);
     }

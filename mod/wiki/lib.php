@@ -141,10 +141,15 @@ function wiki_delete_instance($id) {
     return $result;
 }
 
+/**
+ * Implements callback to reset course
+ *
+ * @param stdClass $data
+ * @return boolean|array
+ */
 function wiki_reset_userdata($data) {
     global $CFG,$DB;
     require_once($CFG->dirroot . '/mod/wiki/pagelib.php');
-    require_once($CFG->dirroot . '/tag/lib.php');
     require_once($CFG->dirroot . "/mod/wiki/locallib.php");
 
     $componentstr = get_string('modulenameplural', 'wiki');
@@ -154,10 +159,12 @@ function wiki_reset_userdata($data) {
     if (!$wikis = $DB->get_records('wiki', array('course' => $data->courseid))) {
         return false;
     }
-    $errors = false;
-    foreach ($wikis as $wiki) {
+    if (empty($data->reset_wiki_comments) && empty($data->reset_wiki_tags) && empty($data->reset_wiki_pages)) {
+        return $status;
+    }
 
-        if (!$cm = get_coursemodule_from_instance('wiki', $wiki->id)) {
+    foreach ($wikis as $wiki) {
+        if (!$cm = get_coursemodule_from_instance('wiki', $wiki->id, $data->courseid)) {
             continue;
         }
         $context = context_module::instance($cm->id);
@@ -175,14 +182,7 @@ function wiki_reset_userdata($data) {
                     if (empty($data->reset_wiki_pages)) {
                         // Go through each page and delete the tags.
                         foreach ($pages as $page) {
-
-                            $tags = tag_get_tags_array('wiki_pages', $page->id);
-                            foreach ($tags as $tagid => $tagname) {
-                                // Delete the related tag_instances related to the wiki page.
-                                $errors = tag_delete_instance('wiki_pages', $page->id, $tagid);
-                                $status[] = array('component' => $componentstr, 'item' => get_string('tagsdeleted', 'wiki'),
-                                        'error' => $errors);
-                            }
+                            core_tag_tag::remove_all_item_tags('mod_wiki', 'wiki_pages', $page->id);
                         }
                     } else {
                         // Otherwise we are removing pages and tags.
@@ -196,17 +196,24 @@ function wiki_reset_userdata($data) {
                     // Delete any attached files.
                     $fs = get_file_storage();
                     $fs->delete_area_files($context->id, 'mod_wiki', 'attachments');
-
-                    $status[] = array('component' => $componentstr, 'item' => get_string('deleteallpages', 'wiki'),
-                            'error' => $errors);
                 }
+            }
+
+            if (!empty($data->reset_wiki_pages)) {
+                $status[] = array('component' => $componentstr, 'item' => get_string('deleteallpages', 'wiki'),
+                    'error' => false);
+            }
+            if (!empty($data->reset_wiki_tags)) {
+                $status[] = array('component' => $componentstr, 'item' => get_string('tagsdeleted', 'wiki'), 'error' => false);
             }
         }
 
         // Remove all comments.
         if (!empty($data->reset_wiki_comments) || !empty($data->reset_wiki_pages)) {
             $DB->delete_records_select('comments', "contextid = ? AND commentarea='wiki_page'", array($context->id));
-            $status[] = array('component' => $componentstr, 'item' => get_string('deleteallcomments'), 'error' => false);
+            if (!empty($data->reset_wiki_comments)) {
+                $status[] = array('component' => $componentstr, 'item' => get_string('deleteallcomments'), 'error' => false);
+            }
         }
     }
     return $status;
@@ -495,7 +502,7 @@ function wiki_extend_navigation(navigation_node $navref, $course, $module, $cm) 
         $pageid = $page->id;
     }
 
-    if (has_capability('mod/wiki:createpage', $context)) {
+    if (wiki_can_create_pages($context)) {
         $link = new moodle_url('/mod/wiki/create.php', array('action' => 'new', 'swid' => $swid));
         $node = $navref->add(get_string('newpage', 'wiki'), $link, navigation_node::TYPE_SETTING);
     }
@@ -658,4 +665,73 @@ function wiki_page_type_list($pagetype, $parentcontext, $currentcontext) {
         'mod-wiki-map'=>get_string('page-mod-wiki-map', 'wiki')
     );
     return $module_pagetype;
+}
+
+/**
+ * Mark the activity completed (if required) and trigger the course_module_viewed event.
+ *
+ * @param  stdClass $wiki       Wiki object.
+ * @param  stdClass $course     Course object.
+ * @param  stdClass $cm         Course module object.
+ * @param  stdClass $context    Context object.
+ * @since Moodle 3.1
+ */
+function wiki_view($wiki, $course, $cm, $context) {
+    // Trigger course_module_viewed event.
+    $params = array(
+        'context' => $context,
+        'objectid' => $wiki->id
+    );
+    $event = \mod_wiki\event\course_module_viewed::create($params);
+    $event->add_record_snapshot('course_modules', $cm);
+    $event->add_record_snapshot('course', $course);
+    $event->add_record_snapshot('wiki', $wiki);
+    $event->trigger();
+
+    // Completion.
+    $completion = new completion_info($course);
+    $completion->set_module_viewed($cm);
+}
+
+/**
+ * Mark the activity completed (if required) and trigger the page_viewed event.
+ *
+ * @param  stdClass $wiki       Wiki object.
+ * @param  stdClass $page       Page object.
+ * @param  stdClass $course     Course object.
+ * @param  stdClass $cm         Course module object.
+ * @param  stdClass $context    Context object.
+ * @param  int $uid             Optional User ID.
+ * @param  array $other         Optional Other params: title, wiki ID, group ID, groupanduser, prettyview.
+ * @param  stdClass $subwiki    Optional Subwiki.
+ * @since Moodle 3.1
+ */
+function wiki_page_view($wiki, $page, $course, $cm, $context, $uid = null, $other = null, $subwiki = null) {
+
+    // Trigger course_module_viewed event.
+    $params = array(
+        'context' => $context,
+        'objectid' => $page->id
+    );
+    if ($uid != null) {
+        $params['relateduserid'] = $uid;
+    }
+    if ($other != null) {
+        $params['other'] = $other;
+    }
+
+    $event = \mod_wiki\event\page_viewed::create($params);
+
+    $event->add_record_snapshot('wiki_pages', $page);
+    $event->add_record_snapshot('course_modules', $cm);
+    $event->add_record_snapshot('course', $course);
+    $event->add_record_snapshot('wiki', $wiki);
+    if ($subwiki != null) {
+        $event->add_record_snapshot('wiki_subwikis', $subwiki);
+    }
+    $event->trigger();
+
+    // Completion.
+    $completion = new completion_info($course);
+    $completion->set_module_viewed($cm);
 }

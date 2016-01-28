@@ -273,6 +273,14 @@ class assign_grading_table extends table_sql implements renderable {
             $columns[] = 'fullname';
             $headers[] = get_string('fullname');
 
+            // Participant # details if can view real identities.
+            if ($this->assignment->is_blind_marking()) {
+                if (!$this->is_downloading()) {
+                    $columns[] = 'recordid';
+                    $headers[] = get_string('recordid', 'assign');
+                }
+            }
+
             foreach ($extrauserfields as $extrafield) {
                 $columns[] = $extrafield;
                 $headers[] = get_user_field_name($extrafield);
@@ -828,7 +836,8 @@ class assign_grading_table extends table_sql implements renderable {
                                             'mod_assign');
             $urlparams = array('id' => $this->assignment->get_course_module()->id,
                                'rownum'=>$this->rownum,
-                               'action'=>'grade');
+                               'action' => 'grade',
+                               'useridlistid' => $this->assignment->get_useridlist_key_id());
             $url = new moodle_url('/mod/assign/view.php', $urlparams);
             $link = $this->output->action_link($url, $icon);
             $grade .= $link . $separator;
@@ -972,7 +981,7 @@ class assign_grading_table extends table_sql implements renderable {
         }
 
         if ($this->is_downloading()) {
-            $o = strip_tags(str_replace('</div>', "\n", $o));
+            $o = strip_tags(rtrim(str_replace('</div>', ' - ', $o), '- '));
         }
 
         return $o;
@@ -993,7 +1002,8 @@ class assign_grading_table extends table_sql implements renderable {
 
         $urlparams = array('id'=>$this->assignment->get_course_module()->id,
                            'rownum'=>$this->rownum,
-                           'action'=>'grade');
+                           'action' => 'grade',
+                           'useridlistid' => $this->assignment->get_useridlist_key_id());
         $url = new moodle_url('/mod/assign/view.php', $urlparams);
         $noimage = null;
 
@@ -1395,5 +1405,17 @@ class assign_grading_table extends table_sql implements renderable {
             return parent::show_hide_link($column, $index);
         }
         return '';
+    }
+
+    /**
+     * Overides setup to ensure it will only run a single time.
+     */
+    public function setup() {
+        // Check if the setup function has been called before, we should not run it twice.
+        // If we do the sortorder of the table will be broken.
+        if (!empty($this->setup)) {
+            return;
+        }
+        parent::setup();
     }
 }

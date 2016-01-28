@@ -1296,18 +1296,8 @@ class global_navigation extends navigation_node {
         }
 
         // Give the local plugins a chance to include some navigation if they want.
-        foreach (core_component::get_plugin_list_with_file('local', 'lib.php', true) as $plugin => $unused) {
-            $function = "local_{$plugin}_extend_navigation";
-            $oldfunction = "local_{$plugin}_extends_navigation";
-
-            if (function_exists($function)) {
-                $function($this);
-
-            } else if (function_exists($oldfunction)) {
-                debugging("Deprecated local plugin navigation callback: Please rename '{$oldfunction}' to '{$function}'. ".
-                    "Support for the old callback will be dropped in Moodle 3.1", DEBUG_DEVELOPER);
-                $oldfunction($this);
-            }
+        foreach (get_plugin_list_with_function('local', 'extend_navigation') as $function) {
+            $function($this);
         }
 
         // Remove any empty root nodes
@@ -2342,6 +2332,15 @@ class global_navigation extends navigation_node {
                 }
             }
 
+            // Let plugins hook into user navigation.
+            $pluginsfunction = get_plugins_with_function('extend_navigation_user', 'lib.php');
+            foreach ($pluginsfunction as $plugintype => $plugins) {
+                if ($plugintype != 'report') {
+                    foreach ($plugins as $pluginfunction) {
+                        $pluginfunction($usernode, $user, $usercontext, $course, $coursecontext);
+                    }
+                }
+            }
         }
         return true;
     }
@@ -3075,13 +3074,15 @@ class navbar extends navigation_node {
     public $children = array();
     /** @var bool A switch for whether we want to include the root node in the navbar */
     public $includesettingsbase = false;
-    /** @var navigation_node[] $prependchildren */
+    /** @var breadcrumb_navigation_node[] $prependchildren */
     protected $prependchildren = array();
     /**
      * The almighty constructor
      *
      * @param moodle_page $page
      */
+
+
     public function __construct(moodle_page $page) {
         global $CFG;
         if (during_initial_install()) {
@@ -3132,8 +3133,8 @@ class navbar extends navigation_node {
      * Gets a navigation node
      *
      * @param string|int $key for referencing the navbar nodes
-     * @param int $type navigation_node::TYPE_*
-     * @return navigation_node|bool
+     * @param int $type breadcrumb_navigation_node::TYPE_*
+     * @return breadcrumb_navigation_node|bool
      */
     public function get($key, $type = null) {
         foreach ($this->children as &$child) {
@@ -3149,7 +3150,7 @@ class navbar extends navigation_node {
         return false;
     }
     /**
-     * Returns an array of navigation_node's that make up the navbar.
+     * Returns an array of breadcrumb_navigation_nodes that make up the navbar.
      *
      * @return array
      */
@@ -3181,7 +3182,7 @@ class navbar extends navigation_node {
                 // Parse a combined navigation tree
                 while ($settingsactivenode && $settingsactivenode->parent !== null) {
                     if (!$settingsactivenode->mainnavonly) {
-                        $items[] = $settingsactivenode;
+                        $items[] = new breadcrumb_navigation_node($settingsactivenode);
                     }
                     $settingsactivenode = $settingsactivenode->parent;
                 }
@@ -3191,12 +3192,14 @@ class navbar extends navigation_node {
                 }
                 while ($navigationactivenode && $navigationactivenode->parent !== null) {
                     if (!$navigationactivenode->mainnavonly) {
-                        $items[] = $navigationactivenode;
+                        $items[] = new breadcrumb_navigation_node($navigationactivenode);
                     }
                     if (!empty($CFG->navshowcategories) &&
                             $navigationactivenode->type === self::TYPE_COURSE &&
                             $navigationactivenode->parent->key === 'currentcourse') {
-                        $items = array_merge($items, $this->get_course_categories());
+                        foreach ($this->get_course_categories() as $item) {
+                            $items[] = new breadcrumb_navigation_node($item);
+                        }
                     }
                     $navigationactivenode = $navigationactivenode->parent;
                 }
@@ -3204,12 +3207,14 @@ class navbar extends navigation_node {
                 // Parse the navigation tree to get the active node
                 while ($navigationactivenode && $navigationactivenode->parent !== null) {
                     if (!$navigationactivenode->mainnavonly) {
-                        $items[] = $navigationactivenode;
+                        $items[] = new breadcrumb_navigation_node($navigationactivenode);
                     }
                     if (!empty($CFG->navshowcategories) &&
                             $navigationactivenode->type === self::TYPE_COURSE &&
                             $navigationactivenode->parent->key === 'currentcourse') {
-                        $items = array_merge($items, $this->get_course_categories());
+                        foreach ($this->get_course_categories() as $item) {
+                            $items[] = new breadcrumb_navigation_node($item);
+                        }
                     }
                     $navigationactivenode = $navigationactivenode->parent;
                 }
@@ -3217,18 +3222,18 @@ class navbar extends navigation_node {
                 // Parse the settings navigation to get the active node
                 while ($settingsactivenode && $settingsactivenode->parent !== null) {
                     if (!$settingsactivenode->mainnavonly) {
-                        $items[] = $settingsactivenode;
+                        $items[] = new breadcrumb_navigation_node($settingsactivenode);
                     }
                     $settingsactivenode = $settingsactivenode->parent;
                 }
             }
         }
 
-        $items[] = new navigation_node(array(
-            'text'=>$this->page->navigation->text,
-            'shorttext'=>$this->page->navigation->shorttext,
-            'key'=>$this->page->navigation->key,
-            'action'=>$this->page->navigation->action
+        $items[] = new breadcrumb_navigation_node(array(
+            'text' => $this->page->navigation->text,
+            'shorttext' => $this->page->navigation->shorttext,
+            'key' => $this->page->navigation->key,
+            'action' => $this->page->navigation->action
         ));
 
         if (count($this->prependchildren) > 0) {
@@ -3265,7 +3270,7 @@ class navbar extends navigation_node {
                 }
                 $url = new moodle_url('/course/index.php', array('categoryid' => $category->id));
                 $name = format_string($category->name, true, array('context' => context_coursecat::instance($category->id)));
-                $categorynode = navigation_node::create($name, $url, self::TYPE_CATEGORY, null, $category->id);
+                $categorynode = breadcrumb_navigation_node::create($name, $url, self::TYPE_CATEGORY, null, $category->id);
                 if (!$category->visible) {
                     $categorynode->hidden = true;
                 }
@@ -3278,7 +3283,7 @@ class navbar extends navigation_node {
             $courses = $this->page->navigation->get('courses');
             if (!$courses) {
                 // Courses node may not be present.
-                $courses = navigation_node::create(
+                $courses = breadcrumb_navigation_node::create(
                     get_string('courses'),
                     new moodle_url('/course/index.php'),
                     self::TYPE_CONTAINER
@@ -3291,9 +3296,9 @@ class navbar extends navigation_node {
     }
 
     /**
-     * Add a new navigation_node to the navbar, overrides parent::add
+     * Add a new breadcrumb_navigation_node to the navbar, overrides parent::add
      *
-     * This function overrides {@link navigation_node::add()} so that we can change
+     * This function overrides {@link breadcrumb_navigation_node::add()} so that we can change
      * the way nodes get added to allow us to simply call add and have the node added to the
      * end of the navbar
      *
@@ -3336,7 +3341,7 @@ class navbar extends navigation_node {
         // Set the parent to this node
         $itemarray['parent'] = $this;
         // Add the child using the navigation_node_collections add method
-        $this->children[] = new navigation_node($itemarray);
+        $this->children[] = new breadcrumb_navigation_node($itemarray);
         return $this;
     }
 
@@ -3381,9 +3386,42 @@ class navbar extends navigation_node {
         // Set the parent to this node.
         $itemarray['parent'] = $this;
         // Add the child node to the prepend list.
-        $this->prependchildren[] = new navigation_node($itemarray);
+        $this->prependchildren[] = new breadcrumb_navigation_node($itemarray);
         return $this;
     }
+}
+
+/**
+ * Subclass of navigation_node allowing different rendering for the breadcrumbs
+ * in particular adding extra metadata for search engine robots to leverage.
+ *
+ * @package   core
+ * @category  navigation
+ * @copyright 2015 Brendan Heywood
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class breadcrumb_navigation_node extends navigation_node {
+
+    /**
+     * A proxy constructor
+     *
+     * @param mixed $navnode A navigation_node or an array
+     */
+    public function __construct($navnode) {
+        if (is_array($navnode)) {
+            parent::__construct($navnode);
+        } else if ($navnode instanceof navigation_node) {
+
+            // Just clone everything.
+            $objvalues = get_object_vars($navnode);
+            foreach ($objvalues as $key => $value) {
+                 $this->$key = $value;
+            }
+        } else {
+            throw coding_exception('Not a valid breadcrumb_navigation_node');
+        }
+    }
+
 }
 
 /**
@@ -3840,8 +3878,10 @@ class settings_navigation extends navigation_node {
         }
 
         //Add badges navigation
-        require_once($CFG->libdir .'/badgeslib.php');
-        badges_add_course_navigation($coursenode, $course);
+        if (!empty($CFG->enablebadges)) {
+            require_once($CFG->libdir .'/badgeslib.php');
+            badges_add_course_navigation($coursenode, $course);
+        }
 
         // Backup this course
         if (has_capability('moodle/backup:backupcourse', $coursecontext)) {
@@ -3971,6 +4011,7 @@ class settings_navigation extends navigation_node {
         }
 
         $modulenode = $this->add(get_string('pluginadministration', $this->page->activityname), null, self::TYPE_SETTING, null, 'modulesettings');
+        $modulenode->nodetype = navigation_node::NODETYPE_BRANCH;
         $modulenode->force_open();
 
         // Settings for the module
@@ -4026,14 +4067,12 @@ class settings_navigation extends navigation_node {
         }
 
         $function = $this->page->activityname.'_extend_settings_navigation';
-        if (!function_exists($function)) {
-            return $modulenode;
+        if (function_exists($function)) {
+            $function($this, $modulenode);
         }
 
-        $function($this, $modulenode);
-
-        // Remove the module node if there are no children
-        if (empty($modulenode->children)) {
+        // Remove the module node if there are no children.
+        if ($modulenode->children->count() <= 0) {
             $modulenode->remove();
         }
 
@@ -4307,6 +4346,17 @@ class settings_navigation extends navigation_node {
                 }
                 $dashboard->add(get_string('grades', 'grades'), $url, self::TYPE_SETTING, null, 'mygrades');
             }
+
+            // Let plugins hook into user navigation.
+            $pluginsfunction = get_plugins_with_function('extend_navigation_user', 'lib.php');
+            foreach ($pluginsfunction as $plugintype => $plugins) {
+                if ($plugintype != 'report') {
+                    foreach ($plugins as $pluginfunction) {
+                        $pluginfunction($profilenode, $user, $usercontext, $course, $coursecontext);
+                    }
+                }
+            }
+
             $usersetting = navigation_node::create(get_string('preferences', 'moodle'), $prefurl, self::TYPE_CONTAINER, null, $key);
             $dashboard->add_node($usersetting);
         } else {
@@ -4572,6 +4622,7 @@ class settings_navigation extends navigation_node {
         }
 
         $categorynode = $this->add($catcontext->get_context_name(), null, null, null, 'categorysettings');
+        $categorynode->nodetype = navigation_node::NODETYPE_BRANCH;
         $categorynode->force_open();
 
         if (can_edit_in_category($catcontext->instanceid)) {
@@ -4769,18 +4820,8 @@ class settings_navigation extends navigation_node {
      */
     protected function load_local_plugin_settings() {
 
-        foreach (core_component::get_plugin_list_with_file('local', 'lib.php', true) as $plugin => $unused) {
-            $function = "local_{$plugin}_extend_settings_navigation";
-            $oldfunction = "local_{$plugin}_extends_settings_navigation";
-
-            if (function_exists($function)) {
-                $function($this, $this->context);
-
-            } else if (function_exists($oldfunction)) {
-                debugging("Deprecated local plugin navigation callback: Please rename '{$oldfunction}' to '{$function}'. ".
-                    "Support for the old callback will be dropped in Moodle 3.1", DEBUG_DEVELOPER);
-                $oldfunction($this, $this->context);
-            }
+        foreach (get_plugin_list_with_function('local', 'extend_settings_navigation') as $function) {
+            $function($this, $this->context);
         }
     }
 

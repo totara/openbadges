@@ -695,7 +695,8 @@ class mod_forum_external_testcase extends externallib_advanced_testcase {
                 'userpictureurl' => '',
                 'usermodifiedpictureurl' => '',
                 'numreplies' => 3,
-                'numunread' => 0
+                'numunread' => 0,
+                'pinned' => FORUM_DISCUSSION_UNPINNED
             );
 
         // Call the external function passing forum id.
@@ -907,6 +908,14 @@ class mod_forum_external_testcase extends externallib_advanced_testcase {
         $this->assertEquals('the subject', $discussions['discussions'][0]['subject']);
         $this->assertEquals('some text here...', $discussions['discussions'][0]['message']);
 
+        $discussion2pinned = mod_forum_external::add_discussion($forum->id, 'the pinned subject', 'some 2 text here...', -1,
+                                                                array('options' => array('name' => 'discussionpinned',
+                                                                                         'value' => true)));
+        $discussion3 = mod_forum_external::add_discussion($forum->id, 'the non pinnedsubject', 'some 3 text here...');
+        $discussions = mod_forum_external::get_forum_discussions_paginated($forum->id);
+        $discussions = external_api::clean_returnvalue(mod_forum_external::get_forum_discussions_paginated_returns(), $discussions);
+        $this->assertCount(3, $discussions['discussions']);
+        $this->assertEquals($discussion2pinned['discussionid'], $discussions['discussions'][0]['discussion']);
     }
 
     /**
@@ -1007,6 +1016,39 @@ class mod_forum_external_testcase extends externallib_advanced_testcase {
         $this->assertEquals($group->id, $discussions['discussions'][0]['groupid']);
         $this->assertEquals($group->id, $discussions['discussions'][1]['groupid']);
         $this->assertEquals($group->id, $discussions['discussions'][2]['groupid']);
+
+    }
+
+    /*
+     * Test can_add_discussion. A basic test since all the API functions are already covered by unit tests.
+     */
+    public function test_can_add_discussion() {
+
+        $this->resetAfterTest(true);
+
+        // Create courses to add the modules.
+        $course = self::getDataGenerator()->create_course();
+
+        $user = self::getDataGenerator()->create_user();
+
+        // First forum with tracking off.
+        $record = new stdClass();
+        $record->course = $course->id;
+        $record->type = 'news';
+        $forum = self::getDataGenerator()->create_module('forum', $record);
+
+        // User with no permissions to add in a news forum.
+        self::setUser($user);
+        $this->getDataGenerator()->enrol_user($user->id, $course->id);
+
+        $result = mod_forum_external::can_add_discussion($forum->id);
+        $result = external_api::clean_returnvalue(mod_forum_external::can_add_discussion_returns(), $result);
+        $this->assertFalse($result['status']);
+
+        self::setAdminUser();
+        $result = mod_forum_external::can_add_discussion($forum->id);
+        $result = external_api::clean_returnvalue(mod_forum_external::can_add_discussion_returns(), $result);
+        $this->assertTrue($result['status']);
 
     }
 

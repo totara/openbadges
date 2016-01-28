@@ -371,23 +371,13 @@ class quiz {
     // Bits of content =========================================================
 
     /**
-     * @param bool $unfinished whether there is currently an unfinished attempt active.
-     * @return string if the quiz policies merit it, return a warning string to
-     *      be displayed in a javascript alert on the start attempt button.
+     * @param bool $notused not used.
+     * @return string an empty string.
+     * @deprecated since 3.1. This sort of functionality is now entirely handled by quiz access rules.
      */
-    public function confirm_start_attempt_message($unfinished) {
-        if ($unfinished) {
-            return '';
-        }
-
-        if ($this->quiz->timelimit && $this->quiz->attempts) {
-            return get_string('confirmstartattempttimelimit', 'quiz', $this->quiz->attempts);
-        } else if ($this->quiz->timelimit) {
-            return get_string('confirmstarttimelimit', 'quiz');
-        } else if ($this->quiz->attempts) {
-            return get_string('confirmstartattemptlimit', 'quiz', $this->quiz->attempts);
-        }
-
+    public function confirm_start_attempt_message($notused) {
+        debugging('confirm_start_attempt_message is deprecated. ' .
+                'This sort of functionality is now entirely handled by quiz access rules.');
         return '';
     }
 
@@ -1973,23 +1963,6 @@ class quiz_attempt {
         $event->add_record_snapshot('quiz', $this->get_quiz());
         $event->add_record_snapshot('quiz_attempts', $this->get_attempt());
         $event->trigger();
-    }
-
-    /**
-     * Print the fields of the comment form for questions in this attempt.
-     * @param $slot which question to output the fields for.
-     * @param $prefix Prefix to add to all field names.
-     */
-    public function question_print_comment_fields($slot, $prefix) {
-        // Work out a nice title.
-        $student = get_record('user', 'id', $this->get_userid());
-        $a = new object();
-        $a->fullname = fullname($student, true);
-        $a->attempt = $this->get_attempt_number();
-
-        question_print_comment_fields($this->quba->get_question_attempt($slot),
-                $prefix, $this->get_display_options(true)->markdp,
-                get_string('gradingattempt', 'quiz_grading', $a));
     }
 
     // Private methods =========================================================

@@ -261,12 +261,27 @@ class mod_scorm_external_testcase extends externallib_advanced_testcase {
 
         $scoes = scorm_get_scoes($scorm->id);
         $sco = array_shift($scoes);
+        $sco->extradata = array();
         $this->assertEquals((array) $sco, $result['scoes'][0]);
 
         $sco = array_shift($scoes);
-        // Remove specific sco data.
+        $sco->extradata = array();
+        $sco->extradata[] = array(
+            'element' => 'isvisible',
+            'value' => $sco->isvisible
+        );
+        $sco->extradata[] = array(
+            'element' => 'parameters',
+            'value' => $sco->parameters
+        );
         unset($sco->isvisible);
         unset($sco->parameters);
+
+        // Sort the array (if we don't sort tests will fails for Postgres).
+        usort($result['scoes'][1]['extradata'], function($a, $b) {
+            return strcmp($a['element'], $b['element']);
+        });
+
         $this->assertEquals((array) $sco, $result['scoes'][1]);
 
         // Use organization.
@@ -284,6 +299,47 @@ class mod_scorm_external_testcase extends externallib_advanced_testcase {
         } catch (moodle_exception $e) {
             $this->assertEquals('invalidrecord', $e->errorcode);
         }
+
+    }
+
+    /**
+     * Test get scorm scoes (with a complex SCORM package)
+     */
+    public function test_mod_scorm_get_scorm_scoes_complex_package() {
+        global $CFG;
+
+        // As student.
+        self::setUser($this->student);
+
+        $record = new stdClass();
+        $record->course = $this->course->id;
+        $record->packagefilepath = $CFG->dirroot.'/mod/scorm/tests/packages/complexscorm.zip';
+        $scorm = self::getDataGenerator()->create_module('scorm', $record);
+
+        $result = mod_scorm_external::get_scorm_scoes($scorm->id);
+        $result = external_api::clean_returnvalue(mod_scorm_external::get_scorm_scoes_returns(), $result);
+        $this->assertCount(9, $result['scoes']);
+        $this->assertCount(0, $result['warnings']);
+
+        $expectedscoes = array();
+        $scoreturnstructure = mod_scorm_external::get_scorm_scoes_returns();
+        $scoes = scorm_get_scoes($scorm->id);
+        foreach ($scoes as $sco) {
+            $sco->extradata = array();
+            foreach ($sco as $element => $value) {
+                // Add the extra data to the extradata array and remove the object element.
+                if (!isset($scoreturnstructure->keys['scoes']->content->keys[$element])) {
+                    $sco->extradata[] = array(
+                        'element' => $element,
+                        'value' => $value
+                    );
+                    unset($sco->{$element});
+                }
+            }
+            $expectedscoes[] = (array) $sco;
+        }
+
+        $this->assertEquals($expectedscoes, $result['scoes']);
     }
 
     /*
@@ -552,6 +608,9 @@ class mod_scorm_external_testcase extends externallib_advanced_testcase {
         $record = new stdClass();
         $record->introformat = FORMAT_HTML;
         $record->course = $course1->id;
+        $record->hidetoc = 2;
+        $record->displayattemptstatus = 2;
+        $record->skipview = 2;
         $scorm1 = self::getDataGenerator()->create_module('scorm', $record);
 
         // Second scorm.
@@ -735,5 +794,67 @@ class mod_scorm_external_testcase extends externallib_advanced_testcase {
         $result = mod_scorm_external::get_scorms_by_courses(array($course1->id));
         $result = external_api::clean_returnvalue($returndescription, $result);
         $this->assertEquals($expectedscorms, $result['scorms']);
+    }
+
+    /**
+     * Test launch_sco
+     */
+    public function test_launch_sco() {
+        global $DB;
+
+        // Test invalid instance id.
+        try {
+            mod_scorm_external::launch_sco(0);
+            $this->fail('Exception expected due to invalid mod_scorm instance id.');
+        } catch (moodle_exception $e) {
+            $this->assertEquals('invalidrecord', $e->errorcode);
+        }
+
+        // Test not-enrolled user.
+        $user = self::getDataGenerator()->create_user();
+        $this->setUser($user);
+        try {
+            mod_scorm_external::launch_sco($this->scorm->id);
+            $this->fail('Exception expected due to not enrolled user.');
+        } catch (moodle_exception $e) {
+            $this->assertEquals('requireloginerror', $e->errorcode);
+        }
+
+        // Test user with full capabilities.
+        $this->setUser($this->student);
+
+        // Trigger and capture the event.
+        $sink = $this->redirectEvents();
+
+        $scoes = scorm_get_scoes($this->scorm->id);
+        foreach ($scoes as $sco) {
+            // Find launchable SCO.
+            if ($sco->launch != '') {
+                break;
+            }
+        }
+
+        $result = mod_scorm_external::launch_sco($this->scorm->id, $sco->id);
+        $result = external_api::clean_returnvalue(mod_scorm_external::launch_sco_returns(), $result);
+
+        $events = $sink->get_events();
+        $this->assertCount(1, $events);
+        $event = array_shift($events);
+
+        // Checking that the event contains the expected values.
+        $this->assertInstanceOf('\mod_scorm\event\sco_launched', $event);
+        $this->assertEquals($this->context, $event->get_context());
+        $moodleurl = new \moodle_url('/mod/scorm/player.php', array('id' => $this->cm->id, 'scoid' => $sco->id));
+        $this->assertEquals($moodleurl, $event->get_url());
+        $this->assertEventContextNotUsed($event);
+        $this->assertNotEmpty($event->get_name());
+
+        // Invalid SCO.
+        try {
+            mod_scorm_external::launch_sco($this->scorm->id, -1);
+            $this->fail('Exception expected due to invalid SCO id.');
+        } catch (moodle_exception $e) {
+            $this->assertEquals('cannotfindsco', $e->errorcode);
+        }
     }
 }

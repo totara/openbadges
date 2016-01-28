@@ -24,7 +24,6 @@ require_once(dirname(dirname(__FILE__)).'/config.php');
 require_once($CFG->dirroot .'/blog/lib.php');
 require_once($CFG->dirroot .'/blog/locallib.php');
 require_once($CFG->dirroot .'/course/lib.php');
-require_once($CFG->dirroot .'/tag/lib.php');
 require_once($CFG->dirroot .'/comment/lib.php');
 
 $id       = optional_param('id', null, PARAM_INT);
@@ -40,13 +39,13 @@ $search   = optional_param('search', null, PARAM_RAW);
 
 comment::init();
 
-$url_params = compact('id', 'start', 'tag', 'userid', 'tagid', 'modid', 'entryid', 'groupid', 'courseid', 'search');
-foreach ($url_params as $var => $val) {
+$urlparams = compact('id', 'start', 'tag', 'userid', 'tagid', 'modid', 'entryid', 'groupid', 'courseid', 'search');
+foreach ($urlparams as $var => $val) {
     if (empty($val)) {
-        unset($url_params[$var]);
+        unset($urlparams[$var]);
     }
 }
-$PAGE->set_url('/blog/index.php', $url_params);
+$PAGE->set_url('/blog/index.php', $urlparams);
 
 // Correct tagid if a text tag is provided as a param.
 if (!empty($tag)) {
@@ -63,9 +62,9 @@ if ($entryid and !isset($userid)) {
     $userid = $entry->userid;
 }
 
-if (isset($userid) && !isset($courseid)) {
+if (isset($userid) && empty($courseid)) {
     $context = context_user::instance($userid);
-} else if (isset($courseid) && $courseid != SITEID) {
+} else if (!empty($courseid) && $courseid != SITEID) {
     $context = context_course::instance($courseid);
 } else {
     $context = context_system::instance();
@@ -121,7 +120,7 @@ if (!empty($groupid) && empty($courseid)) {
 
 if (!$userid && has_capability('moodle/blog:view', $sitecontext) && $CFG->bloglevel > BLOG_USER_LEVEL) {
     if ($entryid) {
-        if (!$entryobject = $DB->get_record('post', array('id'=>$entryid))) {
+        if (!$entryobject = $DB->get_record('post', array('id' => $entryid))) {
             print_error('nosuchentry', 'blog');
         }
         $userid = $entryobject->userid;
@@ -148,12 +147,12 @@ if ((empty($courseid) ? true : $courseid == SITEID) && empty($userid)) {
         print_error('cannotviewsiteblog', 'blog');
     }
 
-    $COURSE = $DB->get_record('course', array('format'=>'site'));
+    $COURSE = $DB->get_record('course', array('format' => 'site'));
     $courseid = $COURSE->id;
 }
 
 if (!empty($courseid)) {
-    if (!$course = $DB->get_record('course', array('id'=>$courseid))) {
+    if (!$course = $DB->get_record('course', array('id' => $courseid))) {
         print_error('invalidcourseid');
     }
 
@@ -176,7 +175,7 @@ if (!empty($groupid)) {
         print_error(get_string('invalidgroupid', 'blog'));
     }
 
-    if (!$course = $DB->get_record('course', array('id'=>$group->courseid))) {
+    if (!$course = $DB->get_record('course', array('id' => $group->courseid))) {
         print_error('invalidcourseid');
     }
 
@@ -200,7 +199,7 @@ if (!empty($userid)) {
         print_error('blogdisable', 'blog');
     }
 
-    if (!$user = $DB->get_record('user', array('id'=>$userid))) {
+    if (!$user = $DB->get_record('user', array('id' => $userid))) {
         print_error('invaliduserid');
     }
 

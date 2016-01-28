@@ -60,8 +60,10 @@ class mod_forum_external extends external_api {
 
         $params = self::validate_parameters(self::get_forums_by_courses_parameters(), array('courseids' => $courseids));
 
+        $courses = array();
         if (empty($params['courseids'])) {
-            $params['courseids'] = array_keys(enrol_get_my_courses());
+            $courses = enrol_get_my_courses();
+            $params['courseids'] = array_keys($courses);
         }
 
         // Array to store the forums to return.
@@ -71,7 +73,7 @@ class mod_forum_external extends external_api {
         // Ensure there are courseids to loop through.
         if (!empty($params['courseids'])) {
 
-            list($courses, $warnings) = external_util::validate_courses($params['courseids']);
+            list($courses, $warnings) = external_util::validate_courses($params['courseids'], $courses);
 
             // Get the forums in this course. This function checks users visibility permissions.
             $forums = get_all_instances_in_courses("forum", $courses);
@@ -476,14 +478,14 @@ class mod_forum_external extends external_api {
                 $post->children = array();
             }
 
-            $userpicture = new user_picture($post);
-            $userpicture->size = 1; // Size f1.
-            $post->userpictureurl = $userpicture->get_url($PAGE)->out(false);
-
             $user = new stdclass();
             $user->id = $post->userid;
-            $user = username_load_fields_from_object($user, $post);
+            $user = username_load_fields_from_object($user, $post, null, array('picture', 'imagealt', 'email'));
             $post->userfullname = fullname($user, $canviewfullname);
+
+            $userpicture = new user_picture($user);
+            $userpicture->size = 1; // Size f1.
+            $post->userpictureurl = $userpicture->get_url($PAGE)->out(false);
 
             // Rewrite embedded images URLs.
             list($post->message, $post->messageformat) =
@@ -647,7 +649,7 @@ class mod_forum_external extends external_api {
         // Check they have the view forum capability.
         require_capability('mod/forum:viewdiscussion', $modcontext, null, true, 'noviewdiscussionspermission', 'forum');
 
-        $sort = 'd.' . $sortby . ' ' . $sortdirection;
+        $sort = 'd.pinned DESC, d.' . $sortby . ' ' . $sortdirection;
         $alldiscussions = forum_get_discussions($cm, $sort, true, -1, -1, true, $page, $perpage, FORUM_POSTS_ALL_USER_GROUPS);
 
         if ($alldiscussions) {
@@ -799,7 +801,8 @@ class mod_forum_external extends external_api {
                                 'userpictureurl' => new external_value(PARAM_URL, 'Post author picture.'),
                                 'usermodifiedpictureurl' => new external_value(PARAM_URL, 'Post modifier picture.'),
                                 'numreplies' => new external_value(PARAM_TEXT, 'The number of replies in the discussion'),
-                                'numunread' => new external_value(PARAM_INT, 'The number of unread discussions.')
+                                'numunread' => new external_value(PARAM_INT, 'The number of unread discussions.'),
+                                'pinned' => new external_value(PARAM_BOOL, 'Is the discussion pinned')
                             ), 'post'
                         )
                     ),
@@ -1113,6 +1116,7 @@ class mod_forum_external extends external_api {
                             'name' => new external_value(PARAM_ALPHANUM,
                                         'The allowed keys (value format) are:
                                         discussionsubscribe (bool); subscribe to the discussion?, default to true
+                                        discussionpinned    (bool); is the discussion pinned, default to false
                             '),
                             'value' => new external_value(PARAM_RAW, 'The value of the option,
                                                             This param is validated in the external function.'
@@ -1149,12 +1153,16 @@ class mod_forum_external extends external_api {
                                             ));
         // Validate options.
         $options = array(
-            'discussionsubscribe' => true
+            'discussionsubscribe' => true,
+            'discussionpinned' => false
         );
         foreach ($params['options'] as $option) {
             $name = trim($option['name']);
             switch ($name) {
                 case 'discussionsubscribe':
+                    $value = clean_param($option['value'], PARAM_BOOL);
+                    break;
+                case 'discussionpinned':
                     $value = clean_param($option['value'], PARAM_BOOL);
                     break;
                 default:
@@ -1208,6 +1216,11 @@ class mod_forum_external extends external_api {
         $discussion->name = $discussion->subject;
         $discussion->timestart = 0;
         $discussion->timeend = 0;
+        if (has_capability('mod/forum:pindiscussions', $context) && $options['discussionpinned']) {
+            $discussion->pinned = FORUM_DISCUSSION_PINNED;
+        } else {
+            $discussion->pinned = FORUM_DISCUSSION_UNPINNED;
+        }
 
         if ($discussionid = forum_add_discussion($discussion)) {
 
@@ -1255,6 +1268,72 @@ class mod_forum_external extends external_api {
         return new external_single_structure(
             array(
                 'discussionid' => new external_value(PARAM_INT, 'New Discussion ID'),
+                'warnings' => new external_warnings()
+            )
+        );
+    }
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     * @since Moodle 3.1
+     */
+    public static function can_add_discussion_parameters() {
+        return new external_function_parameters(
+            array(
+                'forumid' => new external_value(PARAM_INT, 'Forum instance ID'),
+                'groupid' => new external_value(PARAM_INT, 'The group to check, default to active group.
+                                                Use -1 to check if the user can post in all the groups.', VALUE_DEFAULT, null)
+            )
+        );
+    }
+
+    /**
+     * Check if the current user can add discussions in the given forum (and optionally for the given group).
+     *
+     * @param int $forumid the forum instance id
+     * @param int $groupid the group to check, default to active group. Use -1 to check if the user can post in all the groups.
+     * @return array of warnings and the status (true if the user can add discussions)
+     * @since Moodle 3.1
+     * @throws moodle_exception
+     */
+    public static function can_add_discussion($forumid, $groupid = null) {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . "/mod/forum/lib.php");
+
+        $params = self::validate_parameters(self::can_add_discussion_parameters(),
+                                            array(
+                                                'forumid' => $forumid,
+                                                'groupid' => $groupid,
+                                            ));
+        $warnings = array();
+
+        // Request and permission validation.
+        $forum = $DB->get_record('forum', array('id' => $params['forumid']), '*', MUST_EXIST);
+        list($course, $cm) = get_course_and_cm_from_instance($forum, 'forum');
+
+        $context = context_module::instance($cm->id);
+        self::validate_context($context);
+
+        $status = forum_user_can_post_discussion($forum, $params['groupid'], -1, $cm, $context);
+
+        $result = array();
+        $result['status'] = $status;
+        $result['warnings'] = $warnings;
+        return $result;
+    }
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_description
+     * @since Moodle 3.1
+     */
+    public static function can_add_discussion_returns() {
+        return new external_single_structure(
+            array(
+                'status' => new external_value(PARAM_BOOL, 'True if the user can add discussions, false otherwise.'),
                 'warnings' => new external_warnings()
             )
         );

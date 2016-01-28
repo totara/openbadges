@@ -72,6 +72,11 @@ $string['region-side-post'] = 'Right';
 $string['region-side-pre'] = 'Left';
 $string['secondarybackground'] = 'Secondary background colour';
 $string['secondarybackground_desc'] = 'The background colour of any secondary content, such as blocks.';
+$string['sitelogo'] = 'Site logo';
+$string['sitename'] = 'Display site name along with small logo';
+$string['sitenamedesc'] = 'If there is no small logo, the site name is always displayed in the navigation bar. If a small logo is set, it may be displayed with or without the site name.';
+$string['smalllogo'] = 'Small logo';
+$string['smalllogodesc'] = 'The small logo is displayed in the navigation bar. If there is a header logo for the front page and login page, the small logo is not displayed on these pages.';
 $string['textcolor'] = 'Text colour';
 $string['textcolor_desc'] = 'The colour of the text.';
 

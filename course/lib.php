@@ -1648,7 +1648,6 @@ function course_delete_module($cmid) {
     require_once($CFG->libdir.'/questionlib.php');
     require_once($CFG->dirroot.'/blog/lib.php');
     require_once($CFG->dirroot.'/calendar/lib.php');
-    require_once($CFG->dirroot.'/tag/lib.php');
 
     // Get the course module.
     if (!$cm = $DB->get_record('course_modules', array('id' => $cmid))) {
@@ -1717,7 +1716,7 @@ function course_delete_module($cmid) {
                                                             'criteriatype' => COMPLETION_CRITERIA_TYPE_ACTIVITY));
 
     // Delete all tag instances associated with the instance of this module.
-    tag_delete_instances('mod_' . $modulename, $modcontext->id);
+    core_tag_tag::delete_instances('mod_' . $modulename, null, $modcontext->id);
 
     // Delete the context.
     context_helper::delete_instance(CONTEXT_MODULE, $cm->id);
@@ -1842,7 +1841,40 @@ function move_section_to($course, $section, $destination, $ignorenumsections = f
  * @return bool whether section was deleted
  */
 function course_delete_section($course, $section, $forcedeleteifnotempty = true) {
-    return course_get_format($course)->delete_section($section, $forcedeleteifnotempty);
+    global $DB;
+
+    // Prepare variables.
+    $courseid = (is_object($course)) ? $course->id : (int)$course;
+    $sectionnum = (is_object($section)) ? $section->section : (int)$section;
+    $section = $DB->get_record('course_sections', array('course' => $courseid, 'section' => $sectionnum));
+    if (!$section) {
+        // No section exists, can't proceed.
+        return false;
+    }
+    $format = course_get_format($course);
+    $sectionname = $format->get_section_name($section);
+
+    // Delete section.
+    $result = $format->delete_section($section, $forcedeleteifnotempty);
+
+    // Trigger an event for course section deletion.
+    if ($result) {
+        $context = context_course::instance($courseid);
+        $event = \core\event\course_section_deleted::create(
+                array(
+                    'objectid' => $section->id,
+                    'courseid' => $courseid,
+                    'context' => $context,
+                    'other' => array(
+                        'sectionnum' => $section->section,
+                        'sectionname' => $sectionname,
+                    )
+                )
+            );
+        $event->add_record_snapshot('course_sections', $section);
+        $event->trigger();
+    }
+    return $result;
 }
 
 /**
@@ -2486,6 +2518,8 @@ function save_local_role_names($courseid, $data) {
             $rolename->name = $value;
             $DB->insert_record('role_names', $rolename);
         }
+        // This will ensure the course contacts cache is purged..
+        coursecat::role_assignment_changed($roleid, $context);
     }
 }
 
@@ -2548,7 +2582,6 @@ function course_overviewfiles_options($course) {
  */
 function create_course($data, $editoroptions = NULL) {
     global $DB, $CFG;
-    require_once($CFG->dirroot.'/tag/lib.php');
 
     //check the categoryid - must be given for all new courses
     $category = $DB->get_record('course_categories', array('id'=>$data->category), '*', MUST_EXIST);
@@ -2634,8 +2667,8 @@ function create_course($data, $editoroptions = NULL) {
     enrol_course_updated(true, $course, $data);
 
     // Update course tags.
-    if ($CFG->usetags && isset($data->tags)) {
-        tag_set('course', $course->id, $data->tags, 'core', context_course::instance($course->id)->id);
+    if (isset($data->tags)) {
+        core_tag_tag::set_item_tags('core', 'course', $course->id, context_course::instance($course->id), $data->tags);
     }
 
     return $course;
@@ -2653,7 +2686,6 @@ function create_course($data, $editoroptions = NULL) {
  */
 function update_course($data, $editoroptions = NULL) {
     global $DB, $CFG;
-    require_once($CFG->dirroot.'/tag/lib.php');
 
     $data->timemodified = time();
 
@@ -2741,8 +2773,8 @@ function update_course($data, $editoroptions = NULL) {
     enrol_course_updated(false, $course, $data);
 
     // Update course tags.
-    if ($CFG->usetags && isset($data->tags)) {
-        tag_set('course', $course->id, $data->tags, 'core', context_course::instance($course->id)->id);
+    if (isset($data->tags)) {
+        core_tag_tag::set_item_tags('core', 'course', $course->id, context_course::instance($course->id), $data->tags);
     }
 
     // Trigger a course updated event.
@@ -3793,4 +3825,37 @@ function course_view($context, $sectionnumber = 0) {
 
     $event = \core\event\course_viewed::create($eventdata);
     $event->trigger();
+}
+
+/**
+ * Returns courses tagged with a specified tag.
+ *
+ * @param core_tag_tag $tag
+ * @param bool $exclusivemode if set to true it means that no other entities tagged with this tag
+ *             are displayed on the page and the per-page limit may be bigger
+ * @param int $fromctx context id where the link was displayed, may be used by callbacks
+ *            to display items in the same context first
+ * @param int $ctx context id where to search for records
+ * @param bool $rec search in subcontexts as well
+ * @param int $page 0-based number of page being displayed
+ * @return \core_tag\output\tagindex
+ */
+function course_get_tagged_courses($tag, $exclusivemode = false, $fromctx = 0, $ctx = 0, $rec = 1, $page = 0) {
+    global $CFG, $PAGE;
+    require_once($CFG->libdir . '/coursecatlib.php');
+
+    $perpage = $exclusivemode ? $CFG->coursesperpage : 5;
+    $displayoptions = array(
+        'limit' => $perpage,
+        'offset' => $page * $perpage,
+        'viewmoreurl' => null,
+    );
+
+    $courserenderer = $PAGE->get_renderer('core', 'course');
+    $totalcount = coursecat::search_courses_count(array('tagid' => $tag->id, 'ctx' => $ctx, 'rec' => $rec));
+    $content = $courserenderer->tagged_courses($tag->id, $exclusivemode, $ctx, $rec, $displayoptions);
+    $totalpages = ceil($totalcount / $perpage);
+
+    return new core_tag\output\tagindex($tag, 'core', 'course', $content,
+            $exclusivemode, $fromctx, $ctx, $rec, $page, $totalpages);
 }

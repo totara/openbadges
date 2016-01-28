@@ -26,13 +26,14 @@ module.exports = function(grunt) {
     var path = require('path'),
         fs = require('fs'),
         tasks = {},
-        cwd = process.env.PWD || process.cwd();
+        cwd = process.env.PWD || process.cwd(),
+        inAMD = path.basename(cwd) == 'amd';
 
     // Project configuration.
     grunt.initConfig({
         jshint: {
             options: {jshintrc: '.jshintrc'},
-            files: ['**/amd/src/*.js']
+            files: [inAMD ? cwd + '/src/*.js' : '**/amd/src/*.js']
         },
         uglify: {
             dynamic_mappings: {
@@ -50,6 +51,17 @@ module.exports = function(grunt) {
                     }
                 )
             }
+        },
+        less: {
+            bootstrapbase: {
+                files: {
+                    "theme/bootstrapbase/style/moodle.css": "theme/bootstrapbase/less/moodle.less",
+                    "theme/bootstrapbase/style/editor.css": "theme/bootstrapbase/less/editor.less",
+                },
+                options: {
+                    compress: true
+                }
+           }
         }
     });
 
@@ -101,6 +113,10 @@ module.exports = function(grunt) {
             // Add the stderr option if appropriate
             if (grunt.option('verbose')) {
                 args.push('--lint-stderr');
+            }
+
+            if (grunt.option('no-color')) {
+                args.push('--color=false');
             }
 
             var execShifter = function() {
@@ -207,14 +223,12 @@ module.exports = function(grunt) {
         if (path.basename(path.resolve(cwd, '../../')) == 'yui') {
             grunt.task.run('shifter');
         // Are we in an AMD directory?
-        } else if (path.basename(cwd) == 'amd') {
-            grunt.task.run('jshint');
-            grunt.task.run('uglify');
+        } else if (inAMD) {
+            grunt.task.run('amd');
         } else {
             // Run them all!.
-            grunt.task.run('shifter');
-            grunt.task.run('jshint');
-            grunt.task.run('uglify');
+            grunt.task.run('css');
+            grunt.task.run('js');
         }
     };
 
@@ -222,9 +236,15 @@ module.exports = function(grunt) {
     // Register NPM tasks.
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-jshint');
+    grunt.loadNpmTasks('grunt-contrib-less');
 
-    // Register the shifter task.
+    // Register JS tasks.
     grunt.registerTask('shifter', 'Run Shifter against the current directory', tasks.shifter);
+    grunt.registerTask('amd', ['jshint', 'uglify']);
+    grunt.registerTask('js', ['amd', 'shifter']);
+
+    // Register CSS taks.
+    grunt.registerTask('css', ['less:bootstrapbase']);
 
     // Register the startup task.
     grunt.registerTask('startup', 'Run the correct tasks for the current directory', tasks.startup);

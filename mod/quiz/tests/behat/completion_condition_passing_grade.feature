@@ -17,7 +17,6 @@ Feature: Set a quiz to be marked complete when the student passes
       | teacher1 | C1     | editingteacher |
       | student1 | C1     | student        |
     And the following config values are set as admin:
-      | enablecompletion    | 1           |
       | grade_item_advanced | hiddenuntil |
     And the following "question categories" exist:
       | contextlevel | reference | name           |
@@ -39,7 +38,7 @@ Feature: Set a quiz to be marked complete when the student passes
     And I follow "Test quiz name"
     And I press "Attempt quiz now"
     And I set the field "True" to "1"
-    And I press "Next"
+    And I press "Finish attempt ..."
     And I press "Submit all and finish"
     And I follow "C1"
     Then "//img[contains(@alt, 'Completed: Test quiz name')]" "xpath_element" should exist in the "li.modtype_quiz" "css_element"

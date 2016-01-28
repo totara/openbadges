@@ -1,6 +1,43 @@
 This files describes API changes in core libraries and APIs,
 information provided here is intended especially for developers.
 
+=== 3.1 ===
+
+* Plugins can extend the navigation for user by declaring the following callback:
+  <frankenstyle>_extend_navigation_user(navigation_node $parentnode, stdClass $user,
+                                        context_user $context, stdClass $course,
+                                        context_course $coursecontext)
+* The function notify() now throws a debugging message - see MDL-50269.
+* Ajax calls going through lib/ajax/* now validate the return values before sending
+  the response. If the validation does not pass an exception is raised. This behaviour
+  is consistent with web services.
+* Several changes in Moodle core, standard plugins and third party libraries to
+  ensure compatibility with PHP7. All plugins are recommended to perform testing
+  against PHP7 as well. Refer to https://docs.moodle.org/dev/Moodle_and_PHP7 for more
+  information. The following changes may affect you:
+  * Class moodleform, moodleform_mod and some module classes have been changed to use
+    __construct() for the constructor. Calling parent constructors by the class
+    name will display debugging message. Incorrect: parent::moodleform(),
+    correct: parent::__construct()
+  * All form elements have also changed the constructor syntax. No changes are
+    needed for using form elements, however if plugin defines new form element it
+    needs to use correct syntax. For example, incorrect: parent::HTML_QuickForm_input(),
+    HTML_QuickForm_input::HTML_QuickForm_input(), $this->HTML_QuickForm_input().
+    Correct: HTML_QuickForm_input::__construct() or parent::__construct().
+  * profile_field_base::profile_field_base() is deprecated, use parent::__construct()
+    in custom profile fields constructors. Similar deprecations in exsiting
+    profile_field_* classes.
+  * user_filter_type::user_filter_type() is deprecated, use parent::__construct() in
+    custom user filters. Similar deprecations in existing user_filter_* classes.
+  * table_default_export_format_parent::table_default_export_format_parent() is
+    deprecated, use parent::__construct() in extending classes.
+* groups_delete_group_members() $showfeedback parameter has been removed and is no longer
+  respected. Users of this function should output their own feedback if required.
+* Number of changes to Tags API, see tag/upgrade.txt for more details
+* The previous events API handlers are being deprecated in favour of events 2 API, debugging messages are being displayed if
+  there are 3rd party plugins using it. Switch to events 2 API please, see https://docs.moodle.org/dev/Event_2#Event_dispatching_and_observers
+  Note than you will need to bump the plugin version so moodle is aware that you removed the plugin's event handlers.
+
 === 3.0 ===
 
 * Minify updated to 2.2.1
@@ -151,6 +188,7 @@ information provided here is intended especially for developers.
   line interface scripts.
 * External function core_course_external::get_course_contents returned parameter "name" has been changed to PARAM_RAW,
   this is because the new external_format_string function may return raw data if the global moodlewssettingraw parameter is used.
+* Function is_web_crawler() has been deprecated, please use core_useragent::is_web_crawler() instead.
 
 === 2.9.1 ===
 
