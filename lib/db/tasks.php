@@ -285,6 +285,24 @@ $tasks = array(
         'month' => '*'
     ),
     array(
+        'classname' => 'core\task\search_index_task',
+        'blocking' => 0,
+        'minute' => '*/30',
+        'hour' => '*',
+        'day' => '*',
+        'dayofweek' => '*',
+        'month' => '*'
+    ),
+    array(
+        'classname' => 'core\task\search_optimize_task',
+        'blocking' => 0,
+        'minute' => '15',
+        'hour' => '*/12',
+        'day' => '*',
+        'dayofweek' => '*',
+        'month' => '*'
+    ),
+    array(
         'classname' => 'core\task\stats_cron_task',
         'blocking' => 0,
         'minute' => '0',

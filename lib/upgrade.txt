@@ -3,6 +3,40 @@ information provided here is intended especially for developers.
 
 === 3.1 ===
 
+* The core_user::fill_properties_cache() static method has been introduced to be a reference
+  and allow standard user fields data validation. Right now only type validation is supported
+  checking it against the parameter (PARAM_*) type of the target user field. MDL-52781 is
+  going to add support to null/not null and choices validation, replacing the existing code to
+  validate the user fields in different places in a common way.
+* Webservice function core_course_search_courses now returns results when the search string
+  is less than 2 chars long.
+* Webservice function core_course_search_courses accepts a new parameter 'requiredcapabilities' to filter the results
+  by the capabilities of the current user.
+* New mform element 'course' handles thousands of courses with good performance and usability.
+* The redirect() function will now redirect immediately if output has not
+  already started. Messages will be displayed on the subsequent page using
+  session notifications. The type of message output can be configured using the
+  fourth parameter to redirect().
+* The specification of extra classes in the $OUTPUT->notification()
+  function, and \core\output\notification renderable have been deprecated
+  and will be removed in a future version.
+  Notifications should use the levels found in \core\output\notification.
+* The constants for NOTIFY_PROBLEM, NOTIFY_REDIRECT, and NOTIFY_MESSAGE in
+  \core\output\notification have been deprecated in favour of NOTIFY_ERROR,
+  NOTIFY_WARNING, and NOTIFY_INFO respectively.
+* The following functions, previously used (exclusively) by upgrade steps are not available
+  anymore because of the upgrade cleanup performed for this version. See MDL-51580 for more info:
+    - upgrade_mysql_fix_unsigned_and_lob_columns()
+    - upgrade_course_completion_remove_duplicates()
+    - upgrade_save_orphaned_questions()
+    - upgrade_rename_old_backup_files_using_shortname()
+    - upgrade_mssql_nvarcharmax()
+    - upgrade_mssql_varbinarymax()
+    - upgrade_fix_missing_root_folders()
+    - upgrade_course_modules_sequences()
+    - upgrade_grade_item_fix_sortorder()
+    - upgrade_availability_item()
+
 * Plugins can extend the navigation for user by declaring the following callback:
   <frankenstyle>_extend_navigation_user(navigation_node $parentnode, stdClass $user,
                                         context_user $context, stdClass $course,
@@ -37,6 +71,16 @@ information provided here is intended especially for developers.
 * The previous events API handlers are being deprecated in favour of events 2 API, debugging messages are being displayed if
   there are 3rd party plugins using it. Switch to events 2 API please, see https://docs.moodle.org/dev/Event_2#Event_dispatching_and_observers
   Note than you will need to bump the plugin version so moodle is aware that you removed the plugin's event handlers.
+* mforms validation functions are not available in the global JS namespace anymore, event listeners
+  are assigned to fields and buttons through a self-contained JS function.
+* Added $CFG->urlrewriteclass option to config.php allowing clean / semantic urls to
+  be implemented in a plugin, eg local_cleanurls.
+* $CFG->pathtoclam global setting has been moved to clamav antivirus plugin setting of the same name.
+* clam_message_admins() and get_clam_error_code() have been deprecated, its functionality
+  is now a part of \antivirus_clamav\scanner class methods.
+* \repository::antivir_scan_file() has been deprecated, \core\antivirus\manager::scan_file() that
+  applies antivirus plugins is replacing its functionality.
+* Added core_text::str_max_bytes() which safely truncates multi-byte strings to a maximum number of bytes.
 
 === 3.0 ===
 

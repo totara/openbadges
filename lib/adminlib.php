@@ -1458,7 +1458,11 @@ class admin_settingpage implements part_of_admin_tree {
             return false;
         }
 
-        $this->settings->{$setting->name} = $setting;
+        $name = $setting->name;
+        if ($setting->plugin) {
+            $name = $setting->plugin . $name;
+        }
+        $this->settings->{$name} = $setting;
         return true;
     }
 
@@ -6490,6 +6494,186 @@ class admin_setting_manageeditors extends admin_setting {
     }
 }
 
+/**
+ * Special class for antiviruses administration.
+ *
+ * @copyright  2015 Ruslan Kabalin, Lancaster University.
+ * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class admin_setting_manageantiviruses extends admin_setting {
+    /**
+     * Calls parent::__construct with specific arguments
+     */
+    public function __construct() {
+        $this->nosave = true;
+        parent::__construct('antivirusesui', get_string('antivirussettings', 'antivirus'), '', '');
+    }
+
+    /**
+     * Always returns true, does nothing
+     *
+     * @return true
+     */
+    public function get_setting() {
+        return true;
+    }
+
+    /**
+     * Always returns true, does nothing
+     *
+     * @return true
+     */
+    public function get_defaultsetting() {
+        return true;
+    }
+
+    /**
+     * Always returns '', does not write anything
+     *
+     * @param string $data Unused
+     * @return string Always returns ''
+     */
+    public function write_setting($data) {
+        // Do not write any setting.
+        return '';
+    }
+
+    /**
+     * Checks if $query is one of the available editors
+     *
+     * @param string $query The string to search for
+     * @return bool Returns true if found, false if not
+     */
+    public function is_related($query) {
+        if (parent::is_related($query)) {
+            return true;
+        }
+
+        $antivirusesavailable = \core\antivirus\manager::get_available();
+        foreach ($antivirusesavailable as $antivirus => $antivirusstr) {
+            if (strpos($antivirus, $query) !== false) {
+                return true;
+            }
+            if (strpos(core_text::strtolower($antivirusstr), $query) !== false) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Builds the XHTML to display the control
+     *
+     * @param string $data Unused
+     * @param string $query
+     * @return string
+     */
+    public function output_html($data, $query='') {
+        global $CFG, $OUTPUT;
+
+        // Display strings.
+        $txt = get_strings(array('administration', 'settings', 'edit', 'name', 'enable', 'disable',
+            'up', 'down', 'none'));
+        $struninstall = get_string('uninstallplugin', 'core_admin');
+
+        $txt->updown = "$txt->up/$txt->down";
+
+        $antivirusesavailable = \core\antivirus\manager::get_available();
+        $activeantiviruses = explode(',', $CFG->antiviruses);
+
+        $activeantiviruses = array_reverse($activeantiviruses);
+        foreach ($activeantiviruses as $key => $antivirus) {
+            if (empty($antivirusesavailable[$antivirus])) {
+                unset($activeantiviruses[$key]);
+            } else {
+                $name = $antivirusesavailable[$antivirus];
+                unset($antivirusesavailable[$antivirus]);
+                $antivirusesavailable[$antivirus] = $name;
+            }
+        }
+        $antivirusesavailable = array_reverse($antivirusesavailable, true);
+        $return = $OUTPUT->heading(get_string('actantivirushdr', 'antivirus'), 3, 'main', true);
+        $return .= $OUTPUT->box_start('generalbox antivirusesui');
+
+        $table = new html_table();
+        $table->head  = array($txt->name, $txt->enable, $txt->updown, $txt->settings, $struninstall);
+        $table->colclasses = array('leftalign', 'centeralign', 'centeralign', 'centeralign', 'centeralign');
+        $table->id = 'antivirusmanagement';
+        $table->attributes['class'] = 'admintable generaltable';
+        $table->data  = array();
+
+        // Iterate through auth plugins and add to the display table.
+        $updowncount = 1;
+        $antiviruscount = count($activeantiviruses);
+        $baseurl = new moodle_url('/admin/antiviruses.php', array('sesskey' => sesskey()));
+        foreach ($antivirusesavailable as $antivirus => $name) {
+            // Hide/show link.
+            $class = '';
+            if (in_array($antivirus, $activeantiviruses)) {
+                $hideshowurl = $baseurl;
+                $hideshowurl->params(array('action' => 'disable', 'antivirus' => $antivirus));
+                $hideshowimg = html_writer::img($OUTPUT->pix_url('t/hide'), 'disable', array('class' => 'iconsmall'));
+                $hideshow = html_writer::link($hideshowurl, $hideshowimg);
+                $enabled = true;
+                $displayname = $name;
+            } else {
+                $hideshowurl = $baseurl;
+                $hideshowurl->params(array('action' => 'enable', 'antivirus' => $antivirus));
+                $hideshowimg = html_writer::img($OUTPUT->pix_url('t/show'), 'enable', array('class' => 'iconsmall'));
+                $hideshow = html_writer::link($hideshowurl, $hideshowimg);
+                $enabled = false;
+                $displayname = $name;
+                $class = 'dimmed_text';
+            }
+
+            // Up/down link.
+            $updown = '';
+            if ($enabled) {
+                if ($updowncount > 1) {
+                    $updownurl = $baseurl;
+                    $updownurl->params(array('action' => 'up', 'antivirus' => $antivirus));
+                    $updownimg = html_writer::img($OUTPUT->pix_url('t/up'), 'up', array('class' => 'iconsmall'));
+                    $updown = html_writer::link($updownurl, $updownimg);
+                } else {
+                    $updown .= html_writer::img($OUTPUT->pix_url('spacer'), '', array('class' => 'iconsmall'));
+                }
+                if ($updowncount < $antiviruscount) {
+                    $updownurl = $baseurl;
+                    $updownurl->params(array('action' => 'down', 'antivirus' => $antivirus));
+                    $updownimg = html_writer::img($OUTPUT->pix_url('t/down'), 'down', array('class' => 'iconsmall'));
+                    $updown = html_writer::link($updownurl, $updownimg);
+                } else {
+                    $updown .= html_writer::img($OUTPUT->pix_url('spacer'), '', array('class' => 'iconsmall'));
+                }
+                ++ $updowncount;
+            }
+
+            // Settings link.
+            if (file_exists($CFG->dirroot.'/lib/antivirus/'.$antivirus.'/settings.php')) {
+                $eurl = new moodle_url('/admin/settings.php', array('section' => 'antivirussettings'.$antivirus));
+                $settings = html_writer::link($eurl, $txt->settings);
+            } else {
+                $settings = '';
+            }
+
+            $uninstall = '';
+            if ($uninstallurl = core_plugin_manager::instance()->get_uninstall_url('antivirus_'.$antivirus, 'manage')) {
+                $uninstall = html_writer::link($uninstallurl, $struninstall);
+            }
+
+            // Add a row to the table.
+            $row = new html_table_row(array($displayname, $hideshow, $updown, $settings, $uninstall));
+            if ($class) {
+                $row->attributes['class'] = $class;
+            }
+            $table->data[] = $row;
+        }
+        $return .= html_writer::table($table);
+        $return .= get_string('configantivirusplugins', 'antivirus') . html_writer::empty_tag('br') . get_string('tablenosave', 'admin');
+        $return .= $OUTPUT->box_end();
+        return highlight($query, $return);
+    }
+}
 
 /**
  * Special class for license administration.
@@ -9264,4 +9448,173 @@ class admin_setting_forcetimezone extends admin_setting_configselect {
 
         return true;
     }
+}
+
+
+/**
+ * Search setup steps info.
+ *
+ * @package core
+ * @copyright 2016 David Monllao {@link http://www.davidmonllao.com}
+ * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class admin_setting_searchsetupinfo extends admin_setting {
+
+    /**
+     * Calls parent::__construct with specific arguments
+     */
+    public function __construct() {
+        $this->nosave = true;
+        parent::__construct('searchsetupinfo', '', '', '');
+    }
+
+    /**
+     * Always returns true, does nothing
+     *
+     * @return true
+     */
+    public function get_setting() {
+        return true;
+    }
+
+    /**
+     * Always returns true, does nothing
+     *
+     * @return true
+     */
+    public function get_defaultsetting() {
+        return true;
+    }
+
+    /**
+     * Always returns '', does not write anything
+     *
+     * @param array $data
+     * @return string Always returns ''
+     */
+    public function write_setting($data) {
+        // Do not write any setting.
+        return '';
+    }
+
+    /**
+     * Builds the HTML to display the control
+     *
+     * @param string $data Unused
+     * @param string $query
+     * @return string
+     */
+    public function output_html($data, $query='') {
+        global $CFG, $OUTPUT;
+
+        $return = '';
+        $brtag = html_writer::empty_tag('br');
+
+        // Available search areas.
+        $searchareas = \core_search\manager::get_search_areas_list();
+        $anyenabled = false;
+        $anyindexed = false;
+        foreach ($searchareas as $areaid => $searcharea) {
+            list($componentname, $varname) = $searcharea->get_config_var_name();
+            if (!$anyenabled) {
+                $anyenabled = get_config($componentname, $varname . '_enabled');
+            }
+            if (!$anyindexed) {
+                $anyindexed = get_config($componentname, $varname . '_indexingstart');
+            }
+            if ($anyenabled && $anyindexed) {
+                break;
+            }
+        }
+
+        $return .= $OUTPUT->heading(get_string('searchsetupinfo', 'admin'), 3, 'main');
+
+        $table = new html_table();
+        $table->head = array(get_string('step', 'search'), get_string('status'));
+        $table->colclasses = array('leftalign step', 'leftalign status');
+        $table->id = 'searchsetup';
+        $table->attributes['class'] = 'admintable generaltable';
+        $table->data = array();
+
+        $return .= $brtag . get_string('searchsetupdescription', 'search') . $brtag . $brtag;
+
+        // Select a search engine.
+        $row = array();
+        $url = new moodle_url('/admin/settings.php?section=manageglobalsearch#admin-searchengine');
+        $row[0] = '1. ' . html_writer::tag('a', get_string('selectsearchengine', 'admin'),
+                        array('href' => $url));
+
+        $status = html_writer::tag('span', get_string('no'), array('class' => 'statuscritical'));
+        if (!empty($CFG->searchengine)) {
+            $status = html_writer::tag('span', get_string('pluginname', 'search_' . $CFG->searchengine),
+                array('class' => 'statusok'));
+
+        }
+        $row[1] = $status;
+        $table->data[] = $row;
+
+        // Available areas.
+        $row = array();
+        $url = new moodle_url('/admin/settings.php?section=manageglobalsearch#admin-searchengine');
+        $row[0] = '2. ' . html_writer::tag('a', get_string('enablesearchareas', 'admin'),
+                        array('href' => $url));
+
+        $status = html_writer::tag('span', get_string('no'), array('class' => 'statuscritical'));
+        if ($anyenabled) {
+            $status = html_writer::tag('span', get_string('yes'), array('class' => 'statusok'));
+
+        }
+        $row[1] = $status;
+        $table->data[] = $row;
+
+        // Setup search engine.
+        $row = array();
+        if (empty($CFG->searchengine)) {
+            $row[0] = '3. ' . get_string('setupsearchengine', 'admin');
+            $row[1] = html_writer::tag('span', get_string('no'), array('class' => 'statuscritical'));
+        } else {
+            $url = new moodle_url('/admin/settings.php?section=search' . $CFG->searchengine);
+            $row[0] = '3. ' . html_writer::tag('a', get_string('setupsearchengine', 'admin'),
+                            array('href' => $url));
+            // Check the engine status.
+            $searchengine = \core_search\manager::search_engine_instance();
+            $serverstatus = $searchengine->is_server_ready();
+            if ($serverstatus === true) {
+                $status = html_writer::tag('span', get_string('yes'), array('class' => 'statusok'));
+            } else {
+                $status = html_writer::tag('span', $serverstatus, array('class' => 'statuscritical'));
+            }
+            $row[1] = $status;
+        }
+        $table->data[] = $row;
+
+        // Indexed data.
+        $row = array();
+        $url = new moodle_url('/report/search/index.php#searchindexform');
+        $row[0] = '4. ' . html_writer::tag('a', get_string('indexdata', 'admin'), array('href' => $url));
+        if ($anyindexed) {
+            $status = html_writer::tag('span', get_string('yes'), array('class' => 'statusok'));
+        } else {
+            $status = html_writer::tag('span', get_string('no'), array('class' => 'statuscritical'));
+        }
+        $row[1] = $status;
+        $table->data[] = $row;
+
+        // Enable global search.
+        $row = array();
+        $url = new moodle_url("/admin/search.php?query=enableglobalsearch");
+        $row[0] = '5. ' . html_writer::tag('a', get_string('enableglobalsearch', 'admin'),
+                        array('href' => $url));
+        $status = html_writer::tag('span', get_string('no'), array('class' => 'statuscritical'));
+        if (\core_search\manager::is_global_search_enabled()) {
+            $status = html_writer::tag('span', get_string('yes'), array('class' => 'statusok'));
+        }
+        $row[1] = $status;
+        $table->data[] = $row;
+
+        $return .= html_writer::table($table);
+
+        return highlight($query, $return);
+    }
+
 }

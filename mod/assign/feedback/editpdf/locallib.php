@@ -186,6 +186,67 @@ class assign_feedback_editpdf extends assign_feedback_plugin {
     }
 
     /**
+     * Check to see if the grade feedback for the pdf has been modified.
+     *
+     * @param stdClass $grade Grade object.
+     * @param stdClass $data Data from the form submission (not used).
+     * @return boolean True if the pdf has been modified, else false.
+     */
+    public function is_feedback_modified(stdClass $grade, stdClass $data) {
+        global $USER;
+        $pagenumbercount = document_services::page_number_for_attempt($this->assignment, $grade->userid, $grade->attemptnumber);
+        for ($i = 0; $i < $pagenumbercount; $i++) {
+            // Select all annotations.
+            $draftannotations = page_editor::get_annotations($grade->id, $i, true);
+            $nondraftannotations = page_editor::get_annotations($grade->id, $i, false);
+            // Check to see if the count is the same.
+            if (count($draftannotations) != count($nondraftannotations)) {
+                // The count is different so we have a modification.
+                return true;
+            } else {
+                $matches = 0;
+                // Have a closer look and see if the draft files match all the non draft files.
+                foreach ($nondraftannotations as $ndannotation) {
+                    foreach ($draftannotations as $dannotation) {
+                        foreach ($ndannotation as $key => $value) {
+                            if ($key != 'id' && $value != $dannotation->{$key}) {
+                                continue 2;
+                            }
+                        }
+                        $matches++;
+                    }
+                }
+                if ($matches !== count($nondraftannotations)) {
+                    return true;
+                }
+            }
+            // Select all comments.
+            $draftcomments = page_editor::get_comments($grade->id, $i, true);
+            $nondraftcomments = page_editor::get_comments($grade->id, $i, false);
+            if (count($draftcomments) != count($nondraftcomments)) {
+                return true;
+            } else {
+                // Go for a closer inspection.
+                $matches = 0;
+                foreach ($nondraftcomments as $ndcomment) {
+                    foreach ($draftcomments as $dcomment) {
+                        foreach ($ndcomment as $key => $value) {
+                            if ($key != 'id' && $value != $dcomment->{$key}) {
+                                continue 2;
+                            }
+                        }
+                        $matches++;
+                    }
+                }
+                if ($matches !== count($nondraftcomments)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * Generate the pdf.
      *
      * @param stdClass $grade

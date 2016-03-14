@@ -15,8 +15,8 @@ Feature: Users can flag tags and manager can reset flags
       | user     | course               | role    |
       | manager1 | Acceptance test site | manager |
     And the following "tags" exist:
-      | name         | tagtype  |
-      | Neverusedtag | official |
+      | name         | isstandard |
+      | Neverusedtag | 1          |
     And I log in as "admin"
     And I set the following system permissions of "Authenticated user" role:
       | capability                   | permission |
@@ -29,13 +29,11 @@ Feature: Users can flag tags and manager can reset flags
     And I follow "Badtag"
     And I follow "Flag as inappropriate"
     And I should see "The person responsible will be notified"
-    And I follow "Continue"
     And I navigate to "Participants" node in "Site pages"
     And I follow "User 1"
     And I follow "Sweartag"
     And I follow "Flag as inappropriate"
     And I should see "The person responsible will be notified"
-    And I follow "Continue"
     And I log out
     And I log in as "user3"
     And I navigate to "Participants" node in "Site pages"
@@ -43,7 +41,6 @@ Feature: Users can flag tags and manager can reset flags
     And I follow "Sweartag"
     And I follow "Flag as inappropriate"
     And I should see "The person responsible will be notified"
-    And I follow "Continue"
     And I log out
 
   Scenario: Managing tag flags with javascript disabled

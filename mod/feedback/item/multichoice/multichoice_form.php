@@ -63,13 +63,12 @@ class feedback_multichoice_form extends feedback_item_form {
         $mform->addElement('selectyesno',
                            'hidenoselect',
                            get_string('hide_no_select_option', 'feedback'));
+        $mform->disabledIf('hidenoselect', 'subtype', 'ne', 'r');
 
-        $mform->addElement('static',
-                           'hint',
-                           get_string('multichoice_values', 'feedback'),
-                           get_string('use_one_line_for_each_value', 'feedback'));
+        $mform->addElement('textarea', 'values', get_string('multichoice_values', 'feedback'),
+            'wrap="virtual" rows="10" cols="65"');
 
-        $mform->addElement('textarea', 'values', '', 'wrap="virtual" rows="10" cols="65"');
+        $mform->addElement('static', 'hint', '', get_string('use_one_line_for_each_value', 'feedback'));
 
         parent::definition();
         $this->set_data($item);
@@ -103,6 +102,9 @@ class feedback_multichoice_form extends feedback_item_form {
         }
         if (isset($item->horizontal) AND $item->horizontal == 1 AND $subtype != 'd') {
             $presentation .= FEEDBACK_MULTICHOICE_ADJUST_SEP.'1';
+        }
+        if (!isset($item->hidenoselect)) {
+            $item->hidenoselect = 1;
         }
 
         $item->presentation = $subtype.FEEDBACK_MULTICHOICE_TYPE_SEP.$presentation;

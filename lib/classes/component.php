@@ -341,6 +341,7 @@ $cache = '.var_export($cache, true).';
         $info = array(
             'access'      => null,
             'admin'       => $CFG->dirroot.'/'.$CFG->admin,
+            'antivirus'   => $CFG->dirroot . '/lib/antivirus',
             'auth'        => $CFG->dirroot.'/auth',
             'availability' => $CFG->dirroot . '/availability',
             'backup'      => $CFG->dirroot.'/backup/util/ui',
@@ -397,7 +398,7 @@ $cache = '.var_export($cache, true).';
             'repository'  => $CFG->dirroot.'/repository',
             'rss'         => $CFG->dirroot.'/rss',
             'role'        => $CFG->dirroot.'/'.$CFG->admin.'/roles',
-            'search'      => null,
+            'search'      => $CFG->dirroot.'/search',
             'table'       => null,
             'tag'         => $CFG->dirroot.'/tag',
             'timezones'   => null,
@@ -417,6 +418,7 @@ $cache = '.var_export($cache, true).';
         global $CFG;
 
         $types = array(
+            'antivirus'     => $CFG->dirroot . '/lib/antivirus',
             'availability'  => $CFG->dirroot . '/availability/condition',
             'qtype'         => $CFG->dirroot.'/question/type',
             'mod'           => $CFG->dirroot.'/mod',
@@ -439,6 +441,7 @@ $cache = '.var_export($cache, true).';
             'webservice'    => $CFG->dirroot.'/webservice',
             'repository'    => $CFG->dirroot.'/repository',
             'portfolio'     => $CFG->dirroot.'/portfolio',
+            'search'        => $CFG->dirroot.'/search/engine',
             'qbehaviour'    => $CFG->dirroot.'/question/behaviour',
             'qformat'       => $CFG->dirroot.'/question/format',
             'plagiarism'    => $CFG->dirroot.'/plagiarism',
@@ -895,6 +898,39 @@ $cache = '.var_export($cache, true).';
         }
 
         return $pluginfiles;
+    }
+
+    /**
+     * Returns all classes in a component matching the provided namespace.
+     *
+     * It checks that the class exists.
+     *
+     * e.g. get_component_classes_in_namespace('mod_forum', 'event')
+     *
+     * @param string $component A valid moodle component (frankenstyle)
+     * @param string $namespace Namespace from the component name.
+     * @return array The full class name as key and the class path as value.
+     */
+    public static function get_component_classes_in_namespace($component, $namespace = '') {
+
+        // We will add them later.
+        $namespace = ltrim($namespace, '\\');
+
+        // We need add double backslashes as it is how classes are stored into self::$classmap.
+        $namespace = implode('\\\\', explode('\\', $namespace));
+
+        $regex = '/^' . $component . '\\\\' . $namespace . '/';
+        $it = new RegexIterator(new ArrayIterator(self::$classmap), $regex, RegexIterator::GET_MATCH, RegexIterator::USE_KEY);
+
+        // We want to be sure that they exist.
+        $classes = array();
+        foreach ($it as $classname => $classpath) {
+            if (class_exists($classname)) {
+                $classes[$classname] = $classpath;
+            }
+        }
+
+        return $classes;
     }
 
     /**

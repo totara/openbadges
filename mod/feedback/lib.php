@@ -1418,7 +1418,6 @@ function feedback_load_feedback_items_options() {
         $feedback_options[$fn] = get_string($fn, 'feedback');
     }
     asort($feedback_options);
-    $feedback_options = array_merge( array(' ' => get_string('select')), $feedback_options );
     return $feedback_options;
 }
 
@@ -2816,7 +2815,11 @@ function feedback_get_feedbacks_from_sitecourse_map($courseid) {
         }
     }
 
-    return array_merge($feedbacks1, $feedbacks2);
+    $feedbacks = array_merge($feedbacks1, $feedbacks2);
+    $modinfo = get_fast_modinfo(SITEID);
+    return array_filter($feedbacks, function($f) use ($modinfo) {
+        return ($cm = $modinfo->get_cm($f->cmid)) && $cm->uservisible;
+    });
 
 }
 

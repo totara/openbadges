@@ -5434,6 +5434,33 @@ function get_mailer($action='get') {
 }
 
 /**
+ * A helper function to test for email diversion
+ *
+ * @param string $email
+ * @return bool Returns true if the email should be diverted
+ */
+function email_should_be_diverted($email) {
+    global $CFG;
+
+    if (empty($CFG->divertallemailsto)) {
+        return false;
+    }
+
+    if (empty($CFG->divertallemailsexcept)) {
+        return true;
+    }
+
+    $patterns = array_map('trim', explode(',', $CFG->divertallemailsexcept));
+    foreach ($patterns as $pattern) {
+        if (preg_match("/$pattern/", $email)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
  * Send an email to a specified user
  *
  * @param stdClass $user  A {@link $USER} object
@@ -5453,7 +5480,7 @@ function get_mailer($action='get') {
 function email_to_user($user, $from, $subject, $messagetext, $messagehtml = '', $attachment = '', $attachname = '',
                        $usetrueaddress = true, $replyto = '', $replytoname = '', $wordwrapwidth = 79) {
 
-    global $CFG;
+    global $CFG, $PAGE, $SITE;
 
     if (empty($user) or empty($user->id)) {
         debugging('Can not send email to null user', DEBUG_DEVELOPER);
@@ -5481,7 +5508,7 @@ function email_to_user($user, $from, $subject, $messagetext, $messagehtml = '', 
         return true;
     }
 
-    if (!empty($CFG->divertallemailsto)) {
+    if (email_should_be_diverted($user->email)) {
         $subject = "[DIVERTED {$user->email}] $subject";
         $user = clone($user);
         $user->email = $CFG->divertallemailsto;
@@ -5571,8 +5598,6 @@ function email_to_user($user, $from, $subject, $messagetext, $messagehtml = '', 
         $tempreplyto[] = array($replyto, $replytoname);
     }
 
-    $mail->Subject = substr($subject, 0, 900);
-
     $temprecipients[] = array($user->email, fullname($user));
 
     // Set word wrap.
@@ -5589,9 +5614,73 @@ function email_to_user($user, $from, $subject, $messagetext, $messagehtml = '', 
         }
     }
 
+    // If the X-PHP-Originating-Script email header is on then also add an additional
+    // header with details of where exactly in moodle the email was triggered from,
+    // either a call to message_send() or to email_to_user().
+    if (ini_get('mail.add_x_header')) {
+
+        $stack = debug_backtrace(false);
+        $origin = $stack[0];
+
+        foreach ($stack as $depth => $call) {
+            if ($call['function'] == 'message_send') {
+                $origin = $call;
+            }
+        }
+
+        $originheader = $CFG->wwwroot . ' => ' . gethostname() . ':'
+             . str_replace($CFG->dirroot . '/', '', $origin['file']) . ':' . $origin['line'];
+        $mail->addCustomHeader('X-Moodle-Originating-Script: ' . $originheader);
+    }
+
     if (!empty($from->priority)) {
         $mail->Priority = $from->priority;
     }
+
+    $renderer = $PAGE->get_renderer('core');
+    $context = array(
+        'sitefullname' => $SITE->fullname,
+        'siteshortname' => $SITE->shortname,
+        'sitewwwroot' => $CFG->wwwroot,
+        'subject' => $subject,
+        'to' => $user->email,
+        'toname' => fullname($user),
+        'from' => $mail->From,
+        'fromname' => $mail->FromName,
+    );
+    if (!empty($tempreplyto[0])) {
+        $context['replyto'] = $tempreplyto[0][0];
+        $context['replytoname'] = $tempreplyto[0][1];
+    }
+    if ($user->id > 0) {
+        $context['touserid'] = $user->id;
+        $context['tousername'] = $user->username;
+    }
+
+    if (!empty($user->mailformat) && $user->mailformat == 1) {
+        // Only process html templates if the user preferences allow html email.
+
+        if ($messagehtml) {
+            // If html has been given then pass it through the template.
+            $context['body'] = $messagehtml;
+            $messagehtml = $renderer->render_from_template('core/email_html', $context);
+
+        } else {
+            // If no html has been given, BUT there is an html wrapping template then
+            // auto convert the text to html and then wrap it.
+            $autohtml = trim(text_to_html($messagetext));
+            $context['body'] = $autohtml;
+            $temphtml = $renderer->render_from_template('core/email_html', $context);
+            if ($autohtml != $temphtml) {
+                $messagehtml = $temphtml;
+            }
+        }
+    }
+
+    $context['body'] = $messagetext;
+    $mail->Subject = $renderer->render_from_template('core/email_subject', $context);
+    $mail->FromName = $renderer->render_from_template('core/email_fromname', $context);
+    $messagetext = $renderer->render_from_template('core/email_text', $context);
 
     if ($messagehtml && !empty($user->mailformat) && $user->mailformat == 1) {
         // Don't ever send HTML to users who don't want it.
@@ -6146,7 +6235,7 @@ function get_user_max_upload_file_size($context, $sitebytes = 0, $coursebytes = 
     }
 
     if (has_capability('moodle/course:ignorefilesizelimits', $context, $user)) {
-        return USER_CAN_IGNORE_FILE_SIZE_LIMITS;
+        return get_max_upload_file_size(USER_CAN_IGNORE_FILE_SIZE_LIMITS);
     }
 
     return get_max_upload_file_size($sitebytes, $coursebytes, $modulebytes);
@@ -7530,7 +7619,7 @@ function count_words($string) {
     // Replace underscores (which are classed as word characters) with spaces.
     $string = preg_replace('/_/u', ' ', $string);
     // Remove any characters that shouldn't be treated as word boundaries.
-    $string = preg_replace('/[\'’-]/u', '', $string);
+    $string = preg_replace('/[\'"’-]/u', '', $string);
     // Remove dots and commas from within numbers only.
     $string = preg_replace('/([0-9])[.,]([0-9])/u', '$1$2', $string);
 
@@ -8402,7 +8491,7 @@ function address_in_subnet($addr, $subnetstr) {
  */
 function mtrace($string, $eol="\n", $sleep=0) {
 
-    if (defined('STDOUT') and !PHPUNIT_TEST) {
+    if (defined('STDOUT') && !PHPUNIT_TEST && !defined('BEHAT_TEST')) {
         fwrite(STDOUT, $string.$eol);
     } else {
         echo $string . $eol;
@@ -8922,15 +9011,6 @@ function get_performance_info() {
 
     $info['html'] = '<div class="performanceinfo siteinfo">'.$info['html'].'</div>';
     return $info;
-}
-
-/**
- * Legacy function.
- *
- * @todo Document this function linux people
- */
-function apd_get_profiling() {
-    return shell_exec('pprofp -u ' . ini_get('apd.dumpdir') . '/pprof.' . getmypid() . '.*');
 }
 
 /**

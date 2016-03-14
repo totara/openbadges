@@ -406,6 +406,7 @@ class assign {
      * @return string - The page output.
      */
     public function view($action='') {
+        global $PAGE;
 
         $o = '';
         $mform = null;
@@ -529,6 +530,10 @@ class assign {
                               'useridlistid' => optional_param('useridlistid', $this->get_useridlist_key_id(), PARAM_ALPHANUM));
         $this->register_return_link($action, $returnparams);
 
+        // Include any page action as part of the body tag CSS id.
+        if (!empty($action)) {
+            $PAGE->set_pagetype('mod-assign-' . $action);
+        }
         // Now show the right view page.
         if ($action == 'redirect') {
             $nextpageurl = new moodle_url('/mod/assign/view.php', $nextpageparams);
@@ -2722,26 +2727,35 @@ class assign {
 
                 if ($this->is_blind_marking()) {
                     $prefix = str_replace('_', ' ', $groupname . get_string('participant', 'assign'));
-                    $prefix = clean_filename($prefix . '_' . $this->get_uniqueid_for_user($userid) . '_');
+                    $prefix = clean_filename($prefix . '_' . $this->get_uniqueid_for_user($userid));
                 } else {
                     $prefix = str_replace('_', ' ', $groupname . fullname($student));
-                    $prefix = clean_filename($prefix . '_' . $this->get_uniqueid_for_user($userid) . '_');
+                    $prefix = clean_filename($prefix . '_' . $this->get_uniqueid_for_user($userid));
                 }
 
                 if ($submission) {
                     foreach ($this->submissionplugins as $plugin) {
                         if ($plugin->is_enabled() && $plugin->is_visible()) {
                             $pluginfiles = $plugin->get_files($submission, $student);
-                            foreach ($pluginfiles as $zipfilename => $file) {
+                            foreach ($pluginfiles as $zipfilepath => $file) {
                                 $subtype = $plugin->get_subtype();
                                 $type = $plugin->get_type();
+                                $zipfilename = basename($zipfilepath);
                                 $prefixedfilename = clean_filename($prefix .
+                                                                   '_' .
                                                                    $subtype .
                                                                    '_' .
                                                                    $type .
-                                                                   '_' .
-                                                                   $zipfilename);
-                                $filesforzipping[$prefixedfilename] = $file;
+                                                                   '_');
+                                if ($type == 'file') {
+                                    $pathfilename = $prefixedfilename . $file->get_filepath() . $zipfilename;
+                                } else if ($type == 'onlinetext') {
+                                    $pathfilename = $prefixedfilename . '/' . $zipfilename;
+                                } else {
+                                    $pathfilename = $prefixedfilename . '/' . $zipfilename;
+                                }
+                                $pathfilename = clean_param($pathfilename, PARAM_PATH);
+                                $filesforzipping[$pathfilename] = $file;
                             }
                         }
                     }
@@ -5399,6 +5413,7 @@ class assign {
         // Gets a list of possible users and look for values based upon that.
         foreach ($participants as $userid => $unused) {
             $modified = optional_param('grademodified_' . $userid, -1, PARAM_INT);
+            $attemptnumber = optional_param('gradeattempt_' . $userid, -1, PARAM_INT);
             // Gather the userid, updated grade and last modified value.
             $record = new stdClass();
             $record->userid = $userid;
@@ -5410,6 +5425,7 @@ class assign {
                 // This user was not in the grading table.
                 continue;
             }
+            $record->attemptnumber = $attemptnumber;
             $record->lastmodified = $modified;
             $record->gradinginfo = grade_get_grades($this->get_course()->id,
                                                     'mod',
@@ -5428,19 +5444,20 @@ class assign {
         $params['assignid2'] = $this->get_instance()->id;
 
         // Check them all for currency.
-        $grademaxattempt = 'SELECT mxg.userid, MAX(mxg.attemptnumber) AS maxattempt
-                            FROM {assign_grades} mxg
-                            WHERE mxg.assignment = :assignid1 GROUP BY mxg.userid';
+        $grademaxattempt = 'SELECT s.userid, s.attemptnumber AS maxattempt
+                              FROM {assign_submission} s
+                             WHERE s.assignment = :assignid1 AND s.latest = 1';
 
-        $sql = 'SELECT u.id as userid, g.grade as grade, g.timemodified as lastmodified, uf.workflowstate, uf.allocatedmarker
-                    FROM {user} u
-                LEFT JOIN ( ' . $grademaxattempt . ' ) gmx ON u.id = gmx.userid
-                LEFT JOIN {assign_grades} g ON
-                    u.id = g.userid AND
-                    g.assignment = :assignid2 AND
-                    g.attemptnumber = gmx.maxattempt
-                LEFT JOIN {assign_user_flags} uf ON uf.assignment = g.assignment AND uf.userid = g.userid
-                WHERE u.id ' . $userids;
+        $sql = 'SELECT u.id AS userid, g.grade AS grade, g.timemodified AS lastmodified,
+                       uf.workflowstate, uf.allocatedmarker, gmx.maxattempt AS attemptnumber
+                  FROM {user} u
+             LEFT JOIN ( ' . $grademaxattempt . ' ) gmx ON u.id = gmx.userid
+             LEFT JOIN {assign_grades} g ON
+                       u.id = g.userid AND
+                       g.assignment = :assignid2 AND
+                       g.attemptnumber = gmx.maxattempt
+             LEFT JOIN {assign_user_flags} uf ON uf.assignment = g.assignment AND uf.userid = g.userid
+                 WHERE u.id ' . $userids;
         $currentgrades = $DB->get_recordset_sql($sql, $params);
 
         $modifiedusers = array();
@@ -5504,7 +5521,9 @@ class assign {
                 if ($this->grading_disabled($modified->userid)) {
                     continue;
                 }
-                if ((int)$current->lastmodified > (int)$modified->lastmodified) {
+                $badmodified = (int)$current->lastmodified > (int)$modified->lastmodified;
+                $badattempt = (int)$current->attemptnumber != (int)$modified->attemptnumber;
+                if ($badmodified || $badattempt) {
                     // Error - record has been modified since viewing the page.
                     return get_string('errorrecordmodified', 'assign');
                 } else {
@@ -5985,6 +6004,17 @@ class assign {
         }
 
         $this->update_submission($submission, $userid, true, $instance->teamsubmission);
+
+        if ($instance->teamsubmission && !$instance->requireallteammemberssubmit) {
+            $team = $this->get_submission_group_members($submission->groupid, true);
+
+            foreach ($team as $member) {
+                if ($member->id != $userid) {
+                    $membersubmission = clone($submission);
+                    $this->update_submission($membersubmission, $member->id, true, $instance->teamsubmission);
+                }
+            }
+        }
 
         // Logging.
         if (isset($data->submissionstatement) && ($userid == $USER->id)) {
@@ -6822,12 +6852,19 @@ class assign {
         $adminconfig = $this->get_admin_config();
         $gradebookplugin = $adminconfig->feedback_plugin_for_gradebook;
 
+        $feedbackmodified = false;
+
         // Call save in plugins.
         foreach ($this->feedbackplugins as $plugin) {
             if ($plugin->is_enabled() && $plugin->is_visible()) {
-                if (!$plugin->save($grade, $formdata)) {
-                    $result = false;
-                    print_error($plugin->get_error());
+                $gradingmodified = $plugin->is_feedback_modified($grade, $formdata);
+                if ($gradingmodified) {
+                    if (!$plugin->save($grade, $formdata)) {
+                        $result = false;
+                        print_error($plugin->get_error());
+                    }
+                    // If $feedbackmodified is true, keep it true.
+                    $feedbackmodified = $feedbackmodified || $gradingmodified;
                 }
                 if (('assignfeedback_' . $plugin->get_type()) == $gradebookplugin) {
                     // This is the feedback plugin chose to push comments to the gradebook.
@@ -6836,10 +6873,12 @@ class assign {
                 }
             }
         }
+
         // We do not want to update the timemodified if no grade was added.
         if (!empty($formdata->addattempt) ||
                 ($originalgrade !== null && $originalgrade != -1) ||
-                ($grade->grade !== null && $grade->grade != -1)) {
+                ($grade->grade !== null && $grade->grade != -1) ||
+                $feedbackmodified) {
             $this->update_grade($grade, !empty($formdata->addattempt));
         }
         // Note the default if not provided for this option is true (e.g. webservices).

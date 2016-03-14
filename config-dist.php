@@ -298,6 +298,11 @@ $CFG->admin = 'admin';
 // This setting will make some graphs (eg user logs) use lines instead of bars
 //      $CFG->preferlinegraphs = true;
 //
+// This setting allows you to specify a class to rewrite outgoing urls
+// enabling 'clean urls' in conjunction with an apache / nginx handler.
+// The handler must implement \core\output\url_rewriter.
+//      $CFG->urlrewriteclass = '\local_cleanurls\url_rewriter';
+//
 // Enabling this will allow custom scripts to replace existing moodle scripts.
 // For example: if $CFG->customscripts/course/view.php exists then
 // it will be used instead of $CFG->wwwroot/course/view.php
@@ -589,6 +594,10 @@ $CFG->admin = 'admin';
 // Divert all outgoing emails to this address to test and debug emailing features
 // $CFG->divertallemailsto = 'root@localhost.local'; // NOT FOR PRODUCTION SERVERS!
 //
+// Except for certain email addresses you want to let through for testing. Accepts
+// a comma separated list of regexes.
+// $CFG->divertallemailsexcept = 'tester@dev.com, fred(\+.*)?@example.com'; // NOT FOR PRODUCTION SERVERS!
+//
 // Uncomment if you want to allow empty comments when modifying install.xml files.
 // $CFG->xmldbdisablecommentchecking = true;    // NOT FOR PRODUCTION SERVERS!
 //
@@ -797,11 +806,6 @@ $CFG->admin = 'admin';
 // there are no spaces in the path - if necessary copy the files 'gswin32c.exe'
 // and 'gsdll32.dll' to a new folder without a space in the path)
 //      $CFG->pathtogs = '/usr/bin/gs';
-//
-// Clam AV path.
-// Probably something like /usr/bin/clamscan or /usr/bin/clamdscan. You need
-// this in order for clam AV to run.
-//      $CFG->pathtoclam = '';
 //
 // Path to du.
 // Probably something like /usr/bin/du. If you enter this, pages that display

@@ -151,6 +151,11 @@ function add_moduleinfo($moduleinfo, $course, $mform = null) {
         $DB->set_field($moduleinfo->modulename, 'intro', $moduleinfo->intro, array('id'=>$moduleinfo->instance));
     }
 
+    // Add module tags.
+    if (core_tag_tag::is_enabled('core', 'course_modules') && isset($moduleinfo->tags)) {
+        core_tag_tag::set_item_tags('core', 'course_modules', $moduleinfo->coursemodule, $modcontext, $moduleinfo->tags);
+    }
+
     // Course_modules and course_sections each contain a reference to each other.
     // So we have to update one of them twice.
     $sectionid = course_add_cm_to_section($course, $moduleinfo->coursemodule, $moduleinfo->section);
@@ -453,6 +458,11 @@ function can_update_moduleinfo($cm) {
 function update_moduleinfo($cm, $moduleinfo, $course, $mform = null) {
     global $DB, $CFG;
 
+    $data = new stdClass();
+    if ($mform) {
+        $data = $mform->get_data();
+    }
+
     // Attempt to include module library before we make any changes to DB.
     include_modulelib($moduleinfo->modulename);
 
@@ -523,9 +533,44 @@ function update_moduleinfo($cm, $moduleinfo, $course, $mform = null) {
         $moduleinfo->introformat = $moduleinfo->introeditor['format'];
         unset($moduleinfo->introeditor);
     }
+    // Get the a copy of the grade_item before it is modified incase we need to scale the grades.
+    $oldgradeitem = null;
+    $newgradeitem = null;
+    if (!empty($data->grade_rescalegrades) && $data->grade_rescalegrades == 'yes') {
+        // Fetch the grade item before it is updated.
+        $oldgradeitem = grade_item::fetch(array('itemtype' => 'mod',
+                                                'itemmodule' => $moduleinfo->modulename,
+                                                'iteminstance' => $moduleinfo->instance,
+                                                'itemnumber' => 0,
+                                                'courseid' => $moduleinfo->course));
+    }
+
     $updateinstancefunction = $moduleinfo->modulename."_update_instance";
     if (!$updateinstancefunction($moduleinfo, $mform)) {
-        print_error('cannotupdatemod', '', course_get_url($course, $cw->section), $moduleinfo->modulename);
+        print_error('cannotupdatemod', '', course_get_url($course, $cm->section), $moduleinfo->modulename);
+    }
+
+    // This needs to happen AFTER the grademin/grademax have already been updated.
+    if (!empty($data->grade_rescalegrades) && $data->grade_rescalegrades == 'yes') {
+        // Get the grade_item after the update call the activity to scale the grades.
+        $newgradeitem = grade_item::fetch(array('itemtype' => 'mod',
+                                                'itemmodule' => $moduleinfo->modulename,
+                                                'iteminstance' => $moduleinfo->instance,
+                                                'itemnumber' => 0,
+                                                'courseid' => $moduleinfo->course));
+        if ($newgradeitem && $oldgradeitem->gradetype == GRADE_TYPE_VALUE && $newgradeitem->gradetype == GRADE_TYPE_VALUE) {
+            $params = array(
+                $course,
+                $cm,
+                $oldgradeitem->grademin,
+                $oldgradeitem->grademax,
+                $newgradeitem->grademin,
+                $newgradeitem->grademax
+            );
+            if (!component_callback('mod_' . $moduleinfo->modulename, 'rescale_activity_grades', $params)) {
+                print_error('cannotreprocessgrades', '', course_get_url($course, $cm->section), $moduleinfo->modulename);
+            }
+        }
     }
 
     // Make sure visibility is set correctly (in particular in calendar).
@@ -536,6 +581,11 @@ function update_moduleinfo($cm, $moduleinfo, $course, $mform = null) {
     if (isset($moduleinfo->cmidnumber)) { // Label.
         // Set cm idnumber - uniqueness is already verified by form validation.
         set_coursemodule_idnumber($moduleinfo->coursemodule, $moduleinfo->cmidnumber);
+    }
+
+    // Update module tags.
+    if (core_tag_tag::is_enabled('core', 'course_modules') && isset($moduleinfo->tags)) {
+        core_tag_tag::set_item_tags('core', 'course_modules', $moduleinfo->coursemodule, $modcontext, $moduleinfo->tags);
     }
 
     // Now that module is fully updated, also update completion data if required.

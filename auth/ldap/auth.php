@@ -113,31 +113,7 @@ class auth_plugin_ldap extends auth_plugin_base {
         }
 
         // Hack prefix to objectclass
-        if (empty($this->config->objectclass)) {
-            // Can't send empty filter
-            $this->config->objectclass = '(objectClass=*)';
-        } else if (stripos($this->config->objectclass, 'objectClass=') === 0) {
-            // Value is 'objectClass=some-string-here', so just add ()
-            // around the value (filter _must_ have them).
-            $this->config->objectclass = '('.$this->config->objectclass.')';
-        } else if (strpos($this->config->objectclass, '(') !== 0) {
-            // Value is 'some-string-not-starting-with-left-parentheses',
-            // which is assumed to be the objectClass matching value.
-            // So build a valid filter with it.
-            $this->config->objectclass = '(objectClass='.$this->config->objectclass.')';
-        } else {
-            // There is an additional possible value
-            // '(some-string-here)', that can be used to specify any
-            // valid filter string, to select subsets of users based
-            // on any criteria. For example, we could select the users
-            // whose objectClass is 'user' and have the
-            // 'enabledMoodleUser' attribute, with something like:
-            //
-            //   (&(objectClass=user)(enabledMoodleUser=1))
-            //
-            // In this particular case we don't need to do anything,
-            // so leave $this->config->objectclass as is.
-        }
+        $this->config->objectclass = ldap_normalise_objectclass($this->config->objectclass);
     }
 
     /**
@@ -2081,7 +2057,23 @@ class auth_plugin_ldap extends auth_plugin_base {
         $entry = ldap_get_entries_moodle($ldapconn, $sr);
         $info = array_change_key_case($entry[0], CASE_LOWER);
         $maxpwdage = $info['maxpwdage'][0];
+        if ($sr = ldap_read($ldapconn, $user_dn, '(objectClass=*)', array('msDS-ResultantPSO'))) {
+            if ($entry = ldap_get_entries_moodle($ldapconn, $sr)) {
+                $info = array_change_key_case($entry[0], CASE_LOWER);
+                $userpso = $info['msds-resultantpso'][0];
 
+                // If a PSO exists, FGPP is being utilized.
+                // Grab the new maxpwdage from the msDS-MaximumPasswordAge attribute of the PSO.
+                if (!empty($userpso)) {
+                    $sr = ldap_read($ldapconn, $userpso, '(objectClass=*)', array('msDS-MaximumPasswordAge'));
+                    if ($entry = ldap_get_entries_moodle($ldapconn, $sr)) {
+                        $info = array_change_key_case($entry[0], CASE_LOWER);
+                        // Default value of msds-maximumpasswordage is 42 and is always set.
+                        $maxpwdage = $info['msds-maximumpasswordage'][0];
+                    }
+                }
+            }
+        }
         // ----------------------------------------------------------------
         // MSDN says that "pwdLastSet contains the number of 100 nanosecond
         // intervals since January 1, 1601 (UTC), stored in a 64 bit integer".

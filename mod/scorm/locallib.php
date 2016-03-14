@@ -237,12 +237,12 @@ function scorm_parse($scorm, $full) {
                 // Sorry - localsync disabled.
                 return;
             }
-            if ($scorm->reference !== '' and (!$full or $scorm->sha1hash !== sha1($scorm->reference))) {
+            if ($scorm->reference !== '') {
                 $fs->delete_area_files($context->id, 'mod_scorm', 'package');
                 $filerecord = array('contextid' => $context->id, 'component' => 'mod_scorm', 'filearea' => 'package',
                                     'itemid' => 0, 'filepath' => '/');
-                if ($packagefile = $fs->create_file_from_url($filerecord, $scorm->reference, array('calctimeout' => true))) {
-                    $newhash = sha1($scorm->reference);
+                if ($packagefile = $fs->create_file_from_url($filerecord, $scorm->reference, array('calctimeout' => true), true)) {
+                    $newhash = $packagefile->get_contenthash();
                 } else {
                     $newhash = null;
                 }
@@ -812,8 +812,9 @@ function scorm_get_last_completed_attempt($scormid, $userid) {
     $sql = "SELECT MAX(attempt)
               FROM {scorm_scoes_track}
              WHERE userid = ? AND scormid = ?
-               AND (value='completed' OR value='passed')";
-    $lastattempt = $DB->get_field_sql($sql, array($userid, $scormid));
+               AND (".$DB->sql_compare_text('value')." = ".$DB->sql_compare_text('?')." OR ".
+                      $DB->sql_compare_text('value')." = ".$DB->sql_compare_text('?').")";
+    $lastattempt = $DB->get_field_sql($sql, array($userid, $scormid, 'completed', 'passed'));
     if (empty($lastattempt)) {
         return '1';
     } else {

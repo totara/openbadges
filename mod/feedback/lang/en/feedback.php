@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['add_item'] = 'Add question to activity';
+$string['add_item'] = 'Add question';
 $string['add_pagebreak'] = 'Add a page break';
 $string['adjustment'] = 'Adjustment';
 $string['after_submit'] = 'After submission';
@@ -38,6 +38,7 @@ $string['autonumbering_help'] = 'Enables or disables automated numbers for each 
 $string['average'] = 'Average';
 $string['bold'] = 'Bold';
 $string['cancel_moving'] = 'Cancel moving';
+$string['cannotaccess'] = 'You can only access this feedback from a course';
 $string['cannotmapfeedback'] = 'Database problem, unable to map feedback to course';
 $string['cannotsavetempl'] = 'saving templates is not allowed';
 $string['cannotunmap'] = 'Database problem, unable to unmap';
@@ -143,6 +144,7 @@ To keep the feedback anonymous, a minimum of 2 responses must be done.';
 $string['item_label'] = 'Label';
 $string['item_name'] = 'Question';
 $string['label'] = 'Label';
+$string['labelcontents'] = 'Contents';
 $string['line_values'] = 'Rating';
 $string['mapcourseinfo'] = 'This is a site-wide feedback that is available to all courses using the feedback block. You can however limit the courses to which it will appear by mapping them. Search the course and map it to this feedback.';
 $string['mapcoursenone'] = 'No courses mapped. Feedback available to all courses';
@@ -241,6 +243,7 @@ $string['save_entries'] = 'Submit your answers';
 $string['save_item'] = 'Save question';
 $string['saving_failed'] = 'Saving failed';
 $string['saving_failed_because_missing_or_false_values'] = 'Saving failed because missing or false values';
+$string['search:activity'] = 'Feedback activities';
 $string['search_course'] = 'Search course';
 $string['searchcourses'] = 'Search courses';
 $string['searchcourses_help'] = 'Search for the code or name of the course(s) that you wish to associate with this feedback.';

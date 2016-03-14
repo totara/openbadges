@@ -946,6 +946,16 @@ class mod_assign_external_testcase extends externallib_advanced_testcase {
 
         $this->assertEquals(0, count($result));
 
+        // Set up a due and cutoff passed date.
+        $instance->duedate = time() - WEEKSECS;
+        $instance->cutoffdate = time() - WEEKSECS;
+        $DB->update_record('assign', $instance);
+
+        $result = mod_assign_external::save_submission($instance->id, $submissionpluginparams);
+        $result = external_api::clean_returnvalue(mod_assign_external::save_submission_returns(), $result);
+
+        $this->assertCount(1, $result);
+        $this->assertEquals(get_string('duedatereached', 'assign'), $result[0]['item']);
     }
 
     /**
@@ -1489,12 +1499,11 @@ class mod_assign_external_testcase extends externallib_advanced_testcase {
     /**
      * Test view_grading_table
      */
-    public function test_view_grading_table() {
+    public function test_view_grading_table_invalid_instance() {
         global $DB;
 
         $this->resetAfterTest(true);
 
-        $this->setAdminUser();
         // Setup test data.
         $course = $this->getDataGenerator()->create_course();
         $assign = $this->getDataGenerator()->create_module('assign', array('course' => $course->id));
@@ -1502,24 +1511,49 @@ class mod_assign_external_testcase extends externallib_advanced_testcase {
         $cm = get_coursemodule_from_instance('assign', $assign->id);
 
         // Test invalid instance id.
-        try {
-            mod_assign_external::view_grading_table(0);
-            $this->fail('Exception expected due to invalid mod_assign instance id.');
-        } catch (moodle_exception $e) {
-            $this->assertEquals('invalidrecord', $e->errorcode);
-        }
+        $this->setExpectedExceptionRegexp('dml_missing_record_exception');
+        mod_assign_external::view_grading_table(0);
+    }
+
+    /**
+     * Test view_grading_table
+     */
+    public function test_view_grading_table_not_enrolled() {
+        global $DB;
+
+        $this->resetAfterTest(true);
+
+        // Setup test data.
+        $course = $this->getDataGenerator()->create_course();
+        $assign = $this->getDataGenerator()->create_module('assign', array('course' => $course->id));
+        $context = context_module::instance($assign->cmid);
+        $cm = get_coursemodule_from_instance('assign', $assign->id);
 
         // Test not-enrolled user.
         $user = self::getDataGenerator()->create_user();
         $this->setUser($user);
-        try {
-            mod_assign_external::view_grading_table($assign->id);
-            $this->fail('Exception expected due to not enrolled user.');
-        } catch (moodle_exception $e) {
-            $this->assertEquals('requireloginerror', $e->errorcode);
-        }
+
+        $this->setExpectedException('require_login_exception');
+        mod_assign_external::view_grading_table($assign->id);
+    }
+
+    /**
+     * Test view_grading_table
+     */
+    public function test_view_grading_table_correct() {
+        global $DB;
+
+        $this->resetAfterTest(true);
+
+        // Setup test data.
+        $course = $this->getDataGenerator()->create_course();
+        $assign = $this->getDataGenerator()->create_module('assign', array('course' => $course->id));
+        $context = context_module::instance($assign->cmid);
+        $cm = get_coursemodule_from_instance('assign', $assign->id);
 
         // Test user with full capabilities.
+        $user = self::getDataGenerator()->create_user();
+        $this->setUser($user);
         $teacherrole = $DB->get_record('role', array('shortname' => 'teacher'));
         $this->getDataGenerator()->enrol_user($user->id, $course->id, $teacherrole->id);
 
@@ -1540,19 +1574,149 @@ class mod_assign_external_testcase extends externallib_advanced_testcase {
         $this->assertEquals($moodleurl, $event->get_url());
         $this->assertEventContextNotUsed($event);
         $this->assertNotEmpty($event->get_name());
+    }
+
+    /**
+     * Test view_grading_table
+     */
+    public function test_view_grading_table_without_capability() {
+        global $DB;
+
+        $this->resetAfterTest(true);
+
+        // Setup test data.
+        $course = $this->getDataGenerator()->create_course();
+        $assign = $this->getDataGenerator()->create_module('assign', array('course' => $course->id));
+        $context = context_module::instance($assign->cmid);
+        $cm = get_coursemodule_from_instance('assign', $assign->id);
+
+        // Test user with no capabilities.
+        $user = self::getDataGenerator()->create_user();
+        $this->setUser($user);
+        $teacherrole = $DB->get_record('role', array('shortname' => 'teacher'));
+        $this->getDataGenerator()->enrol_user($user->id, $course->id, $teacherrole->id);
+
+        // We need a explicit prohibit since this capability is only defined in authenticated user and guest roles.
+        $teacherrole = $DB->get_record('role', array('shortname' => 'teacher'));
+        assign_capability('mod/assign:view', CAP_PROHIBIT, $teacherrole->id, $context->id);
+        // Empty all the caches that may be affected by this change.
+        accesslib_clear_all_caches_for_unit_testing();
+        course_modinfo::clear_instance_cache();
+
+        $this->setExpectedException('require_login_exception', 'Course or activity not accessible. (Activity is hidden)');
+        mod_assign_external::view_grading_table($assign->id);
+    }
+
+    /**
+     * Test subplugins availability
+     */
+    public function test_subplugins_availability() {
+        global $CFG;
+
+        require_once($CFG->dirroot . '/mod/assign/adminlib.php');
+        $this->resetAfterTest(true);
+
+        // Hide assignment file submissiong plugin.
+        $pluginmanager = new assign_plugin_manager('assignsubmission');
+        $pluginmanager->hide_plugin('file');
+        $parameters = mod_assign_external::save_submission_parameters();
+
+        $this->assertTrue(!isset($parameters->keys['plugindata']->keys['files_filemanager']));
+
+        // Show it again and check that the value is returned as optional.
+        $pluginmanager->show_plugin('file');
+        $parameters = mod_assign_external::save_submission_parameters();
+        $this->assertTrue(isset($parameters->keys['plugindata']->keys['files_filemanager']));
+        $this->assertEquals(VALUE_OPTIONAL, $parameters->keys['plugindata']->keys['files_filemanager']->required);
+
+        // Hide feedback file submissiong plugin.
+        $pluginmanager = new assign_plugin_manager('assignfeedback');
+        $pluginmanager->hide_plugin('file');
+
+        $parameters = mod_assign_external::save_grade_parameters();
+
+        $this->assertTrue(!isset($parameters->keys['plugindata']->keys['files_filemanager']));
+
+        // Show it again and check that the value is returned as optional.
+        $pluginmanager->show_plugin('file');
+        $parameters = mod_assign_external::save_grade_parameters();
+
+        $this->assertTrue(isset($parameters->keys['plugindata']->keys['files_filemanager']));
+        $this->assertEquals(VALUE_OPTIONAL, $parameters->keys['plugindata']->keys['files_filemanager']->required);
+
+        // Check a different one.
+        $pluginmanager->show_plugin('comments');
+        $this->assertTrue(isset($parameters->keys['plugindata']->keys['assignfeedbackcomments_editor']));
+        $this->assertEquals(VALUE_OPTIONAL, $parameters->keys['plugindata']->keys['assignfeedbackcomments_editor']->required);
+    }
+
+    /**
+     * Test test_view_submission_status
+     */
+    public function test_view_submission_status() {
+        global $DB;
+
+        $this->resetAfterTest(true);
+
+        $this->setAdminUser();
+        // Setup test data.
+        $course = $this->getDataGenerator()->create_course();
+        $assign = $this->getDataGenerator()->create_module('assign', array('course' => $course->id));
+        $context = context_module::instance($assign->cmid);
+        $cm = get_coursemodule_from_instance('assign', $assign->id);
+
+        // Test invalid instance id.
+        try {
+            mod_assign_external::view_submission_status(0);
+            $this->fail('Exception expected due to invalid mod_assign instance id.');
+        } catch (moodle_exception $e) {
+            $this->assertEquals('invalidrecord', $e->errorcode);
+        }
+
+        // Test not-enrolled user.
+        $user = self::getDataGenerator()->create_user();
+        $this->setUser($user);
+        try {
+            mod_assign_external::view_submission_status($assign->id);
+            $this->fail('Exception expected due to not enrolled user.');
+        } catch (moodle_exception $e) {
+            $this->assertEquals('requireloginerror', $e->errorcode);
+        }
+
+        // Test user with full capabilities.
+        $studentrole = $DB->get_record('role', array('shortname' => 'student'));
+        $this->getDataGenerator()->enrol_user($user->id, $course->id, $studentrole->id);
+
+        // Trigger and capture the event.
+        $sink = $this->redirectEvents();
+
+        $result = mod_assign_external::view_submission_status($assign->id);
+        $result = external_api::clean_returnvalue(mod_assign_external::view_submission_status_returns(), $result);
+
+        $events = $sink->get_events();
+        $this->assertCount(1, $events);
+        $event = array_shift($events);
+
+        // Checking that the event contains the expected values.
+        $this->assertInstanceOf('\mod_assign\event\submission_status_viewed', $event);
+        $this->assertEquals($context, $event->get_context());
+        $moodleurl = new \moodle_url('/mod/assign/view.php', array('id' => $cm->id));
+        $this->assertEquals($moodleurl, $event->get_url());
+        $this->assertEventContextNotUsed($event);
+        $this->assertNotEmpty($event->get_name());
 
         // Test user with no capabilities.
         // We need a explicit prohibit since this capability is only defined in authenticated user and guest roles.
-        assign_capability('mod/assign:view', CAP_PROHIBIT, $teacherrole->id, $context->id);
+        assign_capability('mod/assign:view', CAP_PROHIBIT, $studentrole->id, $context->id);
         accesslib_clear_all_caches_for_unit_testing();
+        course_modinfo::clear_instance_cache();
 
         try {
-            mod_assign_external::view_grading_table($assign->id);
+            mod_assign_external::view_submission_status($assign->id);
             $this->fail('Exception expected due to missing capability.');
         } catch (moodle_exception $e) {
-            $this->assertEquals('nopermissions', $e->errorcode);
+            $this->assertEquals('requireloginerror', $e->errorcode);
         }
-
     }
 
 }

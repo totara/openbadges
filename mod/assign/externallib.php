@@ -1639,9 +1639,11 @@ class mod_assign_external extends external_api {
         $pluginsubmissionparams = array();
 
         foreach ($instance->get_submission_plugins() as $plugin) {
-            $pluginparams = $plugin->get_external_parameters();
-            if (!empty($pluginparams)) {
-                $pluginsubmissionparams = array_merge($pluginsubmissionparams, $pluginparams);
+            if ($plugin->is_visible()) {
+                $pluginparams = $plugin->get_external_parameters();
+                if (!empty($pluginparams)) {
+                    $pluginsubmissionparams = array_merge($pluginsubmissionparams, $pluginparams);
+                }
             }
         }
 
@@ -1679,9 +1681,12 @@ class mod_assign_external extends external_api {
 
         $notices = array();
 
-        $submissiondata = (object)$params['plugindata'];
-
-        $assignment->save_submission($submissiondata, $notices);
+        if (!$assignment->submissions_open($USER->id)) {
+            $notices[] = get_string('duedatereached', 'assign');
+        } else {
+            $submissiondata = (object)$params['plugindata'];
+            $assignment->save_submission($submissiondata, $notices);
+        }
 
         $warnings = array();
         foreach ($notices as $notice) {
@@ -1716,9 +1721,11 @@ class mod_assign_external extends external_api {
         $pluginfeedbackparams = array();
 
         foreach ($instance->get_feedback_plugins() as $plugin) {
-            $pluginparams = $plugin->get_external_parameters();
-            if (!empty($pluginparams)) {
-                $pluginfeedbackparams = array_merge($pluginfeedbackparams, $pluginparams);
+            if ($plugin->is_visible()) {
+                $pluginparams = $plugin->get_external_parameters();
+                if (!empty($pluginparams)) {
+                    $pluginfeedbackparams = array_merge($pluginfeedbackparams, $pluginparams);
+                }
             }
         }
 
@@ -1856,9 +1863,11 @@ class mod_assign_external extends external_api {
         $pluginfeedbackparams = array();
 
         foreach ($instance->get_feedback_plugins() as $plugin) {
-            $pluginparams = $plugin->get_external_parameters();
-            if (!empty($pluginparams)) {
-                $pluginfeedbackparams = array_merge($pluginfeedbackparams, $pluginparams);
+            if ($plugin->is_visible()) {
+                $pluginparams = $plugin->get_external_parameters();
+                if (!empty($pluginparams)) {
+                    $pluginfeedbackparams = array_merge($pluginfeedbackparams, $pluginparams);
+                }
             }
         }
 
@@ -2116,4 +2125,67 @@ class mod_assign_external extends external_api {
             )
         );
     }
+    /**
+     * Describes the parameters for view_submission_status.
+     *
+     * @return external_external_function_parameters
+     * @since Moodle 3.1
+     */
+    public static function view_submission_status_parameters() {
+        return new external_function_parameters (
+            array(
+                'assignid' => new external_value(PARAM_INT, 'assign instance id'),
+            )
+        );
+    }
+
+    /**
+     * Trigger the submission status viewed event.
+     *
+     * @param int $assignid assign instance id
+     * @return array of warnings and status result
+     * @since Moodle 3.1
+     */
+    public static function view_submission_status($assignid) {
+        global $DB, $CFG;
+        require_once("$CFG->dirroot/mod/assign/locallib.php");
+
+        $warnings = array();
+        $params = array(
+            'assignid' => $assignid,
+        );
+        $params = self::validate_parameters(self::view_submission_status_parameters(), $params);
+
+        // Request and permission validation.
+        $assign = $DB->get_record('assign', array('id' => $params['assignid']), 'id', MUST_EXIST);
+        list($course, $cm) = get_course_and_cm_from_instance($assign, 'assign');
+
+        $context = context_module::instance($cm->id);
+        // Please, note that is not required to check mod/assign:view because is done by validate_context->require_login.
+        self::validate_context($context);
+
+        $assign = new assign($context, $cm, $course);
+        \mod_assign\event\submission_status_viewed::create_from_assign($assign)->trigger();
+
+        $result = array();
+        $result['status'] = true;
+        $result['warnings'] = $warnings;
+        return $result;
+    }
+
+    /**
+     * Describes the view_submission_status return value.
+     *
+     * @return external_single_structure
+     * @since Moodle 3.1
+     */
+    public static function view_submission_status_returns() {
+        return new external_single_structure(
+            array(
+                'status' => new external_value(PARAM_BOOL, 'status: true if success'),
+                'warnings' => new external_warnings(),
+            )
+        );
+    }
+
 }
